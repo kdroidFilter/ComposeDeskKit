@@ -27,10 +27,12 @@ internal val composeMaterial3Version get() = ComposeBuildConfig.composeMaterial3
 
 abstract class ComposePlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val composeExtension = project.extensions.create("compose", ComposeExtension::class.java, project)
+        val composeExtension = project.extensions.create("composeDeskKit", ComposeExtension::class.java, project)
         val desktopExtension = composeExtension.extensions.create("desktop", DesktopExtension::class.java)
 
-        project.dependencies.extensions.add("compose", Dependencies(project))
+        if ((project.dependencies as? ExtensionAware)?.extensions?.findByName("composeDeskKit") == null) {
+            project.dependencies.extensions.add("composeDeskKit", Dependencies(project))
+        }
 
         if (!project.buildFile.endsWith(".gradle.kts")) {
             setUpGroovyDslExtensions(project)
@@ -151,13 +153,17 @@ private fun composeMaterial3Dependency(groupWithArtifact: String) = "$groupWithA
 private fun setUpGroovyDslExtensions(project: Project) {
     project.plugins.withId("org.jetbrains.kotlin.multiplatform") {
         (project.extensions.getByName("kotlin") as? ExtensionAware)?.apply {
-            extensions.add("compose", ComposePlugin.Dependencies(project))
+            if (extensions.findByName("composeDeskKit") == null) {
+                extensions.add("composeDeskKit", ComposePlugin.Dependencies(project))
+            }
         }
     }
     (project.repositories as? ExtensionAware)?.extensions?.apply {
-        add("jetbrainsCompose", object : Closure<MavenArtifactRepository>(project.repositories) {
-            fun doCall(): MavenArtifactRepository =
-                project.repositories.jetbrainsCompose()
-        })
+        if (findByName("jetbrainsCompose") == null) {
+            add("jetbrainsCompose", object : Closure<MavenArtifactRepository>(project.repositories) {
+                fun doCall(): MavenArtifactRepository =
+                    project.repositories.jetbrainsCompose()
+            })
+        }
     }
 }

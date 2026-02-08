@@ -46,7 +46,7 @@ val buildConfig = tasks.register("buildConfig", GenerateBuildConfig::class.java)
     generatedOutputDir.set(buildConfigDir)
     fieldsToGenerate.put("composeVersion", composeVersion)
     fieldsToGenerate.put("composeMaterial3Version", composeMaterial3Version)
-    fieldsToGenerate.put("composeGradlePluginVersion", pluginVersion)
+    fieldsToGenerate.put("composeGradlePluginVersion", composeVersion)
 }
 tasks.named("compileKotlin", KotlinCompilationTask::class) {
     dependsOn(buildConfig)

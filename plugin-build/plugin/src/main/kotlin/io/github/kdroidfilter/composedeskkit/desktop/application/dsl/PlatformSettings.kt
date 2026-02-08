@@ -93,6 +93,15 @@ abstract class LinuxPlatformSettings : AbstractPlatformSettings() {
     var rpmLicenseType: String? = null
     var debPackageVersion: String? = null
     var rpmPackageVersion: String? = null
+
+    /** Override for StartupWMClass in .desktop file. If null, derived from mainClass. */
+    var startupWMClass: String? = null
+    /** Additional Debian dependencies to inject into the control file. */
+    var debDepends: List<String> = emptyList()
+    /** Additional RPM requires to inject into the spec. */
+    var rpmRequires: List<String> = emptyList()
+    /** Rewrite dependencies for Ubuntu 24.04+ t64 compatibility (e.g. libasound2 -> libasound2t64 | libasound2). */
+    var enableT64AlternativeDeps: Boolean = false
 }
 
 abstract class WindowsPlatformSettings : AbstractPlatformSettings() {

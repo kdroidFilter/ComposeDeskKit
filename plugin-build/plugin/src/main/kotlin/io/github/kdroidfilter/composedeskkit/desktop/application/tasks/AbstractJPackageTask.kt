@@ -37,6 +37,7 @@ import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPl
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPlistBuilder.InfoPlistValue.InfoPlistMapValue
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPlistBuilder.InfoPlistValue.InfoPlistStringValue
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.JvmRuntimeProperties
+import io.github.kdroidfilter.composedeskkit.desktop.application.internal.LinuxPackagePostProcessor
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.MacSigner
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.MacSignerImpl
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.NoCertificateSigner
@@ -198,6 +199,19 @@ abstract class AbstractJPackageTask @Inject constructor(
     @get:Input
     @get:Optional
     val linuxRpmLicenseType: Property<String?> = objects.nullableProperty()
+
+    @get:Input
+    @get:Optional
+    val linuxStartupWMClass: Property<String?> = objects.nullableProperty()
+
+    @get:Input
+    val linuxDebDepends: ListProperty<String> = objects.listProperty(String::class.java)
+
+    @get:Input
+    val linuxRpmRequires: ListProperty<String> = objects.listProperty(String::class.java)
+
+    @get:Input
+    val linuxEnableT64AlternativeDeps: Property<Boolean> = objects.notNullProperty(false)
 
     @get:Input
     @get:Optional
@@ -632,8 +646,40 @@ abstract class AbstractJPackageTask @Inject constructor(
     override fun checkResult(result: ExecResult) {
         super.checkResult(result)
         modifyRuntimeOnMacOsIfNeeded()
+        postProcessLinuxPackageIfNeeded()
         val outputFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
         logger.lifecycle("The distribution is written to ${outputFile.canonicalPath}")
+    }
+
+    private fun postProcessLinuxPackageIfNeeded() {
+        if (currentOS != OS.Linux) return
+
+        val startupWMClass = linuxStartupWMClass.orNull ?: launcherMainClass.get()
+
+        when (targetFormat) {
+            TargetFormat.Deb -> {
+                val debFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
+                LinuxPackagePostProcessor.postProcessDeb(
+                    debFile = debFile,
+                    startupWMClass = startupWMClass,
+                    debDepends = linuxDebDepends.get(),
+                    enableT64 = linuxEnableT64AlternativeDeps.get(),
+                    execOperations = execOperations,
+                    logger = logger
+                )
+            }
+            TargetFormat.Rpm -> {
+                val rpmFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
+                LinuxPackagePostProcessor.postProcessRpm(
+                    rpmFile = rpmFile,
+                    startupWMClass = startupWMClass,
+                    rpmRequires = linuxRpmRequires.get(),
+                    execOperations = execOperations,
+                    logger = logger
+                )
+            }
+            else -> {}
+        }
     }
 
     private fun modifyRuntimeOnMacOsIfNeeded() {
