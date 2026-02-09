@@ -119,23 +119,17 @@ dependencies {
 Recommended app-side pattern using the helper API:
 
 ```kotlin
-import io.github.kdroidfilter.composedeskkit.aot.runtime.AotRuntime
+ if (AotRuntime.isTraining()) {
+    Thread({ Thread.sleep(30_000); System.exit(0) }, "aot-timer")
+        .apply { isDaemon = true; start() }
+}
 
-fun main() {
-    if (AotRuntime.isTraining()) {
-        // Perform any warmup work, then exit cleanly.
-        System.exit(0)
-    }
-
-    if (AotRuntime.isRuntime()) {
-        // Optional runtime-only behavior
-    }
-
-    // normal app startup...
+if (AotRuntime.isRuntime()) {
+    // Optional runtime-only behavior
 }
 ```
 
-The application **must** call `System.exit(0)` during training — the task waits for the process to terminate on its own.
+The application **must** must return an exit code 0.
 
 **Details:**
 - A safety timeout (default **300 seconds**) force-kills the process if it has not exited. Configurable via the task's `safetyTimeoutSeconds` property.
