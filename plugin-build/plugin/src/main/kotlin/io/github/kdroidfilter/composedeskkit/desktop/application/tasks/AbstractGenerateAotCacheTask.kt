@@ -23,7 +23,7 @@ import java.io.File
 
 private const val AOT_CACHE_FILENAME = "app.aot"
 private const val MIN_AOT_JDK_VERSION = 25
-private const val SAFETY_TIMEOUT_EXTRA_SECONDS = 300L
+private const val DEFAULT_SAFETY_TIMEOUT_SECONDS = 300L
 
 /**
  * Generates a JDK 25+ AOT cache for a Compose Desktop distributable.
@@ -35,13 +35,8 @@ private const val SAFETY_TIMEOUT_EXTRA_SECONDS = 300L
  * 4. Runs the app with `-XX:AOTCacheOutput` (single-step AOT, JDK 25+)
  * 5. Injects `-XX:AOTCache=$APPDIR/app.aot` into the `.cfg` file
  *
- * The application **must** self-terminate during training. Recommended app-side pattern:
- * ```
- * System.getProperty("aot.training.autoExit")?.toLongOrNull()?.let { seconds ->
- *     Thread({ Thread.sleep(seconds * 1000); System.exit(0) }, "aot-timer")
- *         .apply { isDaemon = true; start() }
- * }
- * ```
+ * The application **must** self-terminate during training by calling `System.exit(0)`.
+ * Use `AotRuntime.isTraining()` from the `aot-runtime` module to detect training mode.
  */
 @DisableCachingByDefault(because = "AOT cache generation depends on runtime behavior")
 abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
@@ -58,9 +53,10 @@ abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
     @get:Optional
     val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
+    /** Safety timeout in seconds. The task will force-kill the app if it has not exited within this time. */
     @get:Input
-    val trainDurationSeconds: Property<Long> = objects.notNullProperty<Long>().apply {
-        set(60L)
+    val safetyTimeoutSeconds: Property<Long> = objects.notNullProperty<Long>().apply {
+        set(DEFAULT_SAFETY_TIMEOUT_SECONDS)
     }
 
     @TaskAction
@@ -225,12 +221,8 @@ abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
         mainClass: String,
         aotCacheFile: File,
     ) {
-        val trainDuration = trainDurationSeconds.get()
-        val options = javaOptions.toMutableList()
-        options += "-Daot.training.autoExit=$trainDuration"
-
-        logger.lifecycle("[aotCache] Training and creating cache (~${trainDuration}s)...")
-        runAotCacheCreation(javaExe, appDir, classpath, options, mainClass, aotCacheFile, trainDuration)
+        logger.lifecycle("[aotCache] Training – waiting for the application to exit...")
+        runAotCacheCreation(javaExe, appDir, classpath, javaOptions, mainClass, aotCacheFile)
 
         if (!aotCacheFile.exists()) {
             throw GradleException("AOT cache file was not created at ${aotCacheFile.absolutePath}")
@@ -244,7 +236,6 @@ abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
         javaOptions: List<String>,
         mainClass: String,
         aotCacheFile: File,
-        trainDuration: Long,
     ) {
         val args = mutableListOf(javaExe)
         args += "-XX:AOTCacheOutput=${aotCacheFile.absolutePath}"
@@ -275,7 +266,7 @@ abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
 
         val process = processBuilder.start()
 
-        val deadline = System.currentTimeMillis() + (trainDuration + SAFETY_TIMEOUT_EXTRA_SECONDS) * 1000
+        val deadline = System.currentTimeMillis() + safetyTimeoutSeconds.get() * 1000
         while (process.isAlive && System.currentTimeMillis() < deadline) {
             Thread.sleep(500)
         }

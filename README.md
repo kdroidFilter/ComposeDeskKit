@@ -85,8 +85,8 @@ import io.github.kdroidfilter.composedeskkit.aot.runtime.AotRuntime
 
 fun main() {
     if (AotRuntime.isTraining()) {
-        Thread({ Thread.sleep(60_000); System.exit(0) }, "aot-timer")
-            .apply { isDaemon = true; start() }
+        // Perform any warmup work, then exit cleanly.
+        System.exit(0)
     }
 
     if (AotRuntime.isRuntime()) {
@@ -97,8 +97,10 @@ fun main() {
 }
 ```
 
+The application **must** call `System.exit(0)` during training — the task waits for the process to terminate on its own.
+
 **Details:**
-- Default training duration: **60 seconds** (configurable via the task's `trainDurationSeconds` property).
+- A safety timeout (default **300 seconds**) force-kills the process if it has not exited. Configurable via the task's `safetyTimeoutSeconds` property.
 - Auto-provisions a `java` launcher in the bundled runtime if one is missing (Windows: copies essential DLLs).
 - On **headless Linux**, automatically starts Xvfb.
 - AOT cache file is included in the final installer via `--app-image`.
