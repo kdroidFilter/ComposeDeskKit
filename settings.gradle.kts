@@ -25,7 +25,7 @@ develocity {
     }
 }
 
-rootProject.name = "io.github.kdroidfilter.composedeskkit"
+rootProject.name = "ComposeDeskKit"
 
 include(":example")
 include(":aot-runtime")
