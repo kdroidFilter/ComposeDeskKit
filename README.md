@@ -1,95 +1,331 @@
-# kotlin-gradle-plugin-template 🐘
+# ComposeDeskKit
 
-[![Use this template](https://img.shields.io/badge/-Use%20this%20template-brightgreen)](https://github.com/cortinico/kotlin-gradle-plugin-template/generate) [![Pre Merge Checks](https://github.com/cortinico/kotlin-gradle-plugin-template/workflows/Pre%20Merge%20Checks/badge.svg)](https://github.com/cortinico/kotlin-gradle-plugin-template/actions?query=workflow%3A%22Pre+Merge+Checks%22)  [![License](https://img.shields.io/github/license/cortinico/kotlin-android-template.svg)](LICENSE) ![Language](https://img.shields.io/github/languages/top/cortinico/kotlin-android-template?color=blue&logo=kotlin)
+[![Pre Merge Checks](https://github.com/kdroidfilter/ComposeDeskKit/workflows/Pre%20Merge%20Checks/badge.svg)](https://github.com/kdroidfilter/ComposeDeskKit/actions?query=workflow%3A%22Pre+Merge+Checks%22) [![License](https://img.shields.io/github/license/kdroidfilter/ComposeDeskKit.svg)](LICENSE)
 
-A simple Github template that lets you create a **Gradle Plugin** 🐘 project using **100% Kotlin** and be up and running in a **few seconds**.
+A **fork of the JetBrains Compose Desktop Gradle plugin** (`org.jetbrains.compose`) with additional features for building, packaging, and distributing Compose Desktop applications.
 
-This template is focused on delivering a project with **static analysis** and **continuous integration** already in place.
+ComposeDeskKit extends the official plugin with native library optimization, AOT cache generation, advanced Linux packaging options, and more.
 
-## How to use 👣
+## Installation
 
-Just click on [![Use this template](https://img.shields.io/badge/-Use%20this%20template-brightgreen)](https://github.com/cortinico/kotlin-gradle-plugin-template/generate) button to create a new repo starting from this template.
-
-Once created don't forget to update the:
-- [gradle.properties](plugin-build/gradle.properties)
-- Plugin Usages (search for [com.ncorti.kotlin.gradle.template](https://github.com/cortinico/kotlin-gradle-plugin-template/search?q=com.ncorti.kotlin.gradle.template&unscoped_q=com.ncorti.kotlin.gradle.template) in the repo and replace it with your ID).
-
-## Features 🎨
-
-- **100% Kotlin-only template**.
-- Plugin build setup with **composite build**.
-- 100% Gradle Kotlin DSL setup.
-- Dependency versions managed via Gradle Versions Catalog (`libs.versions.toml`).
-- CI Setup with GitHub Actions.
-- Kotlin Static Analysis via `ktlint` and `detekt`.
-- Publishing-ready to Gradle Portal.
-- Issues Template (bug report + feature request)
-- Pull Request Template.
-
-## Composite Build 📦
-
-This template is using a [Gradle composite build](https://docs.gradle.org/current/userguide/composite_builds.html) to build, test and publish the plugin. This means that you don't need to run Gradle twice to test the changes on your Gradle plugin (no more `publishToMavenLocal` tricks or so).
-
-The included build is inside the [plugin-build](plugin-build) folder.
-
-### `preMerge` task
-
-A `preMerge` task on the top level build is already provided in the template. This allows you to run all the `check` tasks both in the top level and in the included build.
-
-You can easily invoke it with:
-
+```kotlin
+plugins {
+    id("io.github.kdroidfilter.composedeskkit") version "1.0.0"
+}
 ```
+
+> **Note:** The DSL extension is `composeDeskKit` instead of `compose`:
+>
+> ```kotlin
+> composeDeskKit.desktop.application {
+>     mainClass = "com.example.MainKt"
+>     nativeDistributions {
+>         // ...
+>     }
+> }
+> ```
+
+---
+
+## What's different from the official plugin?
+
+Below is the exhaustive list of features and changes introduced by ComposeDeskKit compared to `org.jetbrains.compose`.
+
+---
+
+### 1. Native Library Cleanup
+
+Strips native libraries (`.dll`, `.so`, `.dylib`) for **non-target platforms** from dependency JARs, significantly reducing the final package size.
+
+```kotlin
+nativeDistributions {
+    cleanupNativeLibs = true
+}
+```
+
+**How it works:**
+- Registers a Gradle artifact transform that processes JAR files at resolution time.
+- Uses **path-based detection** (looking for OS/architecture indicators like `linux-x86-64`, `windows-x64`, `darwin-arm64` in JAR entry paths).
+- Falls back to **binary header detection** (PE, ELF, Mach-O) for entries without path indicators.
+- Only removes native files for non-matching OS/architecture combinations; Java classes are never touched.
+
+---
+
+### 2. JDK 25+ AOT Cache Generation
+
+Generates an ahead-of-time compilation cache using the JDK 25+ single-step AOT training, improving application startup time.
+
+```kotlin
+nativeDistributions {
+    enableAotCache = true
+}
+```
+
+**How it works:**
+1. A `generateAotCache` Gradle task runs after `createDistributable`.
+2. It launches the packaged application with `-XX:AOTCacheOutput=<path>` to produce an `app.aot` cache file.
+3. It then injects `-XX:AOTCache=$APPDIR/app.aot` into the launcher `.cfg` file so the cache is used at runtime.
+
+**Requirements:**
+- JDK 25 or newer.
+- The application **must self-terminate** during the training run. Recommended app-side pattern:
+
+```kotlin
+fun main() {
+    System.getProperty("aot.training.autoExit")?.toLongOrNull()?.let { seconds ->
+        Thread({ Thread.sleep(seconds * 1000); System.exit(0) }, "aot-timer")
+            .apply { isDaemon = true; start() }
+    }
+    // normal app startup...
+}
+```
+
+**Details:**
+- Default training duration: **60 seconds** (configurable via the task's `trainDurationSeconds` property).
+- Auto-provisions a `java` launcher in the bundled runtime if one is missing (Windows: copies essential DLLs).
+- On **headless Linux**, automatically starts Xvfb.
+- AOT cache file is included in the final installer via `--app-image`.
+
+---
+
+### 3. Splash Screen
+
+Adds a JVM splash screen from an image file in the application resources.
+
+```kotlin
+nativeDistributions {
+    splashImage = "splash.png" // relative to appResources
+}
+```
+
+This automatically injects `-splash:$APPDIR/resources/splash.png` into the JVM launcher arguments.
+
+---
+
+### 4. Architecture Suffix in Distribution Filenames
+
+Installer filenames are automatically suffixed with the target architecture (`_x64` or `_arm64`) for clarity:
+
+| Before | After |
+|---|---|
+| `MyApp-1.0.0.dmg` | `MyApp-1.0.0_arm64.dmg` |
+| `MyApp-1.0.0.deb` | `MyApp-1.0.0_x64.deb` |
+| `MyApp-1.0.0.msi` | `MyApp-1.0.0_x64.msi` |
+
+> AppImage format is excluded from this renaming.
+
+---
+
+### 5. Linux Packaging Enhancements
+
+#### StartupWMClass
+
+Override the `StartupWMClass` entry in the `.desktop` file (helps window managers associate windows with the correct desktop entry):
+
+```kotlin
+nativeDistributions {
+    linux {
+        startupWMClass = "com-example-MyApp"
+    }
+}
+```
+
+If left `null`, it is automatically derived from `mainClass` (dots replaced by hyphens).
+
+#### Additional package dependencies
+
+Inject extra dependencies into `.deb` and `.rpm` packages:
+
+```kotlin
+nativeDistributions {
+    linux {
+        debDepends = listOf("libgtk-3-0", "libasound2")
+        rpmRequires = listOf("gtk3", "alsa-lib")
+    }
+}
+```
+
+#### Ubuntu 24.04+ t64 compatibility
+
+Automatically rewrites Debian dependencies for the time64 transition on Ubuntu 24.04+:
+
+```kotlin
+nativeDistributions {
+    linux {
+        enableT64AlternativeDeps = true
+    }
+}
+```
+
+This rewrites known libraries to use fallback alternatives, for example:
+- `libasound2` becomes `libasound2t64 | libasound2`
+- `libfreetype6` becomes `libfreetype6t64 | libfreetype6`
+- `libpng16-16` becomes `libpng16-16t64 | libpng16-16`
+
+---
+
+### 6. DEB Compression Options
+
+Control the compression algorithm and level used when building `.deb` packages:
+
+```kotlin
+nativeDistributions {
+    linux {
+        debCompression = DebCompression.ZSTD
+        debCompressionLevel = 19
+    }
+}
+```
+
+Available algorithms:
+
+| Algorithm | Max level |
+|---|---|
+| `DebCompression.GZIP` | 9 |
+| `DebCompression.XZ` | 9 |
+| `DebCompression.ZSTD` | 22 |
+| `DebCompression.NONE` | 0 |
+
+If `null`, the `dpkg-deb` default is used.
+
+---
+
+### 7. RPM Compression Options
+
+Control the compression algorithm and level used when building `.rpm` packages:
+
+```kotlin
+nativeDistributions {
+    linux {
+        rpmCompression = RpmCompression.ZSTD
+        rpmCompressionLevel = 19
+    }
+}
+```
+
+Available algorithms:
+
+| Algorithm | Max level | Default level |
+|---|---|---|
+| `RpmCompression.GZIP` | 9 | 9 |
+| `RpmCompression.XZ` | 9 | 6 |
+| `RpmCompression.ZSTD` | 22 | 19 |
+
+If `null`, the `rpmbuild` default is used.
+
+---
+
+### 8. `--app-image` jpackage Fix
+
+The official plugin passes the **parent directory** to jpackage's `--app-image` argument. ComposeDeskKit fixes this by passing the **actual platform-specific application directory**:
+
+- **macOS:** `<parent>/MyApp.app`
+- **Linux / Windows:** `<parent>/MyApp`
+
+This ensures that files generated in-place (such as the AOT cache) are correctly included in the final installer.
+
+---
+
+### 9. Improved Skiko Unpacking
+
+Handles subdirectory paths when unpacking Skiko native dependencies, preserving correct file names in the output.
+
+---
+
+## Full DSL Reference (new properties only)
+
+### `nativeDistributions { ... }`
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `cleanupNativeLibs` | `Boolean` | `false` | Strip native libs for non-target platforms |
+| `splashImage` | `String?` | `null` | Splash image filename (relative to `appResources`) |
+| `enableAotCache` | `Boolean` | `false` | Enable JDK 25+ AOT cache generation |
+
+### `nativeDistributions { linux { ... } }`
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `startupWMClass` | `String?` | `null` | Override `StartupWMClass` in `.desktop` file |
+| `debDepends` | `List<String>` | `[]` | Additional Debian dependencies |
+| `rpmRequires` | `List<String>` | `[]` | Additional RPM requirements |
+| `enableT64AlternativeDeps` | `Boolean` | `false` | Ubuntu 24.04+ time64 dep rewriting |
+| `debCompression` | `DebCompression?` | `null` | `.deb` compression algorithm |
+| `debCompressionLevel` | `Int?` | `null` | `.deb` compression level |
+| `rpmCompression` | `RpmCompression?` | `null` | `.rpm` compression algorithm |
+| `rpmCompressionLevel` | `Int?` | `null` | `.rpm` compression level |
+
+---
+
+## Complete Example
+
+```kotlin
+composeDeskKit.desktop.application {
+    mainClass = "com.example.MainKt"
+
+    nativeDistributions {
+        targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+        packageName = "MyApp"
+        packageVersion = "1.0.0"
+
+        // Strip unused native libraries (e.g. remove Linux .so from macOS build)
+        cleanupNativeLibs = true
+
+        // Splash screen
+        splashImage = "splash.png"
+
+        // JDK 25+ AOT cache for faster startup
+        enableAotCache = true
+
+        linux {
+            startupWMClass = "com-example-MyApp"
+            debDepends = listOf("libgtk-3-0", "libasound2")
+            rpmRequires = listOf("gtk3", "alsa-lib")
+            enableT64AlternativeDeps = true
+            debCompression = DebCompression.ZSTD
+            debCompressionLevel = 19
+            rpmCompression = RpmCompression.ZSTD
+            rpmCompressionLevel = 19
+        }
+    }
+}
+```
+
+---
+
+## Migration from `org.jetbrains.compose`
+
+1. Replace the plugin ID:
+   ```diff
+   - id("org.jetbrains.compose") version "x.y.z"
+   + id("io.github.kdroidfilter.composedeskkit") version "1.0.0"
+   ```
+
+2. Replace the DSL extension name:
+   ```diff
+   - compose.desktop.application {
+   + composeDeskKit.desktop.application {
+   ```
+
+3. All existing configuration from the official plugin is preserved. The new properties are purely additive.
+
+---
+
+## Building from Source
+
+This project uses a [Gradle composite build](https://docs.gradle.org/current/userguide/composite_builds.html). The plugin source is inside the [`plugin-build`](plugin-build) folder.
+
+```bash
+# Run all checks
 ./gradlew preMerge
-```
 
-If you need to invoke a task inside the included build with:
+# Format code
+./gradlew reformatAll
 
-```
+# Run a task inside the plugin build
 ./gradlew -p plugin-build <task-name>
 ```
 
+## License
 
-### Dependency substitution
-
-Please note that the project relies on module name/group in order for [dependency substitution](https://docs.gradle.org/current/userguide/resolution_rules.html#sec:dependency_substitution_rules) to work properly. If you change only the plugin ID everything will work as expected. If you change module name/group, things might break and you probably have to specify a [substitution rule](https://docs.gradle.org/current/userguide/resolution_rules.html#sub:project_to_module_substitution).
-
-
-## Publishing 🚀
-
-This template is ready to let you publish to [Gradle Portal](https://plugins.gradle.org/).
-
-The [![Publish Plugin to Portal](https://github.com/cortinico/kotlin-gradle-plugin-template/workflows/Publish%20Plugin%20to%20Portal/badge.svg?branch=1.0.0)](https://github.com/cortinico/kotlin-gradle-plugin-template/actions?query=workflow%3A%22Publish+Plugin+to+Portal%22) Github Action will take care of the publishing whenever you **push a tag**.
-
-Please note that you need to configure two secrets: `GRADLE_PUBLISH_KEY` and `GRADLE_PUBLISH_SECRET` with the credentials you can get from your profile on the Gradle Portal.
-
-## 100% Kotlin 🅺
-
-This template is designed to use Kotlin everywhere. The build files are written using [**Gradle Kotlin DSL**](https://docs.gradle.org/current/userguide/kotlin_dsl.html) as well as the [Plugin DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block) to setup the build.
-
-Dependencies are centralized inside the [libs.versions.toml](gradle/libs.versions.toml).
-
-Moreover, a minimalistic Gradle Plugin is already provided in Kotlin to let you easily start developing your own around it.
-
-## Static Analysis 🔍
-
-This template is using [**ktlint**](https://github.com/pinterest/ktlint) with the [ktlint-gradle](https://github.com/jlleitschuh/ktlint-gradle) plugin to format your code. To reformat all the source code as well as the buildscript you can run the `ktlintFormat` gradle task.
-
-This template is also using [**detekt**](https://github.com/arturbosch/detekt) to analyze the source code, with the configuration that is stored in the [detekt.yml](config/detekt/detekt.yml) file (the file has been generated with the `detektGenerateConfig` task).
-
-## CI ⚙️
-
-This template is using [**GitHub Actions**](https://github.com/cortinico/kotlin-android-template/actions) as CI. You don't need to setup any external service and you should have a running CI once you start using this template.
-
-There are currently the following workflows available:
-- [Validate Gradle Wrapper](.github/workflows/gradle-wrapper-validation.yml) - Will check that the gradle wrapper has a valid checksum
-- [Pre Merge Checks](.github/workflows/pre-merge.yaml) - Will run the `preMerge` tasks as well as trying to run the Gradle plugin.
-- [Publish to Plugin Portal](.github/workflows/publish-plugin.yaml) - Will run the `publishPlugin` task when pushing a new tag.
-
-## Contributing 🤝
-
-Feel free to open a issue or submit a pull request for any bugs/improvements.
-
-## License 📄
-
-This template is licensed under the MIT License - see the [License](LICENSE) file for details.
-Please note that the generated template is offering to start with a MIT license but you can change it to whatever you wish, as long as you attribute under the MIT terms that you're using the template.
+This project is forked from the JetBrains Compose Desktop Gradle plugin. See [LICENSE](LICENSE) for details.
