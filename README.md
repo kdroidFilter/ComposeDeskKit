@@ -128,7 +128,6 @@ Installer filenames are automatically suffixed with the target architecture (`_x
 | Before | After |
 |---|---|
 | `MyApp-1.0.0.dmg` | `MyApp-1.0.0_arm64.dmg` |
-| `MyApp-1.0.0.deb` | `MyApp-1.0.0_x64.deb` |
 | `MyApp-1.0.0.msi` | `MyApp-1.0.0_x64.msi` |
 
 > AppImage format is excluded from this renaming.
