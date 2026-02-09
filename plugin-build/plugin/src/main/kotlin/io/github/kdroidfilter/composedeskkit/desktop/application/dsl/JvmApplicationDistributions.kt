@@ -31,6 +31,9 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
     /** Splash screen image filename relative to appResources (e.g. "splash.png"). */
     var splashImage: String? = null
 
+    /** Enable JDK 25+ AOT cache generation for faster application startup. */
+    var enableAotCache: Boolean = false
+
     val linux: LinuxPlatformSettings = objects.newInstance(LinuxPlatformSettings::class.java)
 
     open fun linux(fn: Action<LinuxPlatformSettings>) {

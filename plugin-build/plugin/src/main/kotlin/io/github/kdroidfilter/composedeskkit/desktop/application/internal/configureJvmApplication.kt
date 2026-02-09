@@ -161,6 +161,21 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             )
         }
 
+    val generateAotCache =
+        if (app.nativeDistributions.enableAotCache) {
+            tasks.register<AbstractGenerateAotCacheTask>(
+                taskNameAction = "generate",
+                taskNameObject = "AotCache",
+            ) {
+                dependsOn(createDistributable)
+                distributableDir.set(createDistributable.flatMap { it.destinationDir })
+                javaHome.set(app.javaHomeProvider)
+                javaRuntimePropertiesFile.set(commonTasks.checkRuntime.flatMap { it.javaRuntimePropertiesFile })
+            }
+        } else {
+            null
+        }
+
     val packageFormats =
         app.nativeDistributions.targetFormats.map { targetFormat ->
             val packageFormat =
@@ -169,29 +184,15 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                     taskNameObject = targetFormat.name,
                     args = listOf(targetFormat),
                 ) {
-                    // On Mac we want to patch bundled Info.plist file,
-                    // so we create an app image, change its Info.plist,
-                    // then create an installer based on the app image.
-                    // We could create an installer the same way on other platforms, but
-                    // in some cases there are failures with JDK 15.
-                    // See [AbstractJPackageTask.patchInfoPlistIfNeeded]
-                    if (currentOS != OS.MacOS) {
-                        configurePackageTask(
-                            this,
-                            createRuntimeImage = commonTasks.createRuntimeImage,
-                            prepareAppResources = commonTasks.prepareAppResources,
-                            checkRuntime = commonTasks.checkRuntime,
-                            unpackDefaultResources = commonTasks.unpackDefaultResources,
-                            runProguard = runProguard,
-                        )
-                    } else {
-                        configurePackageTask(
-                            this,
-                            createAppImage = createDistributable,
-                            checkRuntime = commonTasks.checkRuntime,
-                            unpackDefaultResources = commonTasks.unpackDefaultResources,
-                        )
-                    }
+                    // All platforms use --app-image to create installers from the distributable.
+                    // This ensures AOT cache files (generated in-place) are included in the installer.
+                    configurePackageTask(
+                        this,
+                        createAppImage = createDistributable,
+                        checkRuntime = commonTasks.checkRuntime,
+                        unpackDefaultResources = commonTasks.unpackDefaultResources,
+                    )
+                    generateAotCache?.let { dependsOn(it) }
                 }
 
             if (targetFormat.isCompatibleWith(OS.MacOS)) {
@@ -253,6 +254,9 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             taskNameObject = "distributable",
             args = listOf(createDistributable),
         )
+    if (generateAotCache != null) {
+        runDistributable.dependsOn(generateAotCache)
+    }
 
     val run =
         tasks.register<JavaExec>(taskNameAction = "run") {
@@ -484,6 +488,30 @@ private fun JvmApplicationContext.configureRunTask(
                 if (splashFile.exists()) {
                     add("-splash:${splashFile.absolutePath}")
                 }
+            }
+
+            // Dev mode AOT: ./gradlew run -Paot=train|on|auto|off
+            val aotCacheDir = project.layout.buildDirectory.dir("compose/aot-cache").get().asFile
+            val devAotCache = java.io.File(aotCacheDir, "dev.aot")
+            when (project.findProperty("aot")?.toString()) {
+                "train" -> {
+                    aotCacheDir.mkdirs()
+                    add("-XX:AOTCacheOutput=${devAotCache.absolutePath}")
+                }
+                "on" -> {
+                    if (devAotCache.exists()) {
+                        add("-XX:AOTCache=${devAotCache.absolutePath}")
+                    }
+                }
+                "auto" -> {
+                    if (devAotCache.exists()) {
+                        add("-XX:AOTCache=${devAotCache.absolutePath}")
+                    } else {
+                        aotCacheDir.mkdirs()
+                        add("-XX:AOTCacheOutput=${devAotCache.absolutePath}")
+                    }
+                }
+                // "off" or absent → no-op
             }
         }
     exec.args = app.args
