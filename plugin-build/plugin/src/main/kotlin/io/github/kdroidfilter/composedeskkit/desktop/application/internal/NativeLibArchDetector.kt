@@ -104,10 +104,10 @@ internal object NativeLibArchDetector {
             }
 
             // Some segments encode both OS and arch, e.g. "linux-x86-64" or "win32-x86-64"
-            // Handle compound segments where arch is a suffix
+            // Re-check same segment for arch using delimiter-aware matching
             if (detectedOs != NativeOs.UNKNOWN && detectedArch == NativeArch.UNKNOWN) {
                 for (archToken in ARCH_TOKENS) {
-                    if (lower.contains(archToken.token)) {
+                    if (matchesToken(lower, archToken.token)) {
                         detectedArch = archToken.arch
                         break
                     }

@@ -57,16 +57,18 @@ internal abstract class CleanNativeLibsTransform : TransformAction<CleanNativeLi
         ZipInputStream(BufferedInputStream(inputFile.inputStream())).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
-                if (!entry.isDirectory) {
+                if (!entry.isDirectory && NativeLibArchDetector.isNativeLib(entry.name)) {
+                    // Only process files with native extensions (.dll, .so, .dylib, .jnilib)
+                    // Never touch .class or other Java files
                     val pathInfo = NativeLibArchDetector.detectFromPath(entry.name)
 
-                    if (pathInfo.os != NativeOs.UNKNOWN) {
-                        // Path indicates a platform-specific entry — check if it matches target
+                    if (pathInfo.os != NativeOs.UNKNOWN && pathInfo.arch != NativeArch.UNKNOWN) {
+                        // Path has both OS and arch indicators
                         if (shouldRemoveByInfo(pathInfo, expectedOs, expectedArch)) {
                             entriesToRemove.add(entry.name)
                         }
-                    } else if (NativeLibArchDetector.isNativeLib(entry.name)) {
-                        // No platform in path, but it's a native file — check binary header
+                    } else {
+                        // Fall back to binary header detection
                         val header = ByteArray(64)
                         val bytesRead = readFully(zis, header)
                         if (bytesRead > 0) {
@@ -86,29 +88,13 @@ internal abstract class CleanNativeLibsTransform : TransformAction<CleanNativeLi
             return
         }
 
-        // Also remove directory entries whose children are all removed
-        val directoriesToRemove = mutableSetOf<String>()
-
         // Second pass: copy JAR without removed entries
         val outputFile = outputs.file("cleaned-${inputFile.name}")
         ZipInputStream(BufferedInputStream(inputFile.inputStream())).use { zis ->
             ZipOutputStream(BufferedOutputStream(FileOutputStream(outputFile))).use { zos ->
                 var entry = zis.nextEntry
                 while (entry != null) {
-                    val shouldSkip = if (entry.isDirectory) {
-                        // Remove directory if all known children are being removed
-                        val dirPath = entry.name
-                        entriesToRemove.any { it.startsWith(dirPath) } &&
-                                directoriesToRemove.contains(dirPath).also {
-                                    directoriesToRemove.add(dirPath)
-                                }.let {
-                                    // Check: is this a platform dir whose contents are removed?
-                                    val pathInfo = NativeLibArchDetector.detectFromPath(dirPath)
-                                    pathInfo.os != NativeOs.UNKNOWN && shouldRemoveByInfo(pathInfo, expectedOs, expectedArch)
-                                }
-                    } else {
-                        entry.name in entriesToRemove
-                    }
+                    val shouldSkip = !entry.isDirectory && entry.name in entriesToRemove
 
                     if (!shouldSkip) {
                         zos.putNextEntry(ZipEntry(entry.name).apply {

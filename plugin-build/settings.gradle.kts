@@ -31,6 +31,6 @@ develocity {
     }
 }
 
-rootProject.name = ("com.ncorti.kotlin.gradle.template")
+rootProject.name = ("io.github.kdroidfilter.composedeskkit")
 
 include(":plugin")
