@@ -220,9 +220,6 @@ abstract class AbstractMergeUniversalBinaryTask : AbstractComposeDesktopTask() {
         val tgtPath = target.toPath()
         Files.walk(srcPath).use { stream ->
             stream.forEach { src ->
-                // Skip jpackage internal metadata (version-specific, causes conflicts with --app-image)
-                if (src.fileName.toString() == ".jpackage.xml") return@forEach
-
                 val dest = tgtPath.resolve(srcPath.relativize(src))
                 if (src.isSymbolicLink()) {
                     Files.createDirectories(dest.parent)
