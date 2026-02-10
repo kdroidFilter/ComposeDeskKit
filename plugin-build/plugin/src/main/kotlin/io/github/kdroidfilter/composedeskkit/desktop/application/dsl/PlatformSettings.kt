@@ -80,8 +80,11 @@ abstract class JvmMacOSPlatformSettings : AbstractMacOSPlatformSettings() {
     val provisioningProfile: RegularFileProperty = objects.fileProperty()
     val runtimeProvisioningProfile: RegularFileProperty = objects.fileProperty()
 
-    /** Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks. */
-    var x64JdkPath: String? = null
+    /**
+     * Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks.
+     * Defaults to the `COMPOSE_DESKKIT_X64_JDK` environment variable if present.
+     */
+    var x64JdkPath: String? = System.getenv("COMPOSE_DESKKIT_X64_JDK")
 
     internal val infoPlistSettings = InfoPlistSettings()
 

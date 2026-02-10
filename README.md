@@ -413,10 +413,13 @@ Builds a **universal (fat) macOS application** that runs natively on both Apple 
 ```kotlin
 nativeDistributions {
     macOS {
+        // Explicit path (or omit to use the COMPOSE_DESKKIT_X64_JDK env variable)
         x64JdkPath = "/path/to/liberica-full-jdk-x64"
     }
 }
 ```
+
+> By default `x64JdkPath` reads the **`COMPOSE_DESKKIT_X64_JDK`** environment variable. If the variable is set, you don't need to configure anything in your build script — the tasks are enabled automatically on arm64 hosts.
 
 **How it works:**
 
@@ -565,7 +568,7 @@ Then build and notarize the universal DMG:
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `x64JdkPath` | `String?` | `null` | Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks |
+| `x64JdkPath` | `String?` | `$COMPOSE_DESKKIT_X64_JDK` | Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks |
 
 ### `nativeDistributions { windows { ... } }`
 
