@@ -176,6 +176,13 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             null
         }
 
+    val isX64Build = project.findProperty("composeDeskKit.x64Build")?.toString()?.toBoolean() == true
+    if (!isX64Build && currentOS == OS.MacOS && currentArch == Arch.Arm64 &&
+        app.nativeDistributions.macOS.x64JdkPath != null
+    ) {
+        configureUniversalBinaryTasks(commonTasks, createDistributable, generateAotCache)
+    }
+
     val packageFormats =
         app.nativeDistributions.targetFormats.map { targetFormat ->
             when (targetFormat) {
@@ -364,9 +371,11 @@ private fun JvmApplicationContext.configurePackageTask(
         packageTask.licenseFile.set(executables.licenseFile)
     }
 
+    val isX64Build = project.findProperty("composeDeskKit.x64Build")?.toString()?.toBoolean() == true
+    val outputDirSuffix = if (isX64Build) "-x64" else ""
     packageTask.destinationDir.set(
         app.nativeDistributions.outputBaseDir.map {
-            it.dir("$appDirName/${packageTask.targetFormat.outputDirName}")
+            it.dir("$appDirName/${packageTask.targetFormat.outputDirName}$outputDirSuffix")
         },
     )
     packageTask.javaHome.set(app.javaHomeProvider)
@@ -682,6 +691,129 @@ private fun JvmApplicationContext.configurePackageUberJarForCurrentOS(
 
     jar.doLast {
         jar.logger.lifecycle("The jar is written to ${jar.archiveFile.ioFile.canonicalPath}")
+    }
+}
+
+private fun JvmApplicationContext.configureUniversalBinaryTasks(
+    commonTasks: CommonJvmDesktopTasks,
+    createDistributable: TaskProvider<AbstractJPackageTask>,
+    generateAotCache: TaskProvider<AbstractGenerateAotCacheTask>?,
+) {
+    val mac = app.nativeDistributions.macOS
+    val x64JdkPath = mac.x64JdkPath
+        ?: error("macOS.x64JdkPath must be set (should not reach here)")
+
+    // Compute full task paths for the subprocess
+    val projectPath = project.path
+    fun fullTaskPath(taskName: String) =
+        if (projectPath == ":") ":$taskName" else "$projectPath:$taskName"
+
+    val tasksToRun = mutableListOf(fullTaskPath(createDistributable.name))
+    generateAotCache?.let { tasksToRun.add(fullTaskPath(it.name)) }
+
+    // x64 subprocess task
+    val createDistributableX64 = tasks.register<AbstractCreateDistributableX64Task>(
+        taskNameAction = "create",
+        taskNameObject = "distributableX64",
+    ) {
+        projectRootDir.set(project.rootProject.layout.projectDirectory)
+        x64JdkHome.set(provider { x64JdkPath })
+        gradleTaskPaths.set(tasksToRun)
+        destinationDir.set(
+            app.nativeDistributions.outputBaseDir.map {
+                it.dir("$appDirName/${TargetFormat.AppImage.outputDirName}-x64")
+            },
+        )
+        // Avoid conflicts with arm64 AOT cache (single-instance apps)
+        generateAotCache?.let { mustRunAfter(it) }
+    }
+
+    // Merge task
+    val defaultEntitlements = commonTasks.unpackDefaultResources.get { defaultEntitlements }
+    val mergeUniversalBinary = tasks.register<AbstractMergeUniversalBinaryTask>(
+        taskNameAction = "merge",
+        taskNameObject = "universalBinary",
+    ) {
+        dependsOn(createDistributable, createDistributableX64)
+        generateAotCache?.let { dependsOn(it) }
+        arm64AppDir.set(createDistributable.flatMap { it.destinationDir })
+        x64AppDir.set(createDistributableX64.flatMap { it.destinationDir })
+        packageName.set(packageNameProvider)
+        destinationDir.set(
+            app.nativeDistributions.outputBaseDir.map { it.dir("$appDirName/universal") },
+        )
+        macEntitlementsFile.set(mac.entitlementsFile.orElse(defaultEntitlements))
+        macRuntimeEntitlementsFile.set(mac.runtimeEntitlementsFile.orElse(defaultEntitlements))
+        macProvisioningProfile.set(mac.provisioningProfile)
+        macRuntimeProvisioningProfile.set(mac.runtimeProvisioningProfile)
+        nonValidatedMacBundleID.set(provider { mac.bundleID })
+        macAppStore.set(mac.appStore)
+        nonValidatedMacSigningSettings = mac.signing
+    }
+
+    // Universal DMG/PKG packaging
+    for (targetFormat in listOf(TargetFormat.Dmg, TargetFormat.Pkg)) {
+        val packageUniversal = tasks.register<AbstractJPackageTask>(
+            taskNameAction = "packageUniversal",
+            taskNameObject = targetFormat.name,
+            args = listOf(targetFormat),
+        ) {
+            configurePackageTask(
+                this,
+                checkRuntime = commonTasks.checkRuntime,
+                unpackDefaultResources = commonTasks.unpackDefaultResources,
+            )
+            dependsOn(mergeUniversalBinary)
+            appImage.set(mergeUniversalBinary.flatMap { it.destinationDir })
+            destinationDir.set(
+                app.nativeDistributions.outputBaseDir.map {
+                    it.dir("$appDirName/universal-${targetFormat.id}")
+                },
+            )
+            universalBinaryFlag.set(true)
+        }
+
+        tasks.register<AbstractNotarizationTask>(
+            taskNameAction = "notarizeUniversal",
+            taskNameObject = targetFormat.name,
+            args = listOf(targetFormat),
+        ) {
+            dependsOn(packageUniversal)
+            inputDir.set(packageUniversal.flatMap { it.destinationDir })
+            configureCommonNotarizationSettings(this)
+        }
+    }
+
+    // x64-only packaging (runs the full packaging pipeline in the subprocess)
+    val buildTypeClassifier = buildType.classifier.uppercaseFirstChar()
+    for (targetFormat in listOf(TargetFormat.Dmg, TargetFormat.Pkg)) {
+        val formatName = targetFormat.name.uppercaseFirstChar()
+        val subprocessPackageTask = fullTaskPath("package${buildTypeClassifier}${formatName}")
+
+        val packageX64 = tasks.register<AbstractCreateDistributableX64Task>(
+            taskNameAction = "packageX64",
+            taskNameObject = targetFormat.name,
+        ) {
+            projectRootDir.set(project.rootProject.layout.projectDirectory)
+            x64JdkHome.set(provider { x64JdkPath })
+            gradleTaskPaths.set(listOf(subprocessPackageTask))
+            destinationDir.set(
+                app.nativeDistributions.outputBaseDir.map {
+                    it.dir("$appDirName/${targetFormat.outputDirName}-x64")
+                },
+            )
+            mustRunAfter(createDistributableX64)
+        }
+
+        tasks.register<AbstractNotarizationTask>(
+            taskNameAction = "notarizeX64",
+            taskNameObject = targetFormat.name,
+            args = listOf(targetFormat),
+        ) {
+            dependsOn(packageX64)
+            inputDir.set(packageX64.flatMap { it.destinationDir })
+            configureCommonNotarizationSettings(this)
+        }
     }
 }
 
