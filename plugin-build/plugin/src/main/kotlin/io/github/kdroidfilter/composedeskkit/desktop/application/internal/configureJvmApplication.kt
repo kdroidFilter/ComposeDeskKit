@@ -177,7 +177,9 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
         }
 
     val isX64Build = project.findProperty("composeDeskKit.x64Build")?.toString()?.toBoolean() == true
-    if (!isX64Build && currentOS == OS.MacOS && app.nativeDistributions.macOS.universalBinary.enabled) {
+    if (!isX64Build && currentOS == OS.MacOS && currentArch == Arch.Arm64 &&
+        app.nativeDistributions.macOS.universalBinary.enabled
+    ) {
         configureUniversalBinaryTasks(commonTasks, createDistributable, generateAotCache)
     }
 
