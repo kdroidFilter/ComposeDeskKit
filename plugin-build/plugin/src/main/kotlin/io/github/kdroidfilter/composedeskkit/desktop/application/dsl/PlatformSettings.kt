@@ -80,11 +80,8 @@ abstract class JvmMacOSPlatformSettings : AbstractMacOSPlatformSettings() {
     val provisioningProfile: RegularFileProperty = objects.fileProperty()
     val runtimeProvisioningProfile: RegularFileProperty = objects.fileProperty()
 
-    val universalBinary: UniversalBinarySettings = objects.newInstance(UniversalBinarySettings::class.java)
-
-    fun universalBinary(fn: Action<UniversalBinarySettings>) {
-        fn.execute(universalBinary)
-    }
+    /** Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks. */
+    var x64JdkPath: String? = null
 
     internal val infoPlistSettings = InfoPlistSettings()
 

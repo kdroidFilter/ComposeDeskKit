@@ -178,7 +178,7 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
 
     val isX64Build = project.findProperty("composeDeskKit.x64Build")?.toString()?.toBoolean() == true
     if (!isX64Build && currentOS == OS.MacOS && currentArch == Arch.Arm64 &&
-        app.nativeDistributions.macOS.universalBinary.enabled
+        app.nativeDistributions.macOS.x64JdkPath != null
     ) {
         configureUniversalBinaryTasks(commonTasks, createDistributable, generateAotCache)
     }
@@ -700,8 +700,8 @@ private fun JvmApplicationContext.configureUniversalBinaryTasks(
     generateAotCache: TaskProvider<AbstractGenerateAotCacheTask>?,
 ) {
     val mac = app.nativeDistributions.macOS
-    val x64JdkPath = mac.universalBinary.x64JdkPath
-        ?: error("macOS.universalBinary.x64JdkPath must be set when universalBinary.enabled = true")
+    val x64JdkPath = mac.x64JdkPath
+        ?: error("macOS.x64JdkPath must be set (should not reach here)")
 
     // Compute full task paths for the subprocess
     val projectPath = project.path

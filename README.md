@@ -413,10 +413,7 @@ Builds a **universal (fat) macOS application** that runs natively on both Apple 
 ```kotlin
 nativeDistributions {
     macOS {
-        universalBinary {
-            enabled = true
-            x64JdkPath = "/path/to/liberica-full-jdk-x64"
-        }
+        x64JdkPath = "/path/to/liberica-full-jdk-x64"
     }
 }
 ```
@@ -509,10 +506,7 @@ composeDeskKit.desktop.application {
             iconFile.set(project.file("icons/MyApp.icns"))
             bundleID = "com.example.myapp"
 
-            universalBinary {
-                enabled = true
-                x64JdkPath = "/Users/me/jdks/liberica-full-21-x64"
-            }
+            x64JdkPath = "/Users/me/jdks/liberica-full-21-x64"
 
             signing {
                 sign.set(true)
@@ -567,12 +561,11 @@ Then build and notarize the universal DMG:
 |---|---|---|---|
 | `layeredIconDir` | `DirectoryProperty` | unset | Path to a `.icon` directory for macOS 26+ layered icons |
 
-### `nativeDistributions { macOS { universalBinary { ... } } }`
+### `nativeDistributions { macOS { ... } }` (continued)
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `enabled` | `Boolean` | `false` | Enable universal binary (arm64 + x64) packaging |
-| `x64JdkPath` | `String?` | `null` | Path to a macOS x64 JDK. Required when `enabled = true` |
+| `x64JdkPath` | `String?` | `null` | Path to a macOS x64 JDK. When set on an arm64 host, enables universal binary and x64-only tasks |
 
 ### `nativeDistributions { windows { ... } }`
 
@@ -638,11 +631,8 @@ composeDeskKit.desktop.application {
             iconFile.set(project.file("icons/MyApp.icns"))
             layeredIconDir.set(project.file("icons/MyApp.icon"))
 
-            // Universal binary (arm64 + x64)
-            universalBinary {
-                enabled = true
-                x64JdkPath = "/path/to/liberica-full-jdk-x64"
-            }
+            // Universal binary and x64-only tasks (arm64 host only)
+            x64JdkPath = "/path/to/liberica-full-jdk-x64"
         }
 
         windows {
