@@ -14,7 +14,7 @@ import org.gradle.api.tasks.TaskProvider
 internal class JvmTasks(
     private val project: Project,
     private val buildType: JvmApplicationBuildType,
-    private val taskGroup: String? = composeDesktopTaskGroup,
+    private val taskGroup: String? = COMPOSE_DESKTOP_TASK_GROUP,
 ) {
     /**
      * Registers new Compose/Desktop tasks.

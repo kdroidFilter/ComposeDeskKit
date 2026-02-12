@@ -27,6 +27,15 @@ internal val TargetFormat.executableTypeValue: String
             TargetFormat.Deb -> "deb"
             TargetFormat.Rpm -> "rpm"
             TargetFormat.AppImage -> EXECUTABLE_TYPE_DEV
+            TargetFormat.Nsis -> "nsis"
+            TargetFormat.NsisWeb -> "nsis-web"
+            TargetFormat.Portable -> "portable"
+            TargetFormat.AppX -> "appx"
+            TargetFormat.Snap -> "snap"
+            TargetFormat.Flatpak -> "flatpak"
+            TargetFormat.Zip -> "zip"
+            TargetFormat.Tar -> "tar"
+            TargetFormat.SevenZ -> "7z"
         }
 
 internal fun updateExecutableTypeInAppImage(

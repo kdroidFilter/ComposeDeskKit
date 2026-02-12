@@ -5,16 +5,32 @@
 
 package io.github.kdroidfilter.composedeskkit.desktop.application.internal
 
+import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.PackagingBackend
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.TargetFormat
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.validation.validatePackageVersions
-import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.*
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractCheckNativeDistributionRuntime
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractElectronBuilderPackageTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractGenerateAotCacheTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractJLinkTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractJPackageTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractMsixPackageTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractNotarizationTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractProguardTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractRunDistributableTask
+import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractSuggestModulesTask
 import io.github.kdroidfilter.composedeskkit.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.composedeskkit.desktop.tasks.AbstractUnpackDefaultComposeApplicationResourcesTask
-import io.github.kdroidfilter.composedeskkit.internal.utils.*
+import io.github.kdroidfilter.composedeskkit.internal.utils.Arch
 import io.github.kdroidfilter.composedeskkit.internal.utils.OS
+import io.github.kdroidfilter.composedeskkit.internal.utils.currentArch
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentOS
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentTarget
+import io.github.kdroidfilter.composedeskkit.internal.utils.dependsOn
+import io.github.kdroidfilter.composedeskkit.internal.utils.detachedComposeGradleDependency
+import io.github.kdroidfilter.composedeskkit.internal.utils.detachedDependency
 import io.github.kdroidfilter.composedeskkit.internal.utils.dir
+import io.github.kdroidfilter.composedeskkit.internal.utils.excludeTransitiveDependencies
+import io.github.kdroidfilter.composedeskkit.internal.utils.file
 import io.github.kdroidfilter.composedeskkit.internal.utils.ioFile
 import io.github.kdroidfilter.composedeskkit.internal.utils.ioFileOrNull
 import io.github.kdroidfilter.composedeskkit.internal.utils.javaExecutable
@@ -28,7 +44,7 @@ import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
 
 private val defaultJvmArgs = listOf("-D$CONFIGURE_SWING_GLOBALS=true")
-internal const val composeDesktopTaskGroup = "compose desktop"
+internal const val COMPOSE_DESKTOP_TASK_GROUP = "compose desktop"
 
 // todo: multiple launchers
 // todo: file associations
@@ -46,9 +62,6 @@ internal fun JvmApplicationContext.configureJvmApplication() {
     val commonTasks = configureCommonJvmDesktopTasks()
     configurePackagingTasks(commonTasks)
     copy(buildType = app.buildTypes.release).configurePackagingTasks(commonTasks)
-    if (currentOS == OS.Windows) {
-        configureWix()
-    }
 }
 
 internal class CommonJvmDesktopTasks(
@@ -178,8 +191,8 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
 
     val packageFormats =
         app.nativeDistributions.targetFormats.map { targetFormat ->
-            when (targetFormat) {
-                TargetFormat.Msix -> {
+            when {
+                targetFormat == TargetFormat.Msix -> {
                     tasks.register<AbstractMsixPackageTask>(
                         taskNameAction = "package",
                         taskNameObject = targetFormat.name,
@@ -192,20 +205,16 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                         generateAotCache?.let { dependsOn(it) }
                     }
                 }
-                else -> {
+                targetFormat.backend == PackagingBackend.ELECTRON_BUILDER -> {
                     val packageFormat =
-                        tasks.register<AbstractJPackageTask>(
+                        tasks.register<AbstractElectronBuilderPackageTask>(
                             taskNameAction = "package",
                             taskNameObject = targetFormat.name,
                             args = listOf(targetFormat),
                         ) {
-                            // All platforms use --app-image to create installers from the distributable.
-                            // This ensures AOT cache files (generated in-place) are included in the installer.
-                            configurePackageTask(
+                            configureElectronBuilderPackageTask(
                                 this,
-                                createAppImage = createDistributable,
-                                checkRuntime = commonTasks.checkRuntime,
-                                unpackDefaultResources = commonTasks.unpackDefaultResources,
+                                createDistributable = createDistributable,
                             )
                             generateAotCache?.let { dependsOn(it) }
                         }
@@ -321,9 +330,9 @@ private fun JvmApplicationContext.configureProguardTask(
         }
     }
 
+@Suppress("LongParameterList")
 private fun JvmApplicationContext.configurePackageTask(
     packageTask: AbstractJPackageTask,
-    createAppImage: TaskProvider<AbstractJPackageTask>? = null,
     createRuntimeImage: TaskProvider<AbstractJLinkTask>? = null,
     prepareAppResources: TaskProvider<Sync>? = null,
     checkRuntime: TaskProvider<AbstractCheckNativeDistributionRuntime>? = null,
@@ -331,11 +340,6 @@ private fun JvmApplicationContext.configurePackageTask(
     runProguard: Provider<AbstractProguardTask>? = null,
 ) {
     packageTask.enabled = packageTask.targetFormat.isCompatibleWithCurrentOS
-
-    createAppImage?.let { createAppImage ->
-        packageTask.dependsOn(createAppImage)
-        packageTask.appImage.set(createAppImage.flatMap { it.destinationDir })
-    }
 
     createRuntimeImage?.let { createRuntimeImage ->
         packageTask.dependsOn(createRuntimeImage)
@@ -361,7 +365,6 @@ private fun JvmApplicationContext.configurePackageTask(
         packageTask.packageCopyright.set(packageTask.provider { executables.copyright })
         packageTask.packageVendor.set(packageTask.provider { executables.vendor })
         packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
-        packageTask.licenseFile.set(executables.licenseFile)
     }
 
     packageTask.destinationDir.set(
@@ -494,6 +497,26 @@ private fun JvmApplicationContext.configureMsixPackageTask(
     packageTask.targetDeviceFamilyMaxVersionTested.set(packageTask.provider { msix.targetDeviceFamilyMaxVersionTested })
 }
 
+private fun JvmApplicationContext.configureElectronBuilderPackageTask(
+    packageTask: AbstractElectronBuilderPackageTask,
+    createDistributable: TaskProvider<AbstractJPackageTask>,
+) {
+    packageTask.enabled = packageTask.targetFormat.isCompatibleWithCurrentOS
+    packageTask.dependsOn(createDistributable)
+    packageTask.appImageRoot.set(createDistributable.flatMap { it.destinationDir })
+
+    packageTask.destinationDir.set(
+        app.nativeDistributions.outputBaseDir.map {
+            it.dir("$appDirName/${packageTask.targetFormat.outputDirName}")
+        },
+    )
+
+    packageTask.packageName.set(packageNameProvider)
+    packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
+    packageTask.customNodePath.set(ComposeProperties.electronBuilderNodePath(project.providers))
+    packageTask.distributions = app.nativeDistributions
+}
+
 internal fun JvmApplicationContext.configureCommonNotarizationSettings(notarizationTask: AbstractNotarizationTask) {
     notarizationTask.nonValidatedNotarizationSettings = app.nativeDistributions.macOS.notarization
 }
@@ -511,37 +534,14 @@ internal fun JvmApplicationContext.configurePlatformSettings(
     when (currentOS) {
         OS.Linux -> {
             app.nativeDistributions.linux.also { linux ->
-                packageTask.linuxShortcut.set(provider { linux.shortcut })
-                packageTask.linuxAppCategory.set(provider { linux.appCategory })
-                packageTask.linuxAppRelease.set(provider { linux.appRelease })
-                packageTask.linuxDebMaintainer.set(provider { linux.debMaintainer })
-                packageTask.linuxMenuGroup.set(provider { linux.menuGroup })
-                packageTask.linuxPackageName.set(provider { linux.packageName })
-                packageTask.linuxRpmLicenseType.set(provider { linux.rpmLicenseType })
-                packageTask.linuxStartupWMClass.set(provider { linux.startupWMClass })
-                packageTask.linuxDebDepends.set(provider { linux.debDepends })
-                packageTask.linuxRpmRequires.set(provider { linux.rpmRequires })
-                packageTask.linuxEnableT64AlternativeDeps.set(provider { linux.enableT64AlternativeDeps })
-                packageTask.linuxDebCompression.set(provider { linux.debCompression })
-                packageTask.linuxDebCompressionLevel.set(provider { linux.debCompressionLevel })
-                packageTask.linuxRpmCompression.set(provider { linux.rpmCompression })
-                packageTask.linuxRpmCompressionLevel.set(provider { linux.rpmCompressionLevel })
                 packageTask.iconFile.set(linux.iconFile.orElse(defaultResources.get { linuxIcon }))
-                packageTask.installationPath.set(linux.installationPath)
                 packageTask.fileAssociations.set(provider { linux.fileAssociations })
             }
         }
         OS.Windows -> {
             app.nativeDistributions.windows.also { win ->
                 packageTask.winConsole.set(provider { win.console })
-                packageTask.winDirChooser.set(provider { win.dirChooser })
-                packageTask.winPerUserInstall.set(provider { win.perUserInstall })
-                packageTask.winShortcut.set(provider { win.shortcut })
-                packageTask.winMenu.set(provider { win.menu })
-                packageTask.winMenuGroup.set(provider { win.menuGroup })
-                packageTask.winUpgradeUuid.set(provider { win.upgradeUuid })
                 packageTask.iconFile.set(win.iconFile.orElse(defaultResources.get { windowsIcon }))
-                packageTask.installationPath.set(win.installationPath)
                 packageTask.fileAssociations.set(provider { win.fileAssociations })
             }
         }
@@ -570,7 +570,6 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                 packageTask.macExtraPlistKeysRawXml.set(provider { mac.infoPlistSettings.extraKeysRawXml })
                 packageTask.nonValidatedMacSigningSettings = app.nativeDistributions.macOS.signing
                 packageTask.iconFile.set(mac.iconFile.orElse(defaultResources.get { macIcon }))
-                packageTask.installationPath.set(mac.installationPath)
                 packageTask.fileAssociations.set(provider { mac.fileAssociations })
                 packageTask.macLayeredIcons.set(mac.layeredIconDir)
             }

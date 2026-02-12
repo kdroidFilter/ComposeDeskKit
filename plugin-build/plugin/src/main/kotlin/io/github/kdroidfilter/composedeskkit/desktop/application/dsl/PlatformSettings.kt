@@ -101,29 +101,29 @@ abstract class LinuxPlatformSettings : AbstractPlatformSettings() {
     var debPackageVersion: String? = null
     var rpmPackageVersion: String? = null
 
-    /** Override for StartupWMClass in .desktop file. If null, derived from mainClass. */
-    var startupWMClass: String? = null
-
-    /** Additional Debian dependencies to inject into the control file. */
+    /** Additional Debian dependencies for .deb packages. */
     var debDepends: List<String> = emptyList()
 
-    /** Additional RPM requires to inject into the spec. */
+    /** Additional RPM requires for .rpm packages. */
     var rpmRequires: List<String> = emptyList()
 
-    /** Rewrite dependencies for Ubuntu 24.04+ t64 compatibility (e.g. libasound2 -> libasound2t64 | libasound2). */
-    var enableT64AlternativeDeps: Boolean = false
+    val snap: SnapSettings = objects.newInstance(SnapSettings::class.java)
 
-    /** Compression algorithm for .deb packages (gzip, xz, zstd, none). If null, dpkg-deb default is used. */
-    var debCompression: DebCompression? = null
+    fun snap(fn: Action<SnapSettings>) {
+        fn.execute(snap)
+    }
 
-    /** Compression level for .deb packages. Valid range depends on the algorithm. If null, dpkg-deb default is used. */
-    var debCompressionLevel: Int? = null
+    val flatpak: FlatpakSettings = objects.newInstance(FlatpakSettings::class.java)
 
-    /** Compression algorithm for .rpm packages (gzip, xz, zstd). If null, rpmbuild default is used. */
-    var rpmCompression: RpmCompression? = null
+    fun flatpak(fn: Action<FlatpakSettings>) {
+        fn.execute(flatpak)
+    }
 
-    /** Compression level for .rpm packages. Valid range depends on the algorithm. If null, the algorithm's default level is used. */
-    var rpmCompressionLevel: Int? = null
+    val appImage: AppImageSettings = objects.newInstance(AppImageSettings::class.java)
+
+    fun appImage(fn: Action<AppImageSettings>) {
+        fn.execute(appImage)
+    }
 }
 
 abstract class WindowsPlatformSettings : AbstractPlatformSettings() {
@@ -143,5 +143,23 @@ abstract class WindowsPlatformSettings : AbstractPlatformSettings() {
 
     fun msix(fn: Action<MsixSettings>) {
         fn.execute(msix)
+    }
+
+    val nsis: NsisSettings = objects.newInstance(NsisSettings::class.java)
+
+    fun nsis(fn: Action<NsisSettings>) {
+        fn.execute(nsis)
+    }
+
+    val appx: AppXSettings = objects.newInstance(AppXSettings::class.java)
+
+    fun appx(fn: Action<AppXSettings>) {
+        fn.execute(appx)
+    }
+
+    val signing: WindowsSigningSettings = objects.newInstance(WindowsSigningSettings::class.java)
+
+    fun signing(fn: Action<WindowsSigningSettings>) {
+        fn.execute(signing)
     }
 }

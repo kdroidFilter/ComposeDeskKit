@@ -5,10 +5,8 @@
 
 package io.github.kdroidfilter.composedeskkit.desktop.application.tasks
 
-import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.DebCompression
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.FileAssociation
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.MacOSSigningSettings
-import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.RpmCompression
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.TargetFormat
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.APP_RESOURCES_DIR
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPlistBuilder
@@ -16,7 +14,6 @@ import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPl
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPlistBuilder.InfoPlistValue.InfoPlistMapValue
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.InfoPlistBuilder.InfoPlistValue.InfoPlistStringValue
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.JvmRuntimeProperties
-import io.github.kdroidfilter.composedeskkit.desktop.application.internal.LinuxPackagePostProcessor
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.MacAssetsTool
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.MacSigner
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.MacSignerImpl
@@ -36,9 +33,7 @@ import io.github.kdroidfilter.composedeskkit.desktop.application.internal.files.
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.files.normalizedPath
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.files.transformJar
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.javaOption
-import io.github.kdroidfilter.composedeskkit.desktop.application.internal.updateExecutableTypeInAppImage
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.validation.validate
-import io.github.kdroidfilter.composedeskkit.internal.utils.Arch
 import io.github.kdroidfilter.composedeskkit.internal.utils.OS
 import io.github.kdroidfilter.composedeskkit.internal.utils.clearDirs
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentArch
@@ -88,6 +83,13 @@ import javax.inject.Inject
 import kotlin.io.path.isExecutable
 import kotlin.io.path.isRegularFile
 
+/**
+ * Creates a jpackage app-image (the self-contained application directory with bundled JVM runtime).
+ *
+ * This task is now exclusively used for app-image creation (TargetFormat.AppImage).
+ * All final packaging into installer formats (DMG, DEB, RPM, NSIS, etc.) is handled
+ * by electron-builder via [AbstractElectronBuilderPackageTask].
+ */
 abstract class AbstractJPackageTask
     @Inject
     constructor(
@@ -129,20 +131,6 @@ abstract class AbstractJPackageTask
         @get:Input
         val packageFromUberJar: Property<Boolean> = objects.notNullProperty(false)
 
-        /** @see internal/wixToolset.kt */
-        @get:InputDirectory
-        @get:Optional
-        val wixToolsetDir: DirectoryProperty = objects.directoryProperty()
-
-        @get:Input
-        @get:Optional
-        val installationPath: Property<String?> = objects.nullableProperty()
-
-        @get:InputFile
-        @get:Optional
-        @get:PathSensitive(PathSensitivity.ABSOLUTE)
-        val licenseFile: RegularFileProperty = objects.fileProperty()
-
         @get:InputFile
         @get:Optional
         @get:PathSensitive(PathSensitivity.ABSOLUTE)
@@ -181,63 +169,6 @@ abstract class AbstractJPackageTask
         @get:Input
         @get:Optional
         val packageVersion: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxShortcut: Property<Boolean?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxPackageName: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxAppRelease: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxAppCategory: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxDebMaintainer: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxMenuGroup: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxRpmLicenseType: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxStartupWMClass: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        val linuxDebDepends: ListProperty<String> = objects.listProperty(String::class.java)
-
-        @get:Input
-        val linuxRpmRequires: ListProperty<String> = objects.listProperty(String::class.java)
-
-        @get:Input
-        val linuxEnableT64AlternativeDeps: Property<Boolean> = objects.notNullProperty(false)
-
-        @get:Input
-        @get:Optional
-        val linuxDebCompression: Property<DebCompression?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxDebCompressionLevel: Property<Int?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxRpmCompression: Property<RpmCompression?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val linuxRpmCompressionLevel: Property<Int?> = objects.nullableProperty()
 
         @get:Input
         @get:Optional
@@ -287,37 +218,9 @@ abstract class AbstractJPackageTask
         @get:Optional
         val winConsole: Property<Boolean?> = objects.nullableProperty()
 
-        @get:Input
-        @get:Optional
-        val winDirChooser: Property<Boolean?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val winPerUserInstall: Property<Boolean?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val winShortcut: Property<Boolean?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val winMenu: Property<Boolean?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val winMenuGroup: Property<String?> = objects.nullableProperty()
-
-        @get:Input
-        @get:Optional
-        val winUpgradeUuid: Property<String?> = objects.nullableProperty()
-
         @get:InputDirectory
         @get:Optional
         val runtimeImage: DirectoryProperty = objects.directoryProperty()
-
-        @get:InputDirectory
-        @get:Optional
-        val appImage: DirectoryProperty = objects.directoryProperty()
 
         @get:Input
         @get:Optional
@@ -404,9 +307,6 @@ abstract class AbstractJPackageTask
         @get:LocalState
         protected val skikoDir: Provider<Directory> = project.layout.buildDirectory.dir("compose/tmp/skiko")
 
-        @get:LocalState
-        protected val propertyFilesDir: Provider<Directory> = project.layout.buildDirectory.dir("compose/tmp/propertyFiles")
-
         @get:Internal
         private val libsDir: Provider<Directory> =
             workingDir.map {
@@ -442,111 +342,36 @@ abstract class AbstractJPackageTask
                     return listOf("${'$'}APPDIR", *pathParts).joinToString(separator) { it }
                 }
 
-                if (targetFormat == TargetFormat.AppImage || appImage.orNull == null) {
-                    // Args, that can only be used, when creating an app image or an installer w/o --app-image parameter
-                    cliArg("--input", libsDir)
-                    cliArg("--runtime-image", runtimeImage)
-                    cliArg("--resource-dir", jpackageResources)
+                cliArg("--input", libsDir)
+                cliArg("--runtime-image", runtimeImage)
+                cliArg("--resource-dir", jpackageResources)
 
-                    javaOption("-D$APP_RESOURCES_DIR=${appDir(packagedResourcesDir.ioFile.name)}")
+                javaOption("-D$APP_RESOURCES_DIR=${appDir(packagedResourcesDir.ioFile.name)}")
 
-                    val mappedJar =
-                        libsMapping[launcherMainJar.ioFile]?.singleOrNull { it.isJarFile }
-                            ?: error("Main jar was not processed correctly: ${launcherMainJar.ioFile}")
-                    val mainJarPath = mappedJar.normalizedPath(base = libsDir.ioFile)
-                    cliArg("--main-jar", mainJarPath)
-                    cliArg("--main-class", launcherMainClass)
+                val mappedJar =
+                    libsMapping[launcherMainJar.ioFile]?.singleOrNull { it.isJarFile }
+                        ?: error("Main jar was not processed correctly: ${launcherMainJar.ioFile}")
+                val mainJarPath = mappedJar.normalizedPath(base = libsDir.ioFile)
+                cliArg("--main-jar", mainJarPath)
+                cliArg("--main-class", launcherMainClass)
 
-                    if (currentOS == OS.Windows) {
-                        cliArg("--win-console", winConsole)
-                    }
-                    cliArg("--icon", iconFile)
-                    launcherArgs.orNull?.forEach {
-                        cliArg("--arguments", "'$it'")
-                    }
-                    launcherJvmArgs.orNull?.forEach {
-                        javaOption(it)
-                    }
-                    javaOption("-D$SKIKO_LIBRARY_PATH=${appDir()}")
-                    if (currentOS == OS.MacOS) {
-                        macDockName.orNull?.let { dockName ->
-                            javaOption("-Xdock:name=$dockName")
-                        }
-                        macProvisioningProfile.orNull?.let { provisioningProfile ->
-                            cliArg("--app-content", provisioningProfile)
-                        }
-                    }
+                if (currentOS == OS.Windows) {
+                    cliArg("--win-console", winConsole)
                 }
-
-                if (targetFormat != TargetFormat.AppImage) {
-                    // Args, that can only be used, when creating an installer
-                    // jpackage expects --app-image to point to the actual app directory,
-                    // not the parent. The app dir name is platform-specific.
-                    val resolvedAppImage =
-                        when (currentOS) {
-                            OS.MacOS -> appImage.dir("${packageName.get()}.app")
-                            OS.Linux, OS.Windows -> appImage.dir(packageName.get())
-                        }
-                    val appImageDir = resolvedAppImage.ioFile
-                    updateExecutableTypeInAppImage(appImageDir, targetFormat, logger)
-                    cliArg("--app-image", appImageDir)
-                    cliArg("--install-dir", installationPath)
-                    cliArg("--license-file", licenseFile)
-                    cliArg("--resource-dir", jpackageResources)
-
-                    val propertyFilesDirJava = propertyFilesDir.ioFile
-                    fileOperations.clearDirs(propertyFilesDir)
-
-                    val fileAssociationFiles =
-                        fileAssociations
-                            .get()
-                            .groupBy { it.extension }
-                            .mapValues { (extension, associations) ->
-                                associations.mapIndexed { index, association ->
-                                    propertyFilesDirJava
-                                        .resolve("FA${extension}${if (index > 0) index.toString() else ""}.properties")
-                                        .apply {
-                                            val withoutIcon =
-                                                """
-                                                mime-type=${association.mimeType}
-                                                extension=${association.extension}
-                                                description=${association.description}
-                                                """.trimIndent()
-                                            writeText(
-                                                if (association.iconFile == null) {
-                                                    withoutIcon
-                                                } else {
-                                                    "${withoutIcon}\nicon=${association.iconFile.normalizedPath()}"
-                                                },
-                                            )
-                                        }
-                                }
-                            }.values
-                            .flatten()
-
-                    for (fileAssociationFile in fileAssociationFiles) {
-                        cliArg("--file-associations", fileAssociationFile)
+                cliArg("--icon", iconFile)
+                launcherArgs.orNull?.forEach {
+                    cliArg("--arguments", "'$it'")
+                }
+                launcherJvmArgs.orNull?.forEach {
+                    javaOption(it)
+                }
+                javaOption("-D$SKIKO_LIBRARY_PATH=${appDir()}")
+                if (currentOS == OS.MacOS) {
+                    macDockName.orNull?.let { dockName ->
+                        javaOption("-Xdock:name=$dockName")
                     }
-
-                    when (currentOS) {
-                        OS.Linux -> {
-                            cliArg("--linux-shortcut", linuxShortcut)
-                            cliArg("--linux-package-name", linuxPackageName)
-                            cliArg("--linux-app-release", linuxAppRelease)
-                            cliArg("--linux-app-category", linuxAppCategory)
-                            cliArg("--linux-deb-maintainer", linuxDebMaintainer)
-                            cliArg("--linux-menu-group", linuxMenuGroup)
-                            cliArg("--linux-rpm-license-type", linuxRpmLicenseType)
-                        }
-                        OS.Windows -> {
-                            cliArg("--win-dir-chooser", winDirChooser)
-                            cliArg("--win-per-user-install", winPerUserInstall)
-                            cliArg("--win-shortcut", winShortcut)
-                            cliArg("--win-menu", winMenu)
-                            cliArg("--win-menu-group", winMenuGroup)
-                            cliArg("--win-upgrade-uuid", winUpgradeUuid)
-                        }
-                        OS.MacOS -> {}
+                    macProvisioningProfile.orNull?.let { provisioningProfile ->
+                        cliArg("--app-content", provisioningProfile)
                     }
                 }
 
@@ -706,86 +531,11 @@ abstract class AbstractJPackageTask
             }
         }
 
-        override fun jvmToolEnvironment(): MutableMap<String, String> =
-            super.jvmToolEnvironment().apply {
-                if (currentOS == OS.Windows) {
-                    val wixDir = wixToolsetDir.ioFile
-                    val wixPath = wixDir.absolutePath
-                    val path = System.getenv("PATH") ?: ""
-                    put("PATH", "$wixPath;$path")
-                }
-            }
-
         override fun checkResult(result: ExecResult) {
             super.checkResult(result)
             modifyRuntimeOnMacOsIfNeeded()
-            postProcessLinuxPackageIfNeeded()
             val outputFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
-            val finalFile = appendArchSuffix(outputFile)
-            logger.lifecycle("The distribution is written to ${finalFile.canonicalPath}")
-        }
-
-        private fun appendArchSuffix(file: File): File {
-            if (targetFormat == TargetFormat.AppImage) return file
-            // Linux native packages (deb, rpm) already include architecture in their filenames
-            if (currentOS == OS.Linux && (targetFormat == TargetFormat.Deb || targetFormat == TargetFormat.Rpm)) return file
-
-            val archSuffix =
-                when (currentArch) {
-                    Arch.Arm64 -> "_arm64"
-                    Arch.X64 -> "_x64"
-                }
-            val nameWithoutExt = file.name.removeSuffix(targetFormat.fileExt)
-            if (nameWithoutExt.endsWith(archSuffix)) return file
-
-            val newName = nameWithoutExt + archSuffix + targetFormat.fileExt
-            val target = file.parentFile.resolve(newName)
-            file.renameTo(target)
-            logger.lifecycle("Renamed ${file.name} -> $newName")
-            return target
-        }
-
-        private fun postProcessLinuxPackageIfNeeded() {
-            if (currentOS != OS.Linux) return
-
-            val startupWMClass = linuxStartupWMClass.orNull ?: launcherMainClass.get().replace('.', '-')
-
-            when (targetFormat) {
-                TargetFormat.Deb -> {
-                    val debFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
-                    LinuxPackagePostProcessor.postProcessDeb(
-                        debFile = debFile,
-                        appName = packageName.get(),
-                        linuxPackageName = linuxPackageName.orNull,
-                        packageDescription = packageDescription.orNull,
-                        linuxAppCategory = linuxAppCategory.orNull,
-                        startupWMClass = startupWMClass,
-                        debDepends = linuxDebDepends.get(),
-                        enableT64 = linuxEnableT64AlternativeDeps.get(),
-                        compression = linuxDebCompression.orNull,
-                        compressionLevel = linuxDebCompressionLevel.orNull,
-                        execOperations = execOperations,
-                        logger = logger,
-                    )
-                }
-                TargetFormat.Rpm -> {
-                    val rpmFile = findOutputFileOrDir(destinationDir.ioFile, targetFormat)
-                    LinuxPackagePostProcessor.postProcessRpm(
-                        rpmFile = rpmFile,
-                        appName = packageName.get(),
-                        linuxPackageName = linuxPackageName.orNull,
-                        packageDescription = packageDescription.orNull,
-                        linuxAppCategory = linuxAppCategory.orNull,
-                        startupWMClass = startupWMClass,
-                        rpmRequires = linuxRpmRequires.get(),
-                        compression = linuxRpmCompression.orNull,
-                        compressionLevel = linuxRpmCompressionLevel.orNull,
-                        execOperations = execOperations,
-                        logger = logger,
-                    )
-                }
-                else -> {}
-            }
+            logger.lifecycle("The distribution is written to ${outputFile.canonicalPath}")
         }
 
         private fun modifyRuntimeOnMacOsIfNeeded() {

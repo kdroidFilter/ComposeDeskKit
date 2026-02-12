@@ -24,6 +24,11 @@ internal fun JvmApplicationContext.validatePackageVersions() {
                 TargetFormat.Msi, TargetFormat.Exe -> WindowsVersionChecker
                 TargetFormat.Msix -> MsixVersionChecker
                 TargetFormat.Dmg, TargetFormat.Pkg -> MacVersionChecker
+                TargetFormat.Nsis, TargetFormat.NsisWeb, TargetFormat.Portable,
+                TargetFormat.AppX,
+                -> WindowsVersionChecker
+                TargetFormat.Snap, TargetFormat.Flatpak -> DebVersionChecker
+                TargetFormat.Zip, TargetFormat.Tar, TargetFormat.SevenZ -> null
             }
 
         val packageVersion = packageVersionFor(targetFormat).orNull
@@ -90,6 +95,7 @@ private class ErrorsCollector {
     }
 }
 
+@Suppress("CyclomaticComplexMethod") // Exhaustive when on TargetFormat enum
 private fun dslPropertiesFor(targetFormat: TargetFormat): List<String> {
     val nativeDistributions = "nativeDistributions"
     val linux = "$nativeDistributions.linux"
@@ -107,6 +113,11 @@ private fun dslPropertiesFor(targetFormat: TargetFormat): List<String> {
             TargetFormat.Exe -> "$windows.exePackageVersion"
             TargetFormat.Msi -> "$windows.msiPackageVersion"
             TargetFormat.Msix -> "$windows.msixPackageVersion"
+            TargetFormat.Nsis, TargetFormat.NsisWeb, TargetFormat.Portable,
+            TargetFormat.AppX,
+            -> "$windows.exePackageVersion"
+            TargetFormat.Snap, TargetFormat.Flatpak -> "$linux.debPackageVersion"
+            TargetFormat.Zip, TargetFormat.Tar, TargetFormat.SevenZ -> null
         }
     val osSettingsProperty: String =
         when (targetFormat.targetOS) {

@@ -17,6 +17,7 @@ internal fun JvmApplicationContext.packageVersionFor(targetFormat: TargetFormat)
             ?: "1.0.0"
     }
 
+@Suppress("CyclomaticComplexMethod") // Exhaustive when on TargetFormat enum
 private fun JvmApplicationDistributions.packageVersionFor(targetFormat: TargetFormat): String? {
     val formatSpecificVersion: String? =
         when (targetFormat) {
@@ -28,6 +29,11 @@ private fun JvmApplicationDistributions.packageVersionFor(targetFormat: TargetFo
             TargetFormat.Exe -> windows.exePackageVersion
             TargetFormat.Msi -> windows.msiPackageVersion
             TargetFormat.Msix -> windows.msixPackageVersion
+            TargetFormat.Nsis, TargetFormat.NsisWeb, TargetFormat.Portable,
+            TargetFormat.AppX,
+            -> windows.exePackageVersion
+            TargetFormat.Snap, TargetFormat.Flatpak -> linux.debPackageVersion
+            TargetFormat.Zip, TargetFormat.Tar, TargetFormat.SevenZ -> null
         }
     val osSpecificVersion: String? =
         when (targetFormat.targetOS) {
@@ -54,10 +60,9 @@ private fun JvmApplicationDistributions.packageBuildVersionFor(targetFormat: Tar
 
     val formatSpecificVersion: String? =
         when (targetFormat) {
-            TargetFormat.AppImage -> null
             TargetFormat.Dmg -> macOS.dmgPackageBuildVersion
             TargetFormat.Pkg -> macOS.pkgPackageBuildVersion
-            else -> error("invalid target format: $targetFormat")
+            else -> null
         }
     val osSpecificVersion: String? = macOS.packageBuildVersion
     return formatSpecificVersion

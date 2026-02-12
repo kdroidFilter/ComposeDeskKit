@@ -65,4 +65,36 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
         windows.fileAssociation(mimeType, extension, description, windowsIconFile)
         macOS.fileAssociation(mimeType, extension, description, macOSIconFile)
     }
+
+    // --- Publishing ---
+
+    val publish: PublishSettings = objects.newInstance(PublishSettings::class.java)
+
+    fun publish(fn: Action<PublishSettings>) {
+        fn.execute(publish)
+    }
+
+    // --- Compression level for archive formats (store, normal, maximum) ---
+
+    var compressionLevel: String? = null
+
+    // --- Artifact name template (e.g., "\${name}-\${version}-\${arch}.\${ext}") ---
+
+    var artifactName: String? = null
+
+    // --- URL protocol handlers (deep linking) ---
+
+    val protocols: MutableList<UrlProtocol> = mutableListOf()
+
+    fun protocol(
+        name: String,
+        vararg schemes: String,
+    ) {
+        protocols.add(UrlProtocol(name, schemes.toList()))
+    }
 }
+
+data class UrlProtocol(
+    val name: String,
+    val schemes: List<String>,
+)
