@@ -263,6 +263,7 @@ abstract class AbstractGenerateAotCacheTask : AbstractComposeDesktopTask() {
     ) {
         val args = mutableListOf(javaExe)
         args += "-XX:AOTCacheOutput=${aotCacheFile.absolutePath}"
+        args += "-Dcomposedeskkit.aot.mode=training"
         args += "-cp"
         args += classpath
         args += javaOptions

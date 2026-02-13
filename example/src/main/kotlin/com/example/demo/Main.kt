@@ -30,13 +30,6 @@ fun main() {
     if (AotRuntime.isTraining()) {
         println("[AOT] Training mode - will exit in 15 seconds")
 
-        if (isHeadlessLinux()) {
-            println("[AOT] Headless Linux detected (no DISPLAY/WAYLAND_DISPLAY). Skipping UI.")
-            Thread.sleep(AOT_TRAINING_DURATION_MS)
-            println("[AOT] Time's up, exiting...")
-            kotlin.system.exitProcess(0)
-        }
-
         Thread({
             Thread.sleep(AOT_TRAINING_DURATION_MS)
             println("[AOT] Time's up, exiting...")
@@ -57,13 +50,6 @@ fun main() {
     }
 }
 
-private fun isHeadlessLinux(): Boolean {
-    val os = System.getProperty("os.name").lowercase()
-    if (!os.contains("linux")) return false
-    val display = System.getenv("DISPLAY")
-    val wayland = System.getenv("WAYLAND_DISPLAY")
-    return display.isNullOrBlank() && wayland.isNullOrBlank()
-}
 
 @Composable
 fun app() {

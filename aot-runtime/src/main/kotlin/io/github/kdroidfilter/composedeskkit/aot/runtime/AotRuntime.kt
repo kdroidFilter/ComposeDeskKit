@@ -1,7 +1,5 @@
 package io.github.kdroidfilter.composedeskkit.aot.runtime
 
-import java.lang.management.ManagementFactory
-
 public enum class AotRuntimeMode {
     OFF,
     TRAINING,
@@ -10,13 +8,10 @@ public enum class AotRuntimeMode {
 
 public object AotRuntime {
     private const val MODE_PROPERTY = "composedeskkit.aot.mode"
-    private const val AOT_RUNTIME_FLAG = "-XX:AOTCache="
-    private const val AOT_TRAINING_FLAG = "-XX:AOTCacheOutput="
 
     @JvmStatic
     public fun mode(): AotRuntimeMode {
-        parseModeProperty(System.getProperty(MODE_PROPERTY))?.let { return it }
-        return detectMode(ManagementFactory.getRuntimeMXBean().inputArguments)
+        return parseModeProperty(System.getProperty(MODE_PROPERTY)) ?: AotRuntimeMode.OFF
     }
 
     @JvmStatic
@@ -24,13 +19,6 @@ public object AotRuntime {
 
     @JvmStatic
     public fun isTraining(): Boolean = mode() == AotRuntimeMode.TRAINING
-
-    internal fun detectMode(inputArguments: List<String>): AotRuntimeMode =
-        when {
-            inputArguments.any { it.startsWith(AOT_TRAINING_FLAG) } -> AotRuntimeMode.TRAINING
-            inputArguments.any { it.startsWith(AOT_RUNTIME_FLAG) } -> AotRuntimeMode.RUNTIME
-            else -> AotRuntimeMode.OFF
-        }
 
     internal fun parseModeProperty(rawValue: String?): AotRuntimeMode? =
         when (rawValue?.trim()?.lowercase()) {
