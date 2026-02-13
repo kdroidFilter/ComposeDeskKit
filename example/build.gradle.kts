@@ -11,6 +11,7 @@ dependencies {
     implementation(compose.desktop.currentOs)
     implementation("org.jetbrains.compose.material3:material3:1.9.0")
     implementation(project(":aot-runtime"))
+    implementation("io.github.kdroidfilter:composenativetray:1.1.0") // for check clean native libs
 }
 
 nucleus.application {
@@ -19,10 +20,9 @@ nucleus.application {
     buildTypes {
         release {
             proguard {
-                version.set("7.7.0")
-                maxHeapSize.set("1g")
-                isEnabled.set(false)
-                optimize.set(true)
+                version = "7.8.1"
+                isEnabled = true
+                optimize = true
             }
         }
     }
@@ -39,7 +39,6 @@ nucleus.application {
 
         // --- Native libs handling ---
         cleanupNativeLibs = true          // Auto cleanup native libraries
-        includeAllModules = false          // Include all JVM modules
         enableAotCache = true              // Enable AOT compilation cache
         splashImage = "splash.png"         // Splash screen image file
         homepage = "https://github.com/KdroidFilter/ComposeDeskKitDemo"
@@ -113,7 +112,7 @@ nucleus.application {
             // --- Flatpak (NEW) ---
             flatpak {
                 runtime = "org.freedesktop.Platform"
-                runtimeVersion = "23.08"    // or "24.08", etc.
+                runtimeVersion = "24.08"    // or "24.08", etc.
                 sdk = "org.freedesktop.Sdk"
                 branch = "master"
                 // Finish args: "--share=ipc", "--socket=x11", "--socket=wayland", "--socket=pulseaudio", "--device=dri", "--filesystem=home"
