@@ -30,6 +30,7 @@ abstract class AbstractDistributions {
 
     var description: String? = null
     var vendor: String? = null
+    var homepage: String? = null
     val appResourcesRootDir: DirectoryProperty = objects.directoryProperty()
     val licenseFile: RegularFileProperty = objects.fileProperty()
 

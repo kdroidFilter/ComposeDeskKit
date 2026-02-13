@@ -45,6 +45,11 @@ internal class ElectronBuilderConfigGenerator {
         appendIfNotNull(yaml, "appId", distributions.packageName?.let { "com.app.$it" })
         appendIfNotNull(yaml, "copyright", distributions.copyright)
 
+        if (distributions.homepage != null) {
+            yaml.appendLine("extraMetadata:")
+            yaml.appendLine("  homepage: ${distributions.homepage}")
+        }
+
         yaml.appendLine("directories:")
         yaml.appendLine("  output: .")
 

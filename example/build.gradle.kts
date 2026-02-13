@@ -71,6 +71,8 @@ val windowsUpgradeUuid = "d24e3b8d-3e9b-4cc7-a5d8-5e2d1f0c9f1b"
 dependencies {
     implementation("org.jetbrains.compose.desktop:desktop-jvm-$currentTarget:1.10.0")
     implementation("org.jetbrains.compose.material3:material3:1.9.0")
+    implementation("io.github.kdroidfilter:composenativetray:1.1.0")
+
 }
 
 composeDeskKit.desktop.application {
@@ -94,17 +96,18 @@ composeDeskKit.desktop.application {
 
     nativeDistributions {
         outputBaseDir.set(layout.buildDirectory.dir("compose/binaries"))
-        targetFormats(*TargetFormat.values())
+        targetFormats(*TargetFormat.entries.toTypedArray())
 
         packageName = "ComposeDeskKitDemo"
         packageVersion = "1.0.0"
         copyright = "Copyright (c) 2025 KDroidFilter"
         description = "Demo application for ComposeDeskKit"
+        homepage = "https://github.com/kdroidfilter/ComposeDeskKit"
         vendor = "KDroidFilter"
         appResourcesRootDir.set(appResourcesRoot)
         licenseFile.set(packagingLicenseFile)
 
-        cleanupNativeLibs = false
+        cleanupNativeLibs = true
         includeAllModules = false
         enableAotCache = true
         splashImage = splashImageName
