@@ -312,6 +312,7 @@ Windows file associations configured via `fileAssociation(...)` are now propagat
 - `TargetFormat.Exe` / `TargetFormat.Nsis`
 - `TargetFormat.NsisWeb`
 - `TargetFormat.Msi`
+- `TargetFormat.AppX`
 
 ```kotlin
 nativeDistributions {
@@ -327,12 +328,36 @@ nativeDistributions {
 ```
 
 Notes:
-- `AppX` does not currently expose file association registration through this DSL mapping.
 - Extension values are normalized (leading `.` is removed).
 
 ---
 
-### 12. macOS Layered Icons (macOS 26+)
+### 12. AppX Custom Tile Assets
+
+You can provide custom AppX tile assets through explicit DSL properties:
+
+```kotlin
+nativeDistributions {
+    windows {
+        appx {
+            storeLogo.set(layout.projectDirectory.file("packaging/appx/StoreLogo.png"))
+            square44x44Logo.set(layout.projectDirectory.file("packaging/appx/Square44x44Logo.png"))
+            square150x150Logo.set(layout.projectDirectory.file("packaging/appx/Square150x150Logo.png"))
+            wide310x150Logo.set(layout.projectDirectory.file("packaging/appx/Wide310x150Logo.png"))
+        }
+    }
+}
+```
+
+These map to the AppX asset names expected by electron-builder:
+- `storeLogo` -> `StoreLogo.png`
+- `square44x44Logo` -> `Square44x44Logo.png`
+- `square150x150Logo` -> `Square150x150Logo.png`
+- `wide310x150Logo` -> `Wide310x150Logo.png`
+
+---
+
+### 13. macOS Layered Icons (macOS 26+)
 
 Adds support for [macOS layered icons](https://developer.apple.com/design/human-interface-guidelines/app-icons#macOS) (`.icon` directory) introduced in macOS 26. Layered icons enable the dynamic tilt/depth effects shown on the Dock and in Spotlight.
 
@@ -435,7 +460,13 @@ composeDeskKit.desktop.nativeApplication {
 
 ### `nativeDistributions { windows { ... } }`
 
-Use `fileAssociation(...)` to declare document associations. For electron-builder, associations are applied to `Exe`/`Nsis`, `NsisWeb`, and `Msi`.
+Use `fileAssociation(...)` to declare document associations. For electron-builder, associations are applied to `Exe`/`Nsis`, `NsisWeb`, `Msi`, and `AppX`.
+
+Use `appx { ... }` to set AppX-specific logos:
+- `storeLogo`
+- `square44x44Logo`
+- `square150x150Logo`
+- `wide310x150Logo`
 
 ---
 

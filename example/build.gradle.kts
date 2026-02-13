@@ -48,6 +48,10 @@ val macRuntimeEntitlements = packagingDir.file("macos/runtime-entitlements.plist
 val macProvisioningProfile = packagingDir.file("macos/embedded.provisionprofile")
 val macRuntimeProvisioningProfile = packagingDir.file("macos/runtime-embedded.provisionprofile")
 val windowsSigningCert = packagingDir.file("KDroidFilter.pfx")
+val appxStoreLogo = packagingDir.file("appx/StoreLogo.png")
+val appxSquare44x44Logo = packagingDir.file("appx/Square44x44Logo.png")
+val appxSquare150x150Logo = packagingDir.file("appx/Square150x150Logo.png")
+val appxWide310x150Logo = packagingDir.file("appx/Wide310x150Logo.png")
 val windowsSigningPassword =
     providers.gradleProperty("windowsSigningPassword").orElse("ChangeMe-Temp123!").get()
 
@@ -271,8 +275,11 @@ composeDeskKit.desktop.application {
                 identityName = "KDroidFilter.ComposeDeskKitDemo"
                 languages = listOf("en-US", "fr-FR")
                 addAutoLaunchExtension = false
+                if (appxStoreLogo.asFile.exists()) storeLogo.set(appxStoreLogo)
+                if (appxSquare44x44Logo.asFile.exists()) square44x44Logo.set(appxSquare44x44Logo)
+                if (appxSquare150x150Logo.asFile.exists()) square150x150Logo.set(appxSquare150x150Logo)
+                if (appxWide310x150Logo.asFile.exists()) wide310x150Logo.set(appxWide310x150Logo)
             }
-
         }
 
         macOS {

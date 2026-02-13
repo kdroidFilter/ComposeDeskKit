@@ -23,10 +23,12 @@ import io.github.kdroidfilter.composedeskkit.internal.utils.notNullProperty
 import io.github.kdroidfilter.composedeskkit.internal.utils.nullableProperty
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.logging.Logger
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
@@ -70,6 +72,26 @@ abstract class AbstractElectronBuilderPackageTask
         @get:Optional
         val customNodePath: Property<String?> = objects.nullableProperty()
 
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val appxStoreLogo: RegularFileProperty = objects.fileProperty()
+
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val appxSquare44x44Logo: RegularFileProperty = objects.fileProperty()
+
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val appxSquare150x150Logo: RegularFileProperty = objects.fileProperty()
+
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val appxWide310x150Logo: RegularFileProperty = objects.fileProperty()
+
         /**
          * The distributions DSL object providing all platform-specific settings.
          * Marked @Internal because the individual settings are tracked via other @Input properties
@@ -101,6 +123,27 @@ abstract class AbstractElectronBuilderPackageTask
             validateNodeVersion()
 
             val outputDir = destinationDir.ioFile.apply { mkdirs() }
+            if (targetFormat == TargetFormat.AppX) {
+                val stagedAssetsDir = outputDir.resolve("build").resolve("appx")
+                stagedAssetsDir.deleteRecursively()
+
+                val mappings =
+                    listOf(
+                        "StoreLogo.png" to appxStoreLogo.orNull?.asFile,
+                        "Square44x44Logo.png" to appxSquare44x44Logo.orNull?.asFile,
+                        "Square150x150Logo.png" to appxSquare150x150Logo.orNull?.asFile,
+                        "Wide310x150Logo.png" to appxWide310x150Logo.orNull?.asFile,
+                    )
+
+                for ((targetFileName, source) in mappings) {
+                    if (source == null) continue
+                    if (!source.isFile) {
+                        throw GradleException("AppX asset file not found: ${source.absolutePath}")
+                    }
+                    stagedAssetsDir.mkdirs()
+                    source.copyTo(stagedAssetsDir.resolve(targetFileName), overwrite = true)
+                }
+            }
             val configFile = generateConfig(dist, appDir, outputDir)
             ensureProjectPackageMetadata(outputDir, dist)
 

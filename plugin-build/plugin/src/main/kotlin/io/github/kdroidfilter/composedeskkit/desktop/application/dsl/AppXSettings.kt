@@ -5,8 +5,15 @@
 
 package io.github.kdroidfilter.composedeskkit.desktop.application.dsl
 
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.model.ObjectFactory
+import javax.inject.Inject
+
 @Suppress("UnnecessaryAbstractClass") // Required abstract for Gradle ObjectFactory.newInstance()
 abstract class AppXSettings {
+    @get:Inject
+    internal abstract val objects: ObjectFactory
+
     /** Application user model ID */
     var applicationId: String? = null
 
@@ -27,4 +34,16 @@ abstract class AppXSettings {
 
     /** Add auto-launch on startup capability. Default: false */
     var addAutoLaunchExtension: Boolean = false
+
+    /** Store tile logo (mapped as `StoreLogo.png`) */
+    val storeLogo: RegularFileProperty = objects.fileProperty()
+
+    /** Small tile logo (mapped as `Square44x44Logo.png`) */
+    val square44x44Logo: RegularFileProperty = objects.fileProperty()
+
+    /** Medium tile logo (mapped as `Square150x150Logo.png`) */
+    val square150x150Logo: RegularFileProperty = objects.fileProperty()
+
+    /** Wide tile logo (mapped as `Wide310x150Logo.png`) */
+    val wide310x150Logo: RegularFileProperty = objects.fileProperty()
 }

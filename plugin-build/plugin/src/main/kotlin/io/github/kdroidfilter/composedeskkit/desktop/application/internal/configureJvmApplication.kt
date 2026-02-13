@@ -398,6 +398,10 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     packageTask.packageName.set(packageNameProvider)
     packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
     packageTask.customNodePath.set(ComposeProperties.electronBuilderNodePath(project.providers))
+    packageTask.appxStoreLogo.set(app.nativeDistributions.windows.appx.storeLogo)
+    packageTask.appxSquare44x44Logo.set(app.nativeDistributions.windows.appx.square44x44Logo)
+    packageTask.appxSquare150x150Logo.set(app.nativeDistributions.windows.appx.square150x150Logo)
+    packageTask.appxWide310x150Logo.set(app.nativeDistributions.windows.appx.wide310x150Logo)
     packageTask.distributions = app.nativeDistributions
 }
 
