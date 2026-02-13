@@ -36,8 +36,11 @@ import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import java.io.File
+import java.awt.RenderingHints
+import java.awt.image.BufferedImage
 import java.util.Locale
 import javax.inject.Inject
+import javax.imageio.ImageIO
 
 /**
  * Gradle task that packages a pre-built app-image (from jpackage) using electron-builder.
@@ -117,12 +120,14 @@ abstract class AbstractElectronBuilderPackageTask
             logger.info("Resolved app image directory: ${appDir.absolutePath}")
 
             ensureResourcesDirForElectronBuilder(appDir)
+            ensureLinuxExecutableAlias(appDir)
             updateExecutableTypeInAppImage(appDir, targetFormat, logger)
 
             val npx = detectNpx()
             validateNodeVersion()
 
             val outputDir = destinationDir.ioFile.apply { mkdirs() }
+            val linuxIconOverride = prepareLinuxIconSet(dist, outputDir)
             if (targetFormat == TargetFormat.AppX) {
                 val stagedAssetsDir = outputDir.resolve("build").resolve("appx")
                 stagedAssetsDir.deleteRecursively()
@@ -144,7 +149,7 @@ abstract class AbstractElectronBuilderPackageTask
                     source.copyTo(stagedAssetsDir.resolve(targetFileName), overwrite = true)
                 }
             }
-            val configFile = generateConfig(dist, appDir, outputDir)
+            val configFile = generateConfig(dist, appDir, outputDir, linuxIconOverride)
             ensureProjectPackageMetadata(outputDir, dist)
 
             val toolManager = ElectronBuilderToolManager(execOperations, logger)
@@ -197,6 +202,7 @@ abstract class AbstractElectronBuilderPackageTask
             distributions: JvmApplicationDistributions,
             appDir: File,
             outputDir: File,
+            linuxIconOverride: File?,
         ): File {
             val configGenerator = ElectronBuilderConfigGenerator()
             val configContent =
@@ -204,6 +210,7 @@ abstract class AbstractElectronBuilderPackageTask
                     distributions = distributions,
                     targetFormat = targetFormat,
                     appImageDir = appDir,
+                    linuxIconOverride = linuxIconOverride,
                 )
             val configFile = File(outputDir, "electron-builder.yml")
             configFile.writeText(configContent)
@@ -217,6 +224,88 @@ abstract class AbstractElectronBuilderPackageTask
             if (!resourcesDir.exists()) {
                 resourcesDir.mkdirs()
             }
+        }
+
+        private fun prepareLinuxIconSet(
+            distributions: JvmApplicationDistributions,
+            outputDir: File,
+        ): File? {
+            if (currentOS != OS.Linux) return null
+
+            val iconFile = distributions.linux.iconFile.orNull?.asFile ?: return null
+            if (!iconFile.isFile) {
+                logger.warn("Linux icon file not found: ${iconFile.absolutePath}")
+                return null
+            }
+
+            val extension = iconFile.extension.lowercase(Locale.ROOT)
+            if (extension != "png") {
+                // Let electron-builder handle non-PNG icons as-is.
+                return iconFile
+            }
+
+            val source = ImageIO.read(iconFile)
+            if (source == null) {
+                logger.warn("Unable to read Linux icon: ${iconFile.absolutePath}")
+                return iconFile
+            }
+
+            val iconsDir = outputDir.resolve("linux-icons")
+            if (iconsDir.exists()) iconsDir.deleteRecursively()
+            iconsDir.mkdirs()
+
+            val sizes = listOf(16, 32, 48, 64, 128, 256, 512)
+            for (size in sizes) {
+                val resized = resizeIcon(source, size, size)
+                val target = iconsDir.resolve("${size}x${size}.png")
+                ImageIO.write(resized, "png", target)
+            }
+            logger.info("Generated Linux icon set at: ${iconsDir.absolutePath}")
+            return iconsDir
+        }
+
+        private fun resizeIcon(
+            source: BufferedImage,
+            width: Int,
+            height: Int,
+        ): BufferedImage {
+            val resized = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+            val graphics = resized.createGraphics()
+            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            graphics.drawImage(source, 0, 0, width, height, null)
+            graphics.dispose()
+            return resized
+        }
+
+        private fun ensureLinuxExecutableAlias(appDir: File) {
+            if (currentOS != OS.Linux) return
+
+            val launcherName = packageName.get()
+            val launcher = appDir.resolve("bin").resolve(launcherName)
+            if (!launcher.isFile) {
+                logger.warn(
+                    "Expected launcher not found at ${launcher.absolutePath}. " +
+                        "Skipping Linux executable alias creation.",
+                )
+                return
+            }
+
+            val aliasName = launcherName.toNpmPackageName()
+            val aliasFile = appDir.resolve(aliasName)
+            if (aliasFile.exists()) return
+
+            val script =
+                """
+                #!/usr/bin/env sh
+                DIR="$(cd "$(dirname "${'$'}0")" && pwd)"
+                exec "${'$'}DIR/bin/$launcherName" "${'$'}@"
+                """.trimIndent() + "\n"
+
+            aliasFile.writeText(script)
+            aliasFile.setExecutable(true)
+            logger.info("Created Linux launcher alias: ${aliasFile.absolutePath}")
         }
 
         private fun ensureProjectPackageMetadata(

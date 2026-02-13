@@ -37,6 +37,7 @@ internal class ElectronBuilderConfigGenerator {
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
         appImageDir: File,
+        linuxIconOverride: File? = null,
     ): String {
         val yaml = StringBuilder()
 
@@ -61,7 +62,7 @@ internal class ElectronBuilderConfigGenerator {
         when (currentOS) {
             OS.MacOS -> generateMacConfig(yaml, distributions, targetFormat)
             OS.Windows -> generateWindowsConfig(yaml, distributions, targetFormat)
-            OS.Linux -> generateLinuxConfig(yaml, distributions, targetFormat)
+            OS.Linux -> generateLinuxConfig(yaml, distributions, targetFormat, linuxIconOverride)
         }
 
         // --- Protocols ---
@@ -322,16 +323,16 @@ internal class ElectronBuilderConfigGenerator {
         yaml: StringBuilder,
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
+        linuxIconOverride: File?,
     ) {
         yaml.appendLine("linux:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
+        val linuxIcon = linuxIconOverride ?: distributions.linux.iconFile.orNull?.asFile
         appendIfNotNull(
             yaml,
             "  icon",
-            distributions.linux.iconFile.orNull
-                ?.asFile
-                ?.absolutePath,
+            linuxIcon?.absolutePath,
         )
         appendIfNotNull(yaml, "  category", distributions.linux.appCategory)
         appendIfNotNull(yaml, "  maintainer", distributions.linux.debMaintainer)
