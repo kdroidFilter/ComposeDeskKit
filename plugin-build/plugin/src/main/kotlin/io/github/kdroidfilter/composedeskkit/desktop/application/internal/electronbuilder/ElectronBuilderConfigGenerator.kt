@@ -398,7 +398,14 @@ internal class ElectronBuilderConfigGenerator {
         value: String?,
     ) {
         if (value != null) {
-            yaml.appendLine("$key: \"$value\"")
+            yaml.appendLine("$key: \"${value.escapeForYamlDoubleQuotes()}\"")
         }
     }
+
+    private fun String.escapeForYamlDoubleQuotes(): String =
+        replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
 }

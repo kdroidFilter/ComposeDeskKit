@@ -25,6 +25,19 @@ val currentTarget: String by lazy {
     "$osId-$archId"
 }
 
+val defaultWindowsIcon =
+    rootProject.layout.projectDirectory.file(
+        "plugin-build/plugin/src/main/resources/default-compose-desktop-icon-windows.ico",
+    )
+val defaultMacIcon =
+    rootProject.layout.projectDirectory.file(
+        "plugin-build/plugin/src/main/resources/default-compose-desktop-icon-mac.icns",
+    )
+val defaultLinuxIcon =
+    rootProject.layout.projectDirectory.file(
+        "plugin-build/plugin/src/main/resources/default-compose-desktop-icon-linux.png",
+    )
+
 dependencies {
     implementation("org.jetbrains.compose.desktop:desktop-jvm-$currentTarget:1.10.0")
     implementation("org.jetbrains.compose.material3:material3:1.9.0")
@@ -34,7 +47,7 @@ composeDeskKit.desktop.application {
     mainClass = "com.example.demo.MainKt"
 
     nativeDistributions {
-        targetFormats(TargetFormat.Dmg, TargetFormat.Deb, TargetFormat.Nsis)
+        targetFormats(*TargetFormat.values())
 
         packageName = "ComposeDeskKitDemo"
         packageVersion = "1.0.0"
@@ -45,21 +58,32 @@ composeDeskKit.desktop.application {
             "jdk.accessibility",
         )
 
+        publish {
+            github {
+                enabled = true
+                owner = "kdroidfilter"
+                repo = "ComposeDeskKit"
+            }
+        }
+
         linux {
+            iconFile.set(defaultLinuxIcon)
             appCategory = "Utility"
         }
 
         windows {
+            iconFile.set(defaultWindowsIcon)
             menu = true
             shortcut = true
             nsis {
-                oneClick = false
-                allowElevation = true
+                oneClick = true
+                allowElevation = false
                 perMachine = true
             }
         }
 
         macOS {
+            iconFile.set(defaultMacIcon)
             bundleID = "io.github.kdroidfilter.composedeskkit.demo"
         }
     }
