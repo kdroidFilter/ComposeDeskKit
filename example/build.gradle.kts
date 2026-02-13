@@ -43,7 +43,6 @@ val appResourcesRoot = layout.projectDirectory.dir("app-resources")
 val splashImageName = "splash.png"
 val packagingLicenseFile = packagingDir.file("license.txt")
 val nsisIncludeFile = packagingDir.file("nsis/include.nsh")
-val msixManifestTemplate = packagingDir.file("msix-manifest.xml")
 val macEntitlements = packagingDir.file("macos/entitlements.plist")
 val macRuntimeEntitlements = packagingDir.file("macos/runtime-entitlements.plist")
 val macProvisioningProfile = packagingDir.file("macos/embedded.provisionprofile")
@@ -58,13 +57,6 @@ val nsisInstallerSidebarFile =
     providers.gradleProperty("nsisInstallerSidebar").map { layout.projectDirectory.file(it) }
 val nsisScriptFile =
     providers.gradleProperty("nsisScript").map { layout.projectDirectory.file(it) }
-
-val msixSigningPfxFile =
-    providers.gradleProperty("msixSigningPfx")
-        .map { layout.projectDirectory.file(it) }
-        .orElse(layout.projectDirectory.file("packaging/KDroidFilter.pfx"))
-val msixSigningPassword =
-    providers.gradleProperty("msixSigningPassword").orElse("ChangeMe-Temp123!").get()
 
 val windowsInstallDir = """C:\Program Files\ComposeDeskKitDemo"""
 val linuxInstallDir = "/opt/composedeskkitdemo"
@@ -229,7 +221,6 @@ composeDeskKit.desktop.application {
             upgradeUuid = windowsUpgradeUuid
             msiPackageVersion = "1.0.0"
             exePackageVersion = "1.0.0"
-            msixPackageVersion = "1.0.0"
 
             fileAssociation(
                 mimeType = "application/x-composedeskkit",
@@ -282,24 +273,6 @@ composeDeskKit.desktop.application {
                 addAutoLaunchExtension = false
             }
 
-            msix {
-                iconFile.set(defaultLinuxIcon)
-                manifestTemplateFile.set(msixManifestTemplate)
-                signingPfxFile.set(msixSigningPfxFile)
-                signingPassword = msixSigningPassword
-                identityName = "KDroidFilter.ComposeDeskKitDemo"
-                publisher = "CN=D541E802-6D30-446A-864E-2E8ABD2DAA5E"
-                publisherDisplayName = "KDroidFilter"
-                displayName = "ComposeDeskKit Demo"
-                description = "Demo application for ComposeDeskKit"
-                backgroundColor = "transparent"
-                appId = "ComposeDeskKitDemo"
-                appExecutable = "ComposeDeskKitDemo.exe"
-                processorArchitecture = if (currentArchId == "arm64") "arm64" else "x64"
-                targetDeviceFamilyName = "Windows.Desktop"
-                targetDeviceFamilyMinVersion = "10.0.17763.0"
-                targetDeviceFamilyMaxVersionTested = "10.0.22621.2861"
-            }
         }
 
         macOS {

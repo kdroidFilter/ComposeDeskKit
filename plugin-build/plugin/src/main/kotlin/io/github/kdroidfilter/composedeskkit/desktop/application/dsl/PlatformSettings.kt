@@ -137,13 +137,6 @@ abstract class WindowsPlatformSettings : AbstractPlatformSettings() {
     var upgradeUuid: String? = null
     var msiPackageVersion: String? = null
     var exePackageVersion: String? = null
-    var msixPackageVersion: String? = null
-
-    val msix: MsixSettings = objects.newInstance(MsixSettings::class.java)
-
-    fun msix(fn: Action<MsixSettings>) {
-        fn.execute(msix)
-    }
 
     val nsis: NsisSettings = objects.newInstance(NsisSettings::class.java)
 

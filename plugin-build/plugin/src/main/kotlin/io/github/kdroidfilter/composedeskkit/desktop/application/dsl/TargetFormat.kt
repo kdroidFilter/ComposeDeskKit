@@ -31,7 +31,6 @@ enum class TargetFormat(
     Pkg("pkg", OS.MacOS, PackagingBackend.ELECTRON_BUILDER),
     Exe("exe", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
     Msi("msi", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
-    Msix("msix", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
 
     // --- New formats (electron-builder only) ---
     Nsis("nsis", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
@@ -67,7 +66,6 @@ enum class TargetFormat(
             when (this) {
                 Exe, Nsis -> "nsis"
                 NsisWeb -> "nsis-web"
-                Msix -> "appx"
                 Tar -> "tar.gz"
                 SevenZ -> "7z"
                 AppImage -> error("AppImage uses jpackage, not electron-builder")

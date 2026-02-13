@@ -13,16 +13,13 @@ import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractE
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractGenerateAotCacheTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractJLinkTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractJPackageTask
-import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractMsixPackageTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractNotarizationTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractProguardTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractRunDistributableTask
 import io.github.kdroidfilter.composedeskkit.desktop.application.tasks.AbstractSuggestModulesTask
 import io.github.kdroidfilter.composedeskkit.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.composedeskkit.desktop.tasks.AbstractUnpackDefaultComposeApplicationResourcesTask
-import io.github.kdroidfilter.composedeskkit.internal.utils.Arch
 import io.github.kdroidfilter.composedeskkit.internal.utils.OS
-import io.github.kdroidfilter.composedeskkit.internal.utils.currentArch
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentOS
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentTarget
 import io.github.kdroidfilter.composedeskkit.internal.utils.dependsOn
@@ -192,19 +189,6 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
     val packageFormats =
         app.nativeDistributions.targetFormats.map { targetFormat ->
             when {
-                targetFormat == TargetFormat.Msix -> {
-                    tasks.register<AbstractMsixPackageTask>(
-                        taskNameAction = "package",
-                        taskNameObject = targetFormat.name,
-                    ) {
-                        configureMsixPackageTask(
-                            this,
-                            createDistributable = createDistributable,
-                            unpackDefaultResources = commonTasks.unpackDefaultResources,
-                        )
-                        generateAotCache?.let { dependsOn(it) }
-                    }
-                }
                 targetFormat.backend == PackagingBackend.ELECTRON_BUILDER -> {
                     val packageFormat =
                         tasks.register<AbstractElectronBuilderPackageTask>(
@@ -399,104 +383,6 @@ private fun JvmApplicationContext.configurePackageTask(
     packageTask.launcherArgs.set(provider { app.args })
 }
 
-@Suppress("LongMethod", "CyclomaticComplexMethod")
-private fun JvmApplicationContext.configureMsixPackageTask(
-    packageTask: AbstractMsixPackageTask,
-    createDistributable: TaskProvider<AbstractJPackageTask>,
-    unpackDefaultResources: TaskProvider<AbstractUnpackDefaultComposeApplicationResourcesTask>,
-) {
-    packageTask.enabled = TargetFormat.Msix.isCompatibleWithCurrentOS
-    packageTask.dependsOn(createDistributable, unpackDefaultResources)
-    packageTask.appImageRoot.set(createDistributable.flatMap { it.destinationDir })
-
-    packageTask.destinationDir.set(
-        app.nativeDistributions.outputBaseDir.map {
-            it.dir("$appDirName/${TargetFormat.Msix.outputDirName}")
-        },
-    )
-
-    val windows = app.nativeDistributions.windows
-    val msix = windows.msix
-
-    packageTask.packageName.set(packageNameProvider)
-    packageTask.packageVersion.set(packageVersionFor(TargetFormat.Msix).map { it ?: "1.0.0" })
-    packageTask.packageDescription.set(packageTask.provider { app.nativeDistributions.description })
-    packageTask.packageVendor.set(packageTask.provider { app.nativeDistributions.vendor })
-
-    packageTask.iconFile.set(
-        msix.iconFile.orElse(
-            app.nativeDistributions.linux.iconFile.orElse(
-                unpackDefaultResources.flatMap { it.resources.linuxIcon },
-            ),
-        ),
-    )
-    if (msix.manifestTemplateFile.isPresent) {
-        packageTask.manifestTemplateFile.set(msix.manifestTemplateFile)
-    }
-    if (msix.signingPfxFile.isPresent) {
-        packageTask.signingPfxFile.set(msix.signingPfxFile)
-    }
-    packageTask.signingPassword.set(packageTask.provider { msix.signingPassword })
-
-    packageTask.displayName.set(
-        packageTask.provider {
-            msix.displayName
-                ?: app.nativeDistributions.packageName
-                ?: project.name
-        },
-    )
-    packageTask.visualDescription.set(
-        packageTask.provider {
-            msix.description
-                ?: app.nativeDistributions.description
-                ?: app.nativeDistributions.packageName
-                ?: project.name
-        },
-    )
-    packageTask.publisherDisplayName.set(
-        packageTask.provider {
-            msix.publisherDisplayName
-                ?: app.nativeDistributions.vendor
-                ?: project.name
-        },
-    )
-    packageTask.identityName.set(
-        packageTask.provider {
-            msix.identityName
-                ?: defaultMsixIdentityName(
-                    vendor = app.nativeDistributions.vendor,
-                    packageName = packageNameProvider.get(),
-                )
-        },
-    )
-    packageTask.publisher.set(
-        packageTask.provider {
-            msix.publisher
-                ?: "CN=" +
-                defaultMsixPublisherCommonName(
-                    vendor = app.nativeDistributions.vendor,
-                    packageName = packageNameProvider.get(),
-                )
-        },
-    )
-
-    packageTask.backgroundColor.set(packageTask.provider { msix.backgroundColor })
-    packageTask.appId.set(packageTask.provider { msix.appId })
-    packageTask.appExecutable.set(
-        packageTask.provider {
-            msix.appExecutable ?: "${packageNameProvider.get()}.exe"
-        },
-    )
-    packageTask.processorArchitecture.set(
-        packageTask.provider {
-            msix.processorArchitecture ?: defaultMsixProcessorArchitecture()
-        },
-    )
-    packageTask.targetDeviceFamilyName.set(packageTask.provider { msix.targetDeviceFamilyName })
-    packageTask.targetDeviceFamilyMinVersion.set(packageTask.provider { msix.targetDeviceFamilyMinVersion })
-    packageTask.targetDeviceFamilyMaxVersionTested.set(packageTask.provider { msix.targetDeviceFamilyMaxVersionTested })
-}
-
 private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     packageTask: AbstractElectronBuilderPackageTask,
     createDistributable: TaskProvider<AbstractJPackageTask>,
@@ -685,28 +571,3 @@ private fun JvmApplicationContext.configurePackageUberJarForCurrentOS(
         jar.logger.lifecycle("The jar is written to ${jar.archiveFile.ioFile.canonicalPath}")
     }
 }
-
-private fun defaultMsixIdentityName(
-    vendor: String?,
-    packageName: String,
-): String {
-    val vendorPart = vendor.orEmpty().msixIdentityPartOr("Publisher")
-    val packagePart = packageName.msixIdentityPartOr("Application")
-    return "$vendorPart.$packagePart"
-}
-
-private fun defaultMsixPublisherCommonName(
-    vendor: String?,
-    packageName: String,
-): String = vendor.orEmpty().msixIdentityPartOr(packageName.msixIdentityPartOr("Publisher"))
-
-private fun String.msixIdentityPartOr(defaultValue: String): String {
-    val normalized = replace(Regex("[^A-Za-z0-9.]"), "").trim('.')
-    return normalized.ifBlank { defaultValue }
-}
-
-private fun defaultMsixProcessorArchitecture(): String =
-    when (currentArch) {
-        Arch.X64 -> "x64"
-        Arch.Arm64 -> "arm64"
-    }

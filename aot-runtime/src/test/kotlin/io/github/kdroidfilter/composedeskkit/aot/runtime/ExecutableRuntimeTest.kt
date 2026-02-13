@@ -12,13 +12,11 @@ class ExecutableRuntimeTest {
         assertEquals(ExecutableType.MSI, ExecutableRuntime.parseType("msi"))
         assertEquals(ExecutableType.DMG, ExecutableRuntime.parseType("dmg"))
         assertEquals(ExecutableType.PKG, ExecutableRuntime.parseType("pkg"))
-        assertEquals(ExecutableType.MSIX, ExecutableRuntime.parseType("msix"))
     }
 
     @Test
     fun `parses type variants`() {
         assertEquals(ExecutableType.EXE, ExecutableRuntime.parseType(".EXE"))
-        assertEquals(ExecutableType.MSIX, ExecutableRuntime.parseType(" MsIx "))
         assertEquals(ExecutableType.DEV, ExecutableRuntime.parseType("app-image"))
     }
 
@@ -34,8 +32,8 @@ class ExecutableRuntimeTest {
         val propertyName = "composedeskkit.test.executable.type"
         val previousValue = System.getProperty(propertyName)
         try {
-            System.setProperty(propertyName, "msix")
-            assertEquals(ExecutableType.MSIX, ExecutableRuntime.type(propertyName))
+            System.setProperty(propertyName, "msi")
+            assertEquals(ExecutableType.MSI, ExecutableRuntime.type(propertyName))
         } finally {
             restoreSystemProperty(propertyName, previousValue)
         }

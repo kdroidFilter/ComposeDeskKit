@@ -5,7 +5,6 @@ public enum class ExecutableType {
     MSI,
     DMG,
     PKG,
-    MSIX,
     DEB,
     RPM,
     DEV,
@@ -34,9 +33,6 @@ public object ExecutableRuntime {
     public fun isPkg(): Boolean = type() == ExecutableType.PKG
 
     @JvmStatic
-    public fun isMsix(): Boolean = type() == ExecutableType.MSIX
-
-    @JvmStatic
     public fun isDeb(): Boolean = type() == ExecutableType.DEB
 
     @JvmStatic
@@ -51,7 +47,6 @@ public object ExecutableRuntime {
             "msi", ".msi" -> ExecutableType.MSI
             "dmg", ".dmg" -> ExecutableType.DMG
             "pkg", ".pkg" -> ExecutableType.PKG
-            "msix", ".msix" -> ExecutableType.MSIX
             "deb", ".deb" -> ExecutableType.DEB
             "rpm", ".rpm" -> ExecutableType.RPM
             "dev", "development", "app-image", "appimage" -> ExecutableType.DEV

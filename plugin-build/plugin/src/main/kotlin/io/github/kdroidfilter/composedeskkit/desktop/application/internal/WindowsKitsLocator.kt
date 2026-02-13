@@ -10,8 +10,6 @@ import java.io.File
 internal object WindowsKitsLocator {
     private val versionRegex = Regex("""\d+(\.\d+){3}""")
 
-    fun locateMakeAppx(architecture: String): File? = locateTool("makeappx.exe", architecture)
-
     fun locateSignTool(architecture: String): File? = locateTool("signtool.exe", architecture)
 
     @Suppress("ReturnCount")

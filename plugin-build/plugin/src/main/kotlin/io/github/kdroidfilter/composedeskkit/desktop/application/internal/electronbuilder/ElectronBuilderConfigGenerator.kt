@@ -6,6 +6,7 @@
 package io.github.kdroidfilter.composedeskkit.desktop.application.internal.electronbuilder
 
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.AppXSettings
+import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.FileAssociation
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.FlatpakSettings
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.JvmApplicationDistributions
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.NsisSettings
@@ -49,6 +50,7 @@ internal class ElectronBuilderConfigGenerator {
 
         appendIfNotNull(yaml, "compression", distributions.compressionLevel)
         appendIfNotNull(yaml, "artifactName", distributions.artifactName)
+        generateFileAssociations(yaml, distributions, targetFormat)
 
         // --- Platform-specific config ---
         when (currentOS) {
@@ -169,6 +171,41 @@ internal class ElectronBuilderConfigGenerator {
             appendIfNotNull(yaml, "    certificateProfileName", signing.azureCertificateProfileName)
             appendIfNotNull(yaml, "    codeSigningAccountName", signing.azureCodeSigningAccountName)
         }
+    }
+
+    private fun generateFileAssociations(
+        yaml: StringBuilder,
+        distributions: JvmApplicationDistributions,
+        targetFormat: TargetFormat,
+    ) {
+        val associations =
+            when (targetFormat) {
+                TargetFormat.Exe,
+                TargetFormat.Nsis,
+                TargetFormat.NsisWeb,
+                TargetFormat.Msi,
+                -> distributions.windows.fileAssociations
+                else -> emptySet()
+            }
+        if (associations.isEmpty()) return
+
+        yaml.appendLine("fileAssociations:")
+        for (association in associations) {
+            appendFileAssociation(yaml, association)
+        }
+    }
+
+    private fun appendFileAssociation(
+        yaml: StringBuilder,
+        association: FileAssociation,
+    ) {
+        val normalizedExtension = association.extension.trim().removePrefix(".")
+        if (normalizedExtension.isBlank()) return
+
+        yaml.appendLine("  - ext: \"$normalizedExtension\"")
+        appendIfNotNull(yaml, "    name", association.description)
+        appendIfNotNull(yaml, "    description", association.description)
+        appendIfNotNull(yaml, "    icon", association.iconFile?.absolutePath)
     }
 
     private fun generateNsisSettings(

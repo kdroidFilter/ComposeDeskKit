@@ -23,7 +23,6 @@ internal val TargetFormat.executableTypeValue: String
             TargetFormat.Msi -> "msi"
             TargetFormat.Dmg -> "dmg"
             TargetFormat.Pkg -> "pkg"
-            TargetFormat.Msix -> "msix"
             TargetFormat.Deb -> "deb"
             TargetFormat.Rpm -> "rpm"
             TargetFormat.AppImage -> EXECUTABLE_TYPE_DEV

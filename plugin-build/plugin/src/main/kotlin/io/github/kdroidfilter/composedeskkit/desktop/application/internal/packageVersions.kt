@@ -28,7 +28,6 @@ private fun JvmApplicationDistributions.packageVersionFor(targetFormat: TargetFo
             TargetFormat.Pkg -> macOS.pkgPackageVersion
             TargetFormat.Exe -> windows.exePackageVersion
             TargetFormat.Msi -> windows.msiPackageVersion
-            TargetFormat.Msix -> windows.msixPackageVersion
             TargetFormat.Nsis, TargetFormat.NsisWeb, TargetFormat.Portable,
             TargetFormat.AppX,
             -> windows.exePackageVersion
