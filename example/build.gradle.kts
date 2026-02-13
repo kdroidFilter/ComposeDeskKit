@@ -41,7 +41,7 @@ val defaultLinuxIcon =
 val packagingDir = layout.projectDirectory.dir("packaging")
 val appResourcesRoot = layout.projectDirectory.dir("app-resources")
 val splashImageName = "splash.png"
-val licenseFile = packagingDir.file("license.txt")
+val packagingLicenseFile = packagingDir.file("license.txt")
 val nsisIncludeFile = packagingDir.file("nsis/include.nsh")
 val msixManifestTemplate = packagingDir.file("msix-manifest.xml")
 val macEntitlements = packagingDir.file("macos/entitlements.plist")
@@ -106,7 +106,7 @@ composeDeskKit.desktop.application {
         description = "Demo application for ComposeDeskKit"
         vendor = "KDroidFilter"
         appResourcesRootDir.set(appResourcesRoot)
-        licenseFile.set(licenseFile)
+        licenseFile.set(packagingLicenseFile)
 
         cleanupNativeLibs = false
         includeAllModules = false
@@ -212,7 +212,7 @@ composeDeskKit.desktop.application {
                         "--socket=x11",
                         "--socket=wayland",
                     )
-                license.set(licenseFile)
+                license.set(packagingLicenseFile)
             }
         }
 
@@ -265,7 +265,7 @@ composeDeskKit.desktop.application {
                 installerLanguages = listOf("en_US", "fr_FR")
                 installerIcon.set(defaultWindowsIcon)
                 uninstallerIcon.set(defaultWindowsIcon)
-                license.set(licenseFile)
+                license.set(packagingLicenseFile)
                 includeScript.set(nsisIncludeFile)
                 installerHeader.set(nsisInstallerHeaderFile)
                 installerSidebar.set(nsisInstallerSidebarFile)
