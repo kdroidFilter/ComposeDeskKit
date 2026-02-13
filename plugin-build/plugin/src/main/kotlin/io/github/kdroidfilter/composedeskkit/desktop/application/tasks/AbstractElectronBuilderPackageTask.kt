@@ -7,19 +7,23 @@ package io.github.kdroidfilter.composedeskkit.desktop.application.tasks
 
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.JvmApplicationDistributions
 import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.composedeskkit.desktop.application.internal.WindowsKitsLocator
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.electronbuilder.ElectronBuilderConfigGenerator
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.electronbuilder.ElectronBuilderInvocation
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.electronbuilder.ElectronBuilderToolManager
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.electronbuilder.NodeJsDetector
 import io.github.kdroidfilter.composedeskkit.desktop.application.internal.updateExecutableTypeInAppImage
 import io.github.kdroidfilter.composedeskkit.desktop.tasks.AbstractComposeDesktopTask
+import io.github.kdroidfilter.composedeskkit.internal.utils.Arch
 import io.github.kdroidfilter.composedeskkit.internal.utils.OS
+import io.github.kdroidfilter.composedeskkit.internal.utils.currentArch
 import io.github.kdroidfilter.composedeskkit.internal.utils.currentOS
 import io.github.kdroidfilter.composedeskkit.internal.utils.ioFile
 import io.github.kdroidfilter.composedeskkit.internal.utils.notNullProperty
 import io.github.kdroidfilter.composedeskkit.internal.utils.nullableProperty
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.logging.Logger
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
@@ -108,6 +112,13 @@ abstract class AbstractElectronBuilderPackageTask
                 outputDir = outputDir,
                 targets = buildElectronBuilderTargets(),
                 npx = npx,
+                environment =
+                    resolveElectronBuilderEnvironment(
+                        targetFormat = targetFormat,
+                        currentOs = currentOS,
+                        currentArchitecture = currentArch,
+                        logger = logger,
+                    ),
             ),
         )
 
@@ -252,5 +263,39 @@ abstract class AbstractElectronBuilderPackageTask
             }
 
         return listOf(platformFlag, targetFormat.electronBuilderTarget)
+    }
+}
+
+private fun resolveElectronBuilderEnvironment(
+    targetFormat: TargetFormat,
+    currentOs: OS,
+    currentArchitecture: Arch,
+    logger: Logger,
+): Map<String, String> {
+    val shouldAutoConfigureSignTool = currentOs == OS.Windows && targetFormat == TargetFormat.AppX
+    val noExternalSignToolConfigured =
+        System.getenv("SIGNTOOL_PATH").isNullOrBlank() &&
+            System.getenv("WINDOWS_SIGNTOOL_PATH").isNullOrBlank()
+
+    val signToolPath =
+        if (shouldAutoConfigureSignTool && noExternalSignToolConfigured) {
+            val architectureId =
+                when (currentArchitecture) {
+                    Arch.X64 -> "x64"
+                    Arch.Arm64 -> "arm64"
+                }
+            WindowsKitsLocator.locateSignTool(architectureId)?.absolutePath
+        } else {
+            null
+        }
+
+    return if (signToolPath != null) {
+        logger.info("Using Windows SDK SignTool for AppX signing: $signToolPath")
+        mapOf(
+            "SIGNTOOL_PATH" to signToolPath,
+            "WINDOWS_SIGNTOOL_PATH" to signToolPath,
+        )
+    } else {
+        emptyMap()
     }
 }
