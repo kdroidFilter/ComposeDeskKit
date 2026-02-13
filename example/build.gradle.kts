@@ -1,10 +1,10 @@
-import io.github.kdroidfilter.composedeskkit.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 
 plugins {
     id("org.jetbrains.kotlin.jvm") version "2.3.10"
     id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
     id("org.jetbrains.compose") version "1.10.1"
-    id("io.github.kdroidfilter.composedeskkit")
+    id("io.github.kdroidfilter.nucleus")
 }
 
 dependencies {
@@ -13,10 +13,8 @@ dependencies {
     implementation(project(":aot-runtime"))
 }
 
-composeDeskKit.desktop.application {
+nucleus.application {
     mainClass = "com.example.demo.MainKt"
-    args("--example", "true")
-    jvmArgs("-Ddemo.flag=true")
 
     buildTypes {
         release {
@@ -32,11 +30,11 @@ composeDeskKit.desktop.application {
     nativeDistributions {
         targetFormats(*TargetFormat.entries.toTypedArray())
 
-        packageName = "ComposeDeskKitDemo"
+        packageName = "NucleusDemo"
         packageVersion = "1.0.0"
 
         // ============================================================
-        // NEW ComposeDeskKit options (not available in Compose Desktop)
+        // Nucleus options
         // ============================================================
 
         // --- Native libs handling ---
@@ -55,14 +53,14 @@ composeDeskKit.desktop.application {
         artifactName = $$"${name}-${version}-${os}-${arch}.${ext}"
 
         // --- Deep links protocol ---
-        // Registers custom protocol handler (e.g., composedeskkit://open)
-        protocol("ComposeDeskKitDemo", "composedeskkit")
+        // Registers custom protocol handler (e.g., nucleus://open)
+        protocol("NucleusDemo", "nucleus")
 
         // --- File associations ---
         fileAssociation(
-            mimeType = "application/x-composedeskkit",
+            mimeType = "application/x-nucleus",
             extension = "cdk",
-            description = "ComposeDeskKit Document"
+            description = "Nucleus Document"
         )
 
         // --- Publish to GitHub/S3 ---
@@ -92,9 +90,9 @@ composeDeskKit.desktop.application {
             appImage {
                 // Category: "AudioVideo", "Development", "Game", "Graphics", "Network", "Office", "Science", "Settings", "System", "Utility"
                 category = "Utility"
-                genericName = "ComposeDeskKit Demo"
-                synopsis = "Demo app using ComposeDeskKit"
-                desktopEntries = mapOf("StartupWMClass" to "ComposeDeskKitDemo")
+                genericName = "Nucleus Demo"
+                synopsis = "Demo app using Nucleus"
+                desktopEntries = mapOf("StartupWMClass" to "NucleusDemo")
             }
 
             // --- Snap (NEW) ---
@@ -103,7 +101,7 @@ composeDeskKit.desktop.application {
                 confinement = "strict"
                 // Grade: "stable", "devel"
                 grade = "stable"
-                summary = "ComposeDeskKit demo"
+                summary = "Nucleus demo"
                 base = "core22"
                 // Plugs: "desktop", "desktop-legacy", "home", "x11", "wayland", "network", "audio", " removable-media"
                 plugs = listOf("desktop", "home", "network")
@@ -157,12 +155,12 @@ composeDeskKit.desktop.application {
 
             // --- AppX/Windows Store (NEW) ---
             appx {
-                applicationId = "ComposeDeskKitDemo"
+                applicationId = "NucleusDemo"
                 publisherDisplayName = "KDroidFilter"
-                displayName = "ComposeDeskKit Demo"
+                displayName = "Nucleus Demo"
                 // Publisher: "CN=..."
                 publisher = "CN=D541E802-6D30-446A-864E-2E8ABD2DAA5E"
-                identityName = "KDroidFilter.ComposeDeskKitDemo"
+                identityName = "KDroidFilter.NucleusDemo"
                 // Languages: "en-US", "fr-FR", "de-DE", etc.
                 languages = listOf("en-US", "fr-FR")
             }
@@ -170,9 +168,9 @@ composeDeskKit.desktop.application {
 
         // ========== MACOS ==========
         macOS {
-            bundleID = "io.github.kdroidfilter.composedeskkit.demo"
+            bundleID = "io.github.kdroidfilter.nucleus.demo"
             appCategory = "public.app-category.utilities"
-            dockName = "ComposeDeskKitDemo"
+            dockName = "NucleusDemo"
 
             // --- Code signing ---
             signing {
