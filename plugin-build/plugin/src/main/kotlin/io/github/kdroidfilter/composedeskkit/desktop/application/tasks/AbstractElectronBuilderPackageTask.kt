@@ -90,6 +90,7 @@ abstract class AbstractElectronBuilderPackageTask
         val appDir = resolveAppImageDir()
         logger.info("Resolved app image directory: ${appDir.absolutePath}")
 
+        ensureResourcesDirForElectronBuilder(appDir)
         updateExecutableTypeInAppImage(appDir, targetFormat, logger)
 
         val npx = detectNpx()
@@ -154,6 +155,14 @@ abstract class AbstractElectronBuilderPackageTask
         configFile.writeText(configContent)
         logger.info("Generated electron-builder config at: ${configFile.absolutePath}")
         return configFile
+    }
+
+    private fun ensureResourcesDirForElectronBuilder(appDir: File) {
+        if (currentOS == OS.MacOS) return
+        val resourcesDir = appDir.resolve("resources")
+        if (!resourcesDir.exists()) {
+            resourcesDir.mkdirs()
+        }
     }
 
     private fun ensureProjectPackageMetadata(

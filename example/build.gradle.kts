@@ -41,6 +41,10 @@ composeDeskKit.desktop.application {
         description = "Demo application for ComposeDeskKit"
         vendor = "KDroidFilter"
 
+        modules(
+            "jdk.accessibility",
+        )
+
         linux {
             appCategory = "Utility"
         }
