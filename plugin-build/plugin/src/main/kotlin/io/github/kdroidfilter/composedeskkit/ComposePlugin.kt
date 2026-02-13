@@ -38,10 +38,6 @@ abstract class ComposePlugin : Plugin<Project> {
             setUpGroovyDslExtensions(project)
         }
 
-        project.checkComposeCompilerPlugin()
-
-        project.configureRuntimeLibrariesCompatibilityCheck()
-
         project.afterEvaluate {
             configureDesktop(project, desktopExtension)
             project.plugins.withId(KOTLIN_MPP_PLUGIN_ID) {

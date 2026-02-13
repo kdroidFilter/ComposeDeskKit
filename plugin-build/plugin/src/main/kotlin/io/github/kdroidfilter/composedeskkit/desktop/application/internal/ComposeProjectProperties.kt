@@ -26,7 +26,6 @@ internal object ComposeProperties {
     internal const val DISABLE_MULTIMODULE_RESOURCES = "org.jetbrains.compose.resources.multimodule.disable"
     internal const val SYNC_RESOURCES_PROPERTY = "compose.ios.resources.sync"
     internal const val DISABLE_RESOURCE_CONTENT_HASH_GENERATION = "org.jetbrains.compose.resources.content.hash.generation.disable"
-    internal const val DISABLE_LIBRARY_COMPATIBILITY_CHECK = "org.jetbrains.compose.library.compatibility.check.disable"
     internal const val ELECTRON_BUILDER_NODE_PATH = "compose.electronBuilder.nodePath"
 
     fun isVerbose(providers: ProviderFactory): Provider<Boolean> = providers.valueOrNull(VERBOSE).toBooleanProvider(false)
@@ -57,9 +56,6 @@ internal object ComposeProperties {
 
     fun disableResourceContentHashGeneration(providers: ProviderFactory): Provider<Boolean> =
         providers.valueOrNull(DISABLE_RESOURCE_CONTENT_HASH_GENERATION).toBooleanProvider(false)
-
-    fun disableLibraryCompatibilityCheck(providers: ProviderFactory): Provider<Boolean> =
-        providers.valueOrNull(DISABLE_LIBRARY_COMPATIBILITY_CHECK).toBooleanProvider(false)
 
     @Suppress("MaxLineLength")
     fun electronBuilderNodePath(providers: ProviderFactory): Provider<String> = providers.valueOrNull(ELECTRON_BUILDER_NODE_PATH)
