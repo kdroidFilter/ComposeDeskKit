@@ -58,7 +58,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("  output: .")
 
         appendIfNotNull(yaml, "compression", distributions.compressionLevel)
-        appendIfNotNull(yaml, "artifactName", distributions.artifactName)
+        appendIfNotNull(yaml, "artifactName", withTargetSuffix(distributions.artifactName, targetFormat))
         generateFileAssociations(yaml, distributions, targetFormat)
 
         // --- Platform-specific config ---
@@ -224,6 +224,20 @@ internal class ElectronBuilderConfigGenerator {
         appendIfNotNull(yaml, "    name", association.description)
         appendIfNotNull(yaml, "    description", association.description)
         appendIfNotNull(yaml, "    icon", association.iconFile?.absolutePath)
+    }
+
+    private fun withTargetSuffix(
+        artifactName: String?,
+        targetFormat: TargetFormat,
+    ): String? {
+        val template = artifactName ?: return null
+        val marker = ".\${ext}"
+        val suffix = "-${targetFormat.id}"
+        return if (template.contains(marker)) {
+            template.replace(marker, "$suffix$marker")
+        } else {
+            "$template$suffix"
+        }
     }
 
     private fun generateNsisSettings(
