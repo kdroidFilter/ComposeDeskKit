@@ -138,6 +138,7 @@ abstract class AbstractElectronBuilderPackageTask
             ensureResourcesDirForElectronBuilder(appDir)
             ensureLinuxExecutableAlias(appDir)
             updateExecutableTypeInAppImage(appDir, targetFormat, logger)
+            ensureMacAdHocSigning(appDir)
 
             val npx = detectNpx()
             validateNodeVersion()
@@ -262,6 +263,30 @@ abstract class AbstractElectronBuilderPackageTask
             if (!resourcesDir.exists()) {
                 resourcesDir.mkdirs()
             }
+        }
+
+        private fun ensureMacAdHocSigning(appDir: File) {
+            if (currentOS != OS.MacOS) return
+            if (!appDir.isDirectory) return
+
+            logger.info("Applying ad-hoc code signature to macOS app before electron-builder packaging")
+
+            // Sign with "-" (ad-hoc) to stabilize the app structure
+            // This prevents issues when electron-builder repackages the app
+            execOperations.exec { spec ->
+                spec.executable = "codesign"
+                spec.args =
+                    listOf(
+                        "--force", // Overwrite existing signature
+                        "--deep", // Sign nested code
+                        "--sign",
+                        "-", // Ad-hoc signing (no certificate)
+                        appDir.absolutePath,
+                    )
+                spec.isIgnoreExitValue = false
+            }
+
+            logger.info("Ad-hoc signature applied successfully")
         }
 
         private fun prepareLinuxIconSet(outputDir: File): File? {

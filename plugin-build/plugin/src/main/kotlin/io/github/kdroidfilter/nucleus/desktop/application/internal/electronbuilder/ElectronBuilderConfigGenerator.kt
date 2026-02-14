@@ -112,6 +112,13 @@ internal class ElectronBuilderConfigGenerator {
         )
         appendIfNotNull(yaml, "  minimumSystemVersion", distributions.macOS.minimumSystemVersion)
 
+        // When not signing, disable signature-related features
+        if (distributions.macOS.signing.sign.orNull != true) {
+            yaml.appendLine("  identity: null")
+            yaml.appendLine("  hardenedRuntime: false")
+            yaml.appendLine("  gatekeeperAssess: false")
+        }
+
         when (targetFormat) {
             TargetFormat.Dmg -> {
                 yaml.appendLine("dmg:")
