@@ -138,7 +138,7 @@ abstract class AbstractElectronBuilderPackageTask
             ensureResourcesDirForElectronBuilder(appDir)
             ensureLinuxExecutableAlias(appDir)
             updateExecutableTypeInAppImage(appDir, targetFormat, logger)
-            ensureMacAdHocSigning(appDir)
+            ensureMacAdHocSigning(appDir, targetFormat)
 
             val npx = detectNpx()
             validateNodeVersion()
@@ -265,9 +265,19 @@ abstract class AbstractElectronBuilderPackageTask
             }
         }
 
-        private fun ensureMacAdHocSigning(appDir: File) {
+        private fun ensureMacAdHocSigning(
+            appDir: File,
+            targetFormat: TargetFormat,
+        ) {
             if (currentOS != OS.MacOS) return
             if (!appDir.isDirectory) return
+
+            // Skip ad-hoc signing for PKG - it works better without it
+            // PKG installers handle signing differently than DMG
+            if (targetFormat == TargetFormat.Pkg) {
+                logger.info("Skipping ad-hoc signing for PKG format")
+                return
+            }
 
             logger.info("Applying ad-hoc code signature to macOS app before electron-builder packaging")
 

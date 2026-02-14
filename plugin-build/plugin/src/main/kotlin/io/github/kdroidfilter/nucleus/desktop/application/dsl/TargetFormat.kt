@@ -25,10 +25,10 @@ enum class TargetFormat(
     AppImage("app-image", currentOS, PackagingBackend.JPACKAGE),
 
     // --- Existing formats migrated to electron-builder ---
+    Pkg("pkg", OS.MacOS, PackagingBackend.ELECTRON_BUILDER),
     Deb("deb", OS.Linux, PackagingBackend.ELECTRON_BUILDER),
     Rpm("rpm", OS.Linux, PackagingBackend.ELECTRON_BUILDER),
     Dmg("dmg", OS.MacOS, PackagingBackend.ELECTRON_BUILDER),
-    Pkg("pkg", OS.MacOS, PackagingBackend.ELECTRON_BUILDER),
     Exe("exe", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
     Msi("msi", OS.Windows, PackagingBackend.ELECTRON_BUILDER),
 

@@ -127,6 +127,10 @@ internal class ElectronBuilderConfigGenerator {
             TargetFormat.Pkg -> {
                 yaml.appendLine("pkg:")
                 appendIfNotNull(yaml, "  installLocation", distributions.macOS.installationPath)
+                // PKG requires proper signing or explicit identity:null
+                if (distributions.macOS.signing.sign.orNull != true) {
+                    yaml.appendLine("  identity: null")
+                }
             }
             else -> {}
         }
