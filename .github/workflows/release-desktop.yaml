@@ -1,4 +1,4 @@
-name: Release Desktop App
+name: Release Desktop App (All Platforms)
 
 on:
   push:
@@ -15,25 +15,36 @@ concurrency:
 
 jobs:
   build-and-publish:
-    name: Build & Publish (${{ matrix.os }})
+    name: Build & Publish (${{ matrix.os }} / ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
-            gradle_task: :example:packageReleaseDeb
-            artifact_glob: example/build/compose/binaries/**/deb/*
+            arch: amd64
             jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-linux-x64-b176.4.tar.gz"
+
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-linux-aarch64-b176.4.tar.gz"
+
           - os: windows-latest
-            gradle_task: :example:packageReleaseNsis
-            artifact_glob: example/build/compose/binaries/**/nsis/*
+            arch: amd64
             jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-windows-x64-b176.4.zip"
+
+          - os: windows-11-arm
+            arch: arm64
+            jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-windows-aarch64-b176.4.zip"
+
           - os: macos-latest
-            gradle_task: :example:packageReleaseDmg
-            artifact_glob: example/build/compose/binaries/**/dmg/*
+            arch: arm64
             jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-osx-aarch64-b176.4.tar.gz"
+
+          - os: macos-15-intel
+            arch: amd64
+            jdk_url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-25-osx-x64-b176.4.tar.gz"
 
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,6 +54,16 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Normalize version for manual runs
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="$(git describe --tags --abbrev=0)"
+          echo "RELEASE_VERSION=$tag" >> "$GITHUB_ENV"
 
       - name: Install JBR (Linux)
         if: runner.os == 'Linux'
@@ -52,7 +73,7 @@ jobs:
           curl -L -o jbr.tar.gz "${{ matrix.jdk_url }}"
           mkdir -p "$RUNNER_TEMP/jbr"
           tar -xzf jbr.tar.gz -C "$RUNNER_TEMP/jbr"
-          JBR_DIR=$(find "$RUNNER_TEMP/jbr" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+          JBR_DIR=$(find "$RUNNER_TEMP/jbr" -mindepth 1 -maxdepth 1 -type d \( -name "jbr*" -o -name "jbrsdk*" \) | head -n 1)
           echo "JAVA_HOME=$JBR_DIR" >> "$GITHUB_ENV"
           echo "$JBR_DIR/bin" >> "$GITHUB_PATH"
 
@@ -104,14 +125,40 @@ jobs:
           Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
           echo "DISPLAY=:99" >> "$GITHUB_ENV"
 
+      - name: Install RPM tools (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
       - name: Build and publish
         shell: bash
-        run: ./gradlew "${{ matrix.gradle_task }}" --stacktrace --no-daemon
+        run: ./gradlew :example:packageReleaseDistributionForCurrentOS --stacktrace --no-daemon
 
       - name: Upload packaged artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: release-assets-${{ runner.os }}
-          path: ${{ matrix.artifact_glob }}
-          if-no-files-found: warn
+          name: release-assets-${{ runner.os }}-${{ matrix.arch }}
+          path: |
+            example/build/compose/binaries/**/*.deb
+            example/build/compose/binaries/**/*.rpm
+            example/build/compose/binaries/**/*.snap
+            example/build/compose/binaries/**/*.flatpak
+            example/build/compose/binaries/**/*.AppImage
+            example/build/compose/binaries/**/*.appimage
+            example/build/compose/binaries/**/*.msi
+            example/build/compose/binaries/**/*.exe
+            example/build/compose/binaries/**/*.appx
+            example/build/compose/binaries/**/*.7z
+            example/build/compose/binaries/**/*.pkg
+            example/build/compose/binaries/**/*.dmg
+            example/build/compose/binaries/**/*.zip
+            example/build/compose/binaries/**/*.tar
+            example/build/compose/binaries/**/*.tar.gz
+            example/build/compose/binaries/**/*.blockmap
+            example/build/compose/binaries/**/*.yml
+            example/build/compose/binaries/**/*.yaml
+          if-no-files-found: error
