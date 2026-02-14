@@ -192,7 +192,10 @@ nucleus.application {
             }
 
             // --- Layered Icons (NEW - macOS 26+) ---
-            layeredIconDir.set(layout.projectDirectory.dir("packaging/macos-layered-icon"))
+            val layeredIcons = layout.projectDirectory.dir("packaging/macos-layered-icon")
+            if (layeredIcons.asFile.exists()) {
+                layeredIconDir.set(layeredIcons)
+            }
         }
     }
 }
