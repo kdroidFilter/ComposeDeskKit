@@ -14,6 +14,12 @@ dependencies {
     implementation("io.github.kdroidfilter:composenativetray:1.1.0") // for check clean native libs
 }
 
+val releaseVersion =
+    System.getenv("RELEASE_VERSION")
+        ?.removePrefix("v")
+        ?.takeIf { it.isNotBlank() }
+        ?: "1.0.0"
+
 nucleus.application {
     mainClass = "com.example.demo.MainKt"
 
@@ -32,7 +38,7 @@ nucleus.application {
         appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
 
         packageName = "NucleusDemo"
-        packageVersion = "1.0.0"
+        packageVersion = releaseVersion
 
         // ============================================================
         // Nucleus options
@@ -80,11 +86,11 @@ nucleus.application {
             // --- DEB package ---
             debMaintainer = "KDroidFilter <dev@kdroidfilter.com>"
             debDepends = listOf("libfuse2", "libgtk-3-0")
-            debPackageVersion = "1.0.0"
+            debPackageVersion = releaseVersion
 
             // --- RPM package ---
             rpmRequires = listOf("gtk3", "libX11")
-            rpmPackageVersion = "1.0.0"
+            rpmPackageVersion = releaseVersion
 
             // --- AppImage (NEW) ---
             appImage {
