@@ -514,6 +514,22 @@ abstract class AbstractElectronBuilderPackageTask
             val normalizedAuthor =
                 distributions.vendor?.takeIf { it.isNotBlank() }
                     ?: "Unknown"
+            val repositoryUrl =
+                distributions.publish.github
+                    .takeIf { it.enabled }
+                    ?.let { github ->
+                        val owner = github.owner?.takeIf { value -> value.isNotBlank() }
+                        val repo = github.repo?.takeIf { value -> value.isNotBlank() }
+                        if (owner != null && repo != null) {
+                            "https://github.com/$owner/$repo.git"
+                        } else {
+                            null
+                        }
+                    }
+            val repositoryField =
+                repositoryUrl?.let { value ->
+                    ",\n  \"repository\": \"${value.escapeForJson()}\""
+                } ?: ""
 
             packageJson.writeText(
                 """
@@ -522,7 +538,7 @@ abstract class AbstractElectronBuilderPackageTask
                   "version": "${normalizedVersion.escapeForJson()}",
                   "description": "${normalizedDescription.escapeForJson()}",
                   "author": "${normalizedAuthor.escapeForJson()}",
-                  "private": true
+                  "private": true$repositoryField
                 }
                 """.trimIndent(),
             )
