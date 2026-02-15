@@ -60,13 +60,14 @@ fun main() {
 
 @Composable
 fun app() {
-    val updater = remember {
-        NucleusUpdater {
-            currentVersion = APP_VERSION
-            provider = GitHubProvider(owner = "kdroidfilter", repo = "ComposeDeskKit")
-            channel = "latest"
+    val updater =
+        remember {
+            NucleusUpdater {
+                currentVersion = APP_VERSION
+                provider = GitHubProvider(owner = "kdroidfilter", repo = "ComposeDeskKit")
+                channel = "latest"
+            }
         }
-    }
 
     var updateStatus by remember { mutableStateOf("Checking for updates...") }
     var downloadProgress by remember { mutableStateOf(-1.0) }

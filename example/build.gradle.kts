@@ -16,12 +16,14 @@ dependencies {
 }
 
 val releaseVersion =
-    System.getenv("RELEASE_VERSION")
+    System
+        .getenv("RELEASE_VERSION")
         ?.removePrefix("v")
         ?.takeIf { it.isNotBlank() }
         ?: "1.0.0"
 val enableFileAssociation =
-    System.getenv("NUCLEUS_ENABLE_FILE_ASSOCIATION")
+    System
+        .getenv("NUCLEUS_ENABLE_FILE_ASSOCIATION")
         ?.toBoolean()
         ?: true
 
@@ -52,9 +54,9 @@ nucleus.application {
         // ============================================================
 
         // --- Native libs handling ---
-        cleanupNativeLibs = true          // Auto cleanup native libraries
-        enableAotCache = true              // Enable AOT compilation cache
-        splashImage = "splash.png"         // Splash screen image file
+        cleanupNativeLibs = true // Auto cleanup native libraries
+        enableAotCache = true // Enable AOT compilation cache
+        splashImage = "splash.png" // Splash screen image file
         homepage = "https://github.com/KdroidFilter/ComposeDeskKitDemo"
 
         // --- Compression ---
@@ -74,7 +76,7 @@ nucleus.application {
             fileAssociation(
                 mimeType = "application/x-nucleus",
                 extension = "cdk",
-                description = "Nucleus Document"
+                description = "Nucleus Document",
             )
         }
 
@@ -84,8 +86,8 @@ nucleus.application {
                 enabled = true
                 owner = "kdroidfilter"
                 repo = "ComposeDeskKit"
-                channel = "latest"          // or "beta", "alpha"
-                releaseType = "release"    // or "draft", "prerelease"
+                channel = "latest" // or "beta", "alpha"
+                releaseType = "release" // or "draft", "prerelease"
             }
             // s3 { ... }
         }
@@ -128,7 +130,7 @@ nucleus.application {
             // --- Flatpak (NEW) ---
             flatpak {
                 runtime = "org.freedesktop.Platform"
-                runtimeVersion = "24.08"    // or "24.08", etc.
+                runtimeVersion = "24.08" // or "24.08", etc.
                 sdk = "org.freedesktop.Sdk"
                 branch = "master"
                 // Finish args: "--share=ipc", "--socket=x11", "--socket=wayland", "--socket=pulseaudio", "--device=dri", "--filesystem=home"
@@ -139,7 +141,8 @@ nucleus.application {
         // ========== WINDOWS ==========
         windows {
             val disableWindowsSigning =
-                System.getenv("NUCLEUS_DISABLE_WINDOWS_SIGNING")
+                System
+                    .getenv("NUCLEUS_DISABLE_WINDOWS_SIGNING")
                     ?.toBoolean()
                     ?: false
             val enableWindowsSigning = !disableWindowsSigning
@@ -163,15 +166,15 @@ nucleus.application {
 
             // --- NSIS Installer (NEW) ---
             nsis {
-                oneClick = false            // Default: true
-                allowElevation = true       // Default: true
-                perMachine = true           // Default: false (current user)
-                allowToChangeInstallationDirectory = true  // Default: false
+                oneClick = false // Default: true
+                allowElevation = true // Default: true
+                perMachine = true // Default: false (current user)
+                allowToChangeInstallationDirectory = true // Default: false
                 createDesktopShortcut = true
                 createStartMenuShortcut = true
                 runAfterFinish = true
-                deleteAppDataOnUninstall = false  // Default: false
-                multiLanguageInstaller = true    // Default: false
+                deleteAppDataOnUninstall = false // Default: false
+                multiLanguageInstaller = true // Default: false
                 // Languages: "en_US", "fr_FR", "de_DE", "es_ES", "ja_JP", "zh_CN", etc.
                 installerLanguages = listOf("en_US", "fr_FR")
             }

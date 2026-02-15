@@ -10,9 +10,7 @@ public object AotRuntime {
     private const val MODE_PROPERTY = "nucleus.aot.mode"
 
     @JvmStatic
-    public fun mode(): AotRuntimeMode {
-        return parseModeProperty(System.getProperty(MODE_PROPERTY)) ?: AotRuntimeMode.OFF
-    }
+    public fun mode(): AotRuntimeMode = parseModeProperty(System.getProperty(MODE_PROPERTY)) ?: AotRuntimeMode.OFF
 
     @JvmStatic
     public fun isRuntime(): Boolean = mode() == AotRuntimeMode.RUNTIME
