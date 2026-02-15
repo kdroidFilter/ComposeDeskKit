@@ -163,7 +163,7 @@ nucleus.application {
             // --- NSIS Installer (NEW) ---
             nsis {
                 oneClick = false // Default: true
-                allowElevation = true // Default: true
+                allowElevation = true // Default: false
                 perMachine = true // Default: false (current user)
                 allowToChangeInstallationDirectory = true // Default: false
                 createDesktopShortcut = true

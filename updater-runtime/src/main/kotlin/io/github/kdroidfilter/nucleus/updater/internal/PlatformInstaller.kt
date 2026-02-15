@@ -226,9 +226,16 @@ internal object PlatformInstaller {
 
     private fun installWindows(file: File, extension: String) {
         val pid = ProcessHandle.current().pid()
+        val launcher = resolveWindowsLauncher()
         val installerCmd = when (extension) {
             "msi" -> "Start-Process msiexec -ArgumentList '/i', '\"${file.absolutePath}\"', '/passive' -Wait"
             else -> "Start-Process '${file.absolutePath}' -ArgumentList '/S', '--updated' -Wait"
+        }
+
+        val relaunchCmd = if (launcher != null) {
+            "\n|# Relaunch the application\n|Start-Process '${launcher.absolutePath}'"
+        } else {
+            ""
         }
 
         val script = File(System.getProperty("java.io.tmpdir"), "nucleus-update.ps1")
@@ -241,7 +248,7 @@ internal object PlatformInstaller {
             |
             |# Run the installer silently
             |$installerCmd
-            |
+            |$relaunchCmd
             |# Clean up
             |Remove-Item '${file.absolutePath}' -Force -ErrorAction SilentlyContinue
             |Remove-Item '${script.absolutePath}' -Force -ErrorAction SilentlyContinue
@@ -254,5 +261,17 @@ internal object PlatformInstaller {
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .start()
+    }
+
+    /**
+     * Resolves the jpackage launcher on Windows.
+     * jpackage structure: C:\...\<AppName>\<AppName>.exe with java.home = C:\...\<AppName>\runtime
+     */
+    private fun resolveWindowsLauncher(): File? {
+        val javaHome = System.getProperty("java.home") ?: return null
+        // java.home = <install-dir>\runtime → parent = <install-dir>
+        val appRoot = File(javaHome).parentFile ?: return null
+        if (!appRoot.isDirectory) return null
+        return appRoot.listFiles()?.firstOrNull { it.isFile && it.name.endsWith(".exe") }
     }
 }

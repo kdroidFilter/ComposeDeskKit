@@ -16,8 +16,8 @@ abstract class NsisSettings {
     /** One-click installer (no wizard). Default: true */
     var oneClick: Boolean = true
 
-    /** Allow elevation to admin. Default: true */
-    var allowElevation: Boolean = true
+    /** Allow elevation to admin. Default: false */
+    var allowElevation: Boolean = false
 
     /** Install per-machine (all users). Default: false */
     var perMachine: Boolean = false
