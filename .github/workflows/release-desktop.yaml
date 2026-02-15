@@ -32,8 +32,10 @@ jobs:
             arch: arm64
           - os: macos-latest
             arch: arm64
+            jbr-download-url: 'https://github.com/kdroidFilter/JetBrainsRuntime/releases/download/v25.0.2-rtl/jbr-25.0.2-macos-aarch64-rtl.tar.gz'
           - os: macos-15-intel
             arch: amd64
+            jbr-download-url: 'https://github.com/kdroidFilter/JetBrainsRuntime/releases/download/v25.0.2-rtl/jbr-25.0.2-macos-x64-rtl.tar.gz'
 
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,6 +60,7 @@ jobs:
         uses: ./.github/actions/setup-nucleus
         with:
           jbr-version: '25b176.4'
+          jbr-download-url: ${{ matrix.jbr-download-url || '' }}
           packaging-tools: 'true'
           flatpak: 'true'
           snap: 'true'
