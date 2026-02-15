@@ -53,54 +53,52 @@ internal object PlatformInstaller {
             ?: error("Cannot resolve current .app bundle from java.home")
         val installDir = appBundle.parentFile
         val appName = appBundle.name
+        val appPath = File(installDir, appName).absolutePath
 
-        // Extract to a temp directory first, so the old app survives if extraction fails
-        val tempDir = File(System.getProperty("java.io.tmpdir"), "nucleus-update-${System.currentTimeMillis()}")
-        tempDir.mkdirs()
+        // Write a shell script that will run after the JVM exits:
+        // wait for the process to die, replace the app, remove quarantine, relaunch
+        val script = File(System.getProperty("java.io.tmpdir"), "nucleus-update.sh")
+        script.writeText(
+            """
+            |#!/usr/bin/env bash
+            |set -e
+            |
+            |ZIP_FILE="${zipFile.absolutePath}"
+            |APP_PATH="${appPath}"
+            |APP_NAME="${appName}"
+            |INSTALL_DIR="${installDir.absolutePath}"
+            |
+            |# Wait for the old app to quit
+            |sleep 1
+            |
+            |# Remove old app bundle
+            |if [ -d "${'$'}APP_PATH" ]; then
+            |    rm -rf "${'$'}APP_PATH"
+            |fi
+            |
+            |# Extract the ZIP
+            |ditto -x -k "${'$'}ZIP_FILE" "${'$'}INSTALL_DIR"
+            |
+            |# Remove quarantine attribute
+            |if command -v xattr >/dev/null 2>&1; then
+            |    xattr -r -d com.apple.quarantine "${'$'}APP_PATH" 2>/dev/null || true
+            |fi
+            |
+            |# Relaunch the app
+            |open "${'$'}APP_PATH"
+            |
+            |# Clean up
+            |rm -f "${'$'}ZIP_FILE"
+            |rm -f "${'$'}{0}"
+            """.trimMargin()
+        )
+        script.setExecutable(true)
 
-        val extractExitCode = ProcessBuilder("ditto", "-xk", zipFile.absolutePath, tempDir.absolutePath)
-            .inheritIO()
+        // Launch the script as a detached process that survives our exit
+        ProcessBuilder("bash", script.absolutePath)
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
             .start()
-            .waitFor()
-
-        val extractedApp = tempDir.listFiles()?.firstOrNull { it.name.endsWith(".app") }
-
-        if (extractExitCode != 0 || extractedApp == null || !extractedApp.exists()) {
-            // Extraction failed — clean up temp and fall back to opening the ZIP
-            tempDir.deleteRecursively()
-            ProcessBuilder("open", zipFile.absolutePath).start()
-            return
-        }
-
-        // Extraction succeeded — now safe to replace the old app
-        appBundle.deleteRecursively()
-
-        val exitCode = ProcessBuilder("mv", extractedApp.absolutePath, File(installDir, appName).absolutePath)
-            .start()
-            .waitFor()
-
-        tempDir.deleteRecursively()
-
-        if (exitCode != 0) {
-            // Move failed (permissions?) — fall back to opening the ZIP
-            ProcessBuilder("open", zipFile.absolutePath).start()
-            return
-        }
-
-        val newAppPath = File(installDir, appName).absolutePath
-
-        // Remove quarantine attribute (ignore errors — file may not be quarantined)
-        runCatching {
-            ProcessBuilder("xattr", "-rd", "com.apple.quarantine", newAppPath)
-                .start()
-                .waitFor()
-        }
-
-        // Relaunch the new app
-        ProcessBuilder("open", newAppPath).start()
-
-        // Clean up the downloaded ZIP
-        zipFile.delete()
     }
 
     private fun resolveCurrentAppBundle(): File? {
