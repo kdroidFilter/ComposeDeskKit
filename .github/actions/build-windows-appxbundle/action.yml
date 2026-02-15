@@ -89,13 +89,76 @@ runs:
         }
         Write-Host "Using MakeAppx: $($makeappx.FullName)"
 
-        # Create staging directory
+        # Harmonize Dependencies in APPX manifests so MakeAppx accepts them in a bundle.
+        # electron-builder may generate different <Dependencies> per architecture.
+        function Repair-AppxForBundle {
+          param([string]$AppxPath, [xml]$ReferenceDeps)
+
+          $workDir = Join-Path $env:RUNNER_TEMP "appx-repair-$(Split-Path $AppxPath -LeafBase)"
+          if (Test-Path $workDir) { Remove-Item $workDir -Recurse -Force }
+          New-Item -ItemType Directory -Path $workDir | Out-Null
+
+          Write-Host "  Extracting: $(Split-Path $AppxPath -Leaf)"
+          & $makeappx.FullName unpack /p $AppxPath /d $workDir /o | Out-Null
+
+          $manifestPath = Join-Path $workDir "AppxManifest.xml"
+          [xml]$manifest = Get-Content $manifestPath -Raw
+          $ns = $manifest.Package.NamespaceURI
+
+          if ($ReferenceDeps) {
+            # Replace Dependencies node with the reference one
+            $oldDeps = $manifest.Package.SelectSingleNode("*[local-name()='Dependencies']")
+            $importedDeps = $manifest.ImportNode($ReferenceDeps.DocumentElement, $true)
+            if ($oldDeps) {
+              $manifest.Package.ReplaceChild($importedDeps, $oldDeps) | Out-Null
+            }
+            $manifest.Save($manifestPath)
+            Write-Host "  Dependencies harmonized"
+          }
+
+          # Re-pack
+          $repackedPath = Join-Path $env:RUNNER_TEMP "$(Split-Path $AppxPath -Leaf)"
+          & $makeappx.FullName pack /d $workDir /p $repackedPath /o | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to repack $(Split-Path $AppxPath -Leaf)"
+            exit 1
+          }
+          Remove-Item $workDir -Recurse -Force
+          return $repackedPath
+        }
+
+        # Extract Dependencies from the amd64 package as reference
+        $refWorkDir = Join-Path $env:RUNNER_TEMP "appx-ref"
+        if (Test-Path $refWorkDir) { Remove-Item $refWorkDir -Recurse -Force }
+        New-Item -ItemType Directory -Path $refWorkDir | Out-Null
+        & $makeappx.FullName unpack /p "${{ steps.locate.outputs.amd64_appx }}" /d $refWorkDir /o | Out-Null
+
+        [xml]$refManifest = Get-Content (Join-Path $refWorkDir "AppxManifest.xml") -Raw
+        $depsNode = $refManifest.Package.SelectSingleNode("*[local-name()='Dependencies']")
+
+        # Create a standalone XML doc with just the Dependencies
+        [xml]$refDeps = New-Object System.Xml.XmlDocument
+        $imported = $refDeps.ImportNode($depsNode, $true)
+        $refDeps.AppendChild($imported) | Out-Null
+
+        Write-Host "Reference Dependencies from amd64:"
+        Write-Host $refDeps.OuterXml
+
+        Remove-Item $refWorkDir -Recurse -Force
+
+        # Repack both appx with harmonized Dependencies
+        Write-Host "Harmonizing amd64 package..."
+        $amd64Repacked = Repair-AppxForBundle -AppxPath "${{ steps.locate.outputs.amd64_appx }}" -ReferenceDeps $null
+        Write-Host "Harmonizing arm64 package..."
+        $arm64Repacked = Repair-AppxForBundle -AppxPath "${{ steps.locate.outputs.arm64_appx }}" -ReferenceDeps $refDeps
+
+        # Stage repacked packages
         $stageDir = Join-Path $env:RUNNER_TEMP "appx-bundle-stage"
+        if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
         New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 
-        # Copy both .appx files to staging
-        Copy-Item "${{ steps.locate.outputs.amd64_appx }}" -Destination $stageDir
-        Copy-Item "${{ steps.locate.outputs.arm64_appx }}" -Destination $stageDir
+        Copy-Item $amd64Repacked -Destination $stageDir
+        Copy-Item $arm64Repacked -Destination $stageDir
 
         Write-Host "Staged packages:"
         Get-ChildItem $stageDir | ForEach-Object { Write-Host "  $($_.Name) ($([math]::Round($_.Length / 1MB, 1)) MB)" }

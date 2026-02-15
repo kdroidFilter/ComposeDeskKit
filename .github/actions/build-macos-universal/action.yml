@@ -319,16 +319,6 @@ runs:
         PKG_OUT="$(run_electron_builder pkg)"
         [[ -n "$PKG_OUT" ]] && echo "==> PKG created: $PKG_OUT" || echo "::warning::electron-builder did not produce a PKG"
 
-        PKG_OUT="$(find "$EB_PKG_DIR" -name '*.pkg' -type f | head -1)"
-        if [[ -n "$PKG_OUT" ]]; then
-          cp "$PKG_OUT" "$OUTPUT_DIR/"
-          PKG_OUT="$OUTPUT_DIR/$(basename "$PKG_OUT")"
-          echo "==> PKG created: $PKG_OUT"
-        else
-          echo "::warning::electron-builder did not produce a PKG"
-          PKG_OUT=""
-        fi
-
         # ── Outputs ───────────────────────────────────────────────────────────
         echo ""
         echo "==> Universal artifacts created:"
