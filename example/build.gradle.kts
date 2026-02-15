@@ -41,7 +41,7 @@ nucleus.application {
     }
 
     nativeDistributions {
-        modules("jdk.accessibility")
+        modules("jdk.accessibility", "java.net.http")
 
         targetFormats(*TargetFormat.entries.toTypedArray())
         appResourcesRootDir.set(project.layout.projectDirectory.dir("resources"))
