@@ -251,6 +251,10 @@ internal class ElectronBuilderConfigGenerator {
         targetFormat: TargetFormat,
     ): String? {
         val template = artifactName ?: return null
+        // Only add a format suffix for formats whose id differs from the file extension,
+        // to disambiguate formats sharing .exe (nsis, nsis-web, portable)
+        val needsSuffix = targetFormat in setOf(TargetFormat.Nsis, TargetFormat.NsisWeb, TargetFormat.Portable)
+        if (!needsSuffix) return template
         val marker = ".\${ext}"
         val suffix = "-${targetFormat.id}"
         return if (template.contains(marker)) {
