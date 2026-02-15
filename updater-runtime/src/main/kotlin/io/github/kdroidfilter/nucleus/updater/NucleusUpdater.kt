@@ -103,7 +103,7 @@ class NucleusUpdater(
             }
         }.flowOn(Dispatchers.IO)
 
-    fun quitAndInstall(installerFile: File) {
+    fun installAndRestart(installerFile: File) {
         val platform = PlatformInfo.currentPlatform()
         PlatformInstaller.install(installerFile, platform)
     }

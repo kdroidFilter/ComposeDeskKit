@@ -133,7 +133,7 @@ fun app() {
 
                 if (downloadedFile != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { updater.quitAndInstall(downloadedFile!!) }) {
+                    Button(onClick = { updater.installAndRestart(downloadedFile!!) }) {
                         Text("Install & Restart")
                     }
                 }
