@@ -13,13 +13,8 @@ abstract class PublishSettings {
     @get:Inject
     internal abstract val objects: ObjectFactory
 
-    /**
-     * Publish mode for electron-builder.
-     * - "never" (default): disable auto-update publishing (no latest-*.yml generated)
-     * - "auto": publish to GitHub/S3 if configured (detects git tag)
-     * - "always": always publish even without git tag
-     */
-    var publishMode: String = "never"
+    /** Publish mode for electron-builder. Default: [PublishMode.Never] */
+    var publishMode: PublishMode = PublishMode.Never
 
     val github: GitHubPublishSettings = objects.newInstance(GitHubPublishSettings::class.java)
 
@@ -48,11 +43,11 @@ abstract class GitHubPublishSettings {
     /** GitHub token (or use GITHUB_TOKEN env var) */
     var token: String? = null
 
-    /** Release channel: "latest", "beta", "alpha". Default: "latest" */
-    var channel: String = "latest"
+    /** Release channel. Default: [ReleaseChannel.Latest] */
+    var channel: ReleaseChannel = ReleaseChannel.Latest
 
-    /** Release type: "release", "draft", "prerelease". Default: "release" */
-    var releaseType: String = "release"
+    /** Release type. Default: [ReleaseType.Release] */
+    var releaseType: ReleaseType = ReleaseType.Release
 }
 
 @Suppress("UnnecessaryAbstractClass") // Required abstract for Gradle ObjectFactory.newInstance()

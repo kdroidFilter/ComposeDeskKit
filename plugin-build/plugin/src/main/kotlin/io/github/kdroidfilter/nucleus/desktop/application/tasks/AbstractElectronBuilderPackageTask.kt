@@ -233,15 +233,9 @@ abstract class AbstractElectronBuilderPackageTask
                 return propValue
             }
 
-            val dslValue = publish?.publishMode ?: "never"
+            val dslValue = publish?.publishMode?.id ?: "never"
             logger.info("Using publish mode from DSL: $dslValue")
-            return when (dslValue) {
-                "auto", "always", "never" -> dslValue
-                else -> {
-                    logger.warn("Unknown publish mode '$dslValue', falling back to 'never'")
-                    "never"
-                }
-            }
+            return dslValue
         }
 
         private fun detectNpx(): File =

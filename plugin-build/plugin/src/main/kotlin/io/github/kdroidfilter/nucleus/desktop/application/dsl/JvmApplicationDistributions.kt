@@ -74,9 +74,9 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
         fn.execute(publish)
     }
 
-    // --- Compression level for archive formats (store, normal, maximum) ---
+    // --- Compression level for archive formats ---
 
-    var compressionLevel: String? = null
+    var compressionLevel: CompressionLevel? = null
 
     // --- Artifact name template (e.g., "\${name}-\${version}-\${arch}.\${ext}") ---
 

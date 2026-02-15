@@ -1,3 +1,12 @@
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.AppImageCategory
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.CompressionLevel
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.ReleaseChannel
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.ReleaseType
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SigningAlgorithm
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapCompression
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapConfinement
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapGrade
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapPlug
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -55,8 +64,7 @@ nucleus.application {
         homepage = "https://github.com/KdroidFilter/ComposeDeskKitDemo"
 
         // --- Compression ---
-        // Values: "store", "fast", "normal", "maximum"
-        compressionLevel = "maximum"
+        compressionLevel = CompressionLevel.Maximum
 
         // --- Artifact naming ---
         // Variables: ${name}, ${version}, ${os}, ${arch}, ${ext}
@@ -79,8 +87,8 @@ nucleus.application {
                 enabled = true
                 owner = "kdroidfilter"
                 repo = "ComposeDeskKit"
-                channel = "latest" // or "beta", "alpha"
-                releaseType = "release" // or "draft", "prerelease"
+                channel = ReleaseChannel.Latest
+                releaseType = ReleaseType.Release
             }
             // s3 { ... }
         }
@@ -98,26 +106,20 @@ nucleus.application {
 
             // --- AppImage (NEW) ---
             appImage {
-                // Category: "AudioVideo", "Development", "Game", "Graphics", "Network", "Office", "Science", "Settings", "System", "Utility"
-                category = "Utility"
+                category = AppImageCategory.Utility
                 genericName = "Nucleus Demo"
                 synopsis = "Demo app using Nucleus"
-                desktopEntries = mapOf("StartupWMClass" to "NucleusDemo")
             }
 
             // --- Snap (NEW) ---
             snap {
-                // Confinement: "strict", "classic", "devmode"
-                confinement = "strict"
-                // Grade: "stable", "devel"
-                grade = "stable"
+                confinement = SnapConfinement.Strict
+                grade = SnapGrade.Stable
                 summary = "Nucleus demo"
                 base = "core22"
-                // Plugs: "desktop", "desktop-legacy", "home", "x11", "wayland", "network", "audio", " removable-media"
-                plugs = listOf("desktop", "home", "network")
+                plugs = listOf(SnapPlug.Desktop, SnapPlug.Home, SnapPlug.Network)
                 autoStart = false
-                // Compression: "xz", "gzip"
-                compression = "xz"
+                compression = SnapCompression.Xz
             }
 
             // --- Flatpak (NEW) ---
@@ -142,8 +144,7 @@ nucleus.application {
                 enabled = true
                 certificateFile.set(file("packaging/KDroidFilter.pfx"))
                 certificatePassword = "ChangeMe-Temp123!"
-                // Algorithm: "sha256", "sha1", "sha512"
-                algorithm = "sha256"
+                algorithm = SigningAlgorithm.Sha256
                 // Timestamp servers: "http://timestamp.digicert.com", "http://timestamp.sectigo.com", "http://timestamp.globalsign.com"
                 timestampServer = "http://timestamp.digicert.com"
             }

@@ -31,8 +31,8 @@ abstract class WindowsSigningSettings {
     /** Timestamp server URL */
     var timestampServer: String? = null
 
-    /** Signing algorithm: "sha1" or "sha256". Default: "sha256" */
-    var algorithm: String = "sha256"
+    /** Signing hash algorithm. Default: [SigningAlgorithm.Sha256] */
+    var algorithm: SigningAlgorithm = SigningAlgorithm.Sha256
 
     // --- Azure Trusted Signing ---
 

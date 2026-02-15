@@ -67,7 +67,7 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("directories:")
         yaml.appendLine("  output: .")
 
-        appendIfNotNull(yaml, "compression", distributions.compressionLevel)
+        appendIfNotNull(yaml, "compression", distributions.compressionLevel?.id)
         appendIfNotNull(yaml, "artifactName", withTargetSuffix(distributions.artifactName, targetFormat))
         generateFileAssociations(yaml, distributions, targetFormat)
 
@@ -205,7 +205,7 @@ internal class ElectronBuilderConfigGenerator {
         appendIfNotNull(yaml, "    certificateSubjectName", signing.certificateSubjectName)
         appendIfNotNull(yaml, "    rfc3161TimeStampServer", signing.timestampServer)
         yaml.appendLine("    signingHashAlgorithms:")
-        yaml.appendLine("      - ${signing.algorithm}")
+        yaml.appendLine("      - ${signing.algorithm.id}")
 
         if (signing.azureTenantId != null) {
             yaml.appendLine("  azureSignOptions:")
@@ -454,18 +454,18 @@ internal class ElectronBuilderConfigGenerator {
         snap: SnapSettings,
     ) {
         yaml.appendLine("snap:")
-        yaml.appendLine("  confinement: ${snap.confinement}")
-        yaml.appendLine("  grade: ${snap.grade}")
+        yaml.appendLine("  confinement: ${snap.confinement.id}")
+        yaml.appendLine("  grade: ${snap.grade.id}")
         appendIfNotNull(yaml, "  summary", snap.summary)
         appendIfNotNull(yaml, "  base", snap.base)
         if (snap.autoStart) {
             yaml.appendLine("  autoStart: true")
         }
-        appendIfNotNull(yaml, "  compression", snap.compression)
+        appendIfNotNull(yaml, "  compression", snap.compression?.id)
         if (snap.plugs.isNotEmpty()) {
             yaml.appendLine("  plugs:")
             for (plug in snap.plugs) {
-                yaml.appendLine("    - \"$plug\"")
+                yaml.appendLine("    - \"${plug.id}\"")
             }
         }
     }
@@ -509,8 +509,8 @@ internal class ElectronBuilderConfigGenerator {
             appendIfNotNull(yaml, "    owner", github.owner)
             appendIfNotNull(yaml, "    repo", github.repo)
             appendIfNotNull(yaml, "    token", github.token)
-            yaml.appendLine("    channel: ${github.channel}")
-            yaml.appendLine("    releaseType: ${github.releaseType}")
+            yaml.appendLine("    channel: ${github.channel.id}")
+            yaml.appendLine("    releaseType: ${github.releaseType.id}")
         }
         if (s3.enabled) {
             yaml.appendLine("  - provider: s3")
