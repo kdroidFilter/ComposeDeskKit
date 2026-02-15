@@ -54,9 +54,12 @@ internal object PlatformInstaller {
         val installDir = appBundle.parentFile
         val appName = appBundle.name
         val appPath = File(installDir, appName).absolutePath
+        val pid = ProcessHandle.current().pid()
 
-        // Write a shell script that will run after the JVM exits:
-        // wait for the process to die, replace the app, remove quarantine, relaunch
+        // Write a shell script that will:
+        // 1. Wait for our process to actually die
+        // 2. Replace the app bundle
+        // 3. Remove quarantine and relaunch
         val script = File(System.getProperty("java.io.tmpdir"), "nucleus-update.sh")
         script.writeText(
             """
@@ -65,11 +68,13 @@ internal object PlatformInstaller {
             |
             |ZIP_FILE="${zipFile.absolutePath}"
             |APP_PATH="${appPath}"
-            |APP_NAME="${appName}"
             |INSTALL_DIR="${installDir.absolutePath}"
+            |APP_PID=$pid
             |
-            |# Wait for the old app to quit
-            |sleep 1
+            |# Wait for the app process to fully exit
+            |while kill -0 "${'$'}APP_PID" 2>/dev/null; do
+            |    sleep 0.5
+            |done
             |
             |# Remove old app bundle
             |if [ -d "${'$'}APP_PATH" ]; then
@@ -80,9 +85,7 @@ internal object PlatformInstaller {
             |ditto -x -k "${'$'}ZIP_FILE" "${'$'}INSTALL_DIR"
             |
             |# Remove quarantine attribute
-            |if command -v xattr >/dev/null 2>&1; then
-            |    xattr -r -d com.apple.quarantine "${'$'}APP_PATH" 2>/dev/null || true
-            |fi
+            |xattr -r -d com.apple.quarantine "${'$'}APP_PATH" 2>/dev/null || true
             |
             |# Relaunch the app
             |open "${'$'}APP_PATH"
@@ -99,6 +102,8 @@ internal object PlatformInstaller {
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .start()
+
+        // exitProcess(0) is called by install() right after this returns
     }
 
     private fun resolveCurrentAppBundle(): File? {
