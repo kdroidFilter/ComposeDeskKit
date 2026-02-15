@@ -209,7 +209,7 @@ abstract class AbstractElectronBuilderPackageTask
             )
 
             configFile.delete()
-            exportSigningMetadata(outputDir, dist)
+            exportPackagingMetadata(outputDir, dist)
             logger.lifecycle("nucleus builder package written to ${outputDir.canonicalPath}")
         }
 
@@ -288,11 +288,21 @@ abstract class AbstractElectronBuilderPackageTask
             return configFile
         }
 
-        private fun exportSigningMetadata(
+        private fun exportPackagingMetadata(
             outputDir: File,
             distributions: JvmApplicationDistributions,
         ) {
-            if (currentOS != OS.Windows) return
+            when (currentOS) {
+                OS.Windows -> exportWindowsSigningMetadata(outputDir, distributions)
+                OS.MacOS -> exportMacOSPackagingMetadata(outputDir, distributions)
+                else -> {}
+            }
+        }
+
+        private fun exportWindowsSigningMetadata(
+            outputDir: File,
+            distributions: JvmApplicationDistributions,
+        ) {
             val signing = distributions.windows.signing
             if (!signing.enabled) return
 
@@ -309,6 +319,36 @@ abstract class AbstractElectronBuilderPackageTask
             metadataFile.writeText(metadata)
             logger.info("Exported signing metadata to: ${metadataFile.absolutePath}")
         }
+
+        private fun exportMacOSPackagingMetadata(
+            outputDir: File,
+            distributions: JvmApplicationDistributions,
+        ) {
+            val mac = distributions.macOS
+            val appId = mac.bundleID?.takeIf { it.isNotBlank() }
+                ?: distributions.packageName?.let { "com.app.$it" }
+            val sign = mac.signing.sign.orNull == true
+
+            val metadata = buildString {
+                appendLine("{")
+                appendLine("  \"productName\": ${jsonStr(distributions.packageName)},")
+                appendLine("  \"appId\": ${jsonStr(appId)},")
+                appendLine("  \"copyright\": ${jsonStr(distributions.copyright)},")
+                appendLine("  \"artifactName\": ${jsonStr(distributions.artifactName)},")
+                appendLine("  \"compression\": ${jsonStr(distributions.compressionLevel?.id)},")
+                appendLine("  \"category\": ${jsonStr(mac.appCategory)},")
+                appendLine("  \"minimumSystemVersion\": ${jsonStr(mac.minimumSystemVersion)},")
+                appendLine("  \"sign\": $sign,")
+                appendLine("  \"installLocation\": ${jsonStr(mac.installationPath)}")
+                appendLine("}")
+            }
+            val metadataFile = File(outputDir, "packaging-metadata.json")
+            metadataFile.writeText(metadata)
+            logger.info("Exported macOS packaging metadata to: ${metadataFile.absolutePath}")
+        }
+
+        private fun jsonStr(value: String?): String =
+            value?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null"
 
         private fun ensureResourcesDirForElectronBuilder(appDir: File) {
             if (currentOS == OS.MacOS) return

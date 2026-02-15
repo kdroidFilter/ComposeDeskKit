@@ -94,6 +94,7 @@ jobs:
             example/build/compose/binaries/**/*.tar.gz
             example/build/compose/binaries/**/*.blockmap
             example/build/compose/binaries/**/signing-metadata.json
+            example/build/compose/binaries/**/packaging-metadata.json
             !example/build/compose/binaries/**/app/**
           if-no-files-found: error
 
@@ -110,6 +111,11 @@ jobs:
         with:
           sparse-checkout: .github/actions
           fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Download macOS arm64 artifacts
         uses: actions/download-artifact@v4

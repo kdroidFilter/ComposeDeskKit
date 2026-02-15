@@ -199,38 +199,135 @@ runs:
         echo "==> Creating ZIP: $ZIP_OUT"
         ditto -c -k --keepParent "$UNIVERSAL_APP" "$ZIP_OUT"
 
-        # ── Create DMG ────────────────────────────────────────────────────────
-        DMG_OUT="$OUTPUT_DIR/${UNIVERSAL_PREFIX}.dmg"
-        echo "==> Creating DMG: $DMG_OUT"
+        # ── Read packaging metadata from build artifacts ────────────────────
+        METADATA_FILE="$(find "${{ inputs.arm64-path }}" -name 'packaging-metadata.json' -type f | head -1)"
+        if [[ -z "$METADATA_FILE" ]]; then
+          METADATA_FILE="$(find "${{ inputs.x64-path }}" -name 'packaging-metadata.json' -type f | head -1)"
+        fi
 
-        DMG_STAGE="$WORK/dmg-stage"
-        mkdir -p "$DMG_STAGE"
-        cp -a "$UNIVERSAL_APP" "$DMG_STAGE/"
-        ln -s /Applications "$DMG_STAGE/Applications"
+        if [[ -n "$METADATA_FILE" ]]; then
+          echo "==> Found packaging metadata: $METADATA_FILE"
+          PRODUCT_NAME="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('productName') or '')")"
+          APP_ID="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('appId') or '')")"
+          COPYRIGHT="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('copyright') or '')")"
+          ARTIFACT_NAME_TMPL="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('artifactName') or '')")"
+          COMPRESSION="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('compression') or '')")"
+          CATEGORY="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('category') or '')")"
+          MIN_SYS_VERSION="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('minimumSystemVersion') or '')")"
+          SIGN="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(str(m.get('sign', False)).lower())")"
+          INSTALL_LOCATION="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('installLocation') or '')")"
+        else
+          echo "==> No packaging metadata found, using defaults from Info.plist"
+          PRODUCT_NAME=""
+          APP_ID="$(defaults read "$UNIVERSAL_APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "")"
+          COPYRIGHT=""
+          ARTIFACT_NAME_TMPL=""
+          COMPRESSION=""
+          CATEGORY=""
+          MIN_SYS_VERSION=""
+          SIGN="false"
+          INSTALL_LOCATION=""
+        fi
 
-        DMG_TMP="$WORK/tmp.dmg"
-        hdiutil create -srcfolder "$DMG_STAGE" -volname "$APP_NAME" -fs HFS+ \
-          -format UDRW "$DMG_TMP" -ov
-        hdiutil convert "$DMG_TMP" -format UDZO -imagekey zlib-level=9 -o "$DMG_OUT" -ov
+        # Override artifactName to force universal suffix
+        if [[ -n "$ARTIFACT_NAME_TMPL" ]]; then
+          # Replace ${arch} with "universal" in the template
+          UNIVERSAL_ARTIFACT_NAME="$(echo "$ARTIFACT_NAME_TMPL" | sed 's/\${arch}/universal/g')"
+        else
+          UNIVERSAL_ARTIFACT_NAME='${name}-${version}-${os}-universal.${ext}'
+        fi
 
-        # ── Create PKG ────────────────────────────────────────────────────────
-        PKG_OUT="$OUTPUT_DIR/${UNIVERSAL_PREFIX}.pkg"
-        echo "==> Creating PKG: $PKG_OUT"
+        # ── Generate electron-builder configs ─────────────────────────────────
+        generate_eb_config() {
+          local target_format="$1"
+          local config_file="$2"
 
-        BUNDLE_ID="$(defaults read "$UNIVERSAL_APP/Contents/Info" CFBundleIdentifier 2>/dev/null || echo "com.unknown.app")"
+          {
+            echo "directories:"
+            echo "  output: ."
+            [[ -n "$PRODUCT_NAME" ]] && echo "productName: \"$PRODUCT_NAME\""
+            [[ -n "$APP_ID" ]] && echo "appId: \"$APP_ID\""
+            [[ -n "$COPYRIGHT" ]] && echo "copyright: \"$COPYRIGHT\""
+            [[ -n "$COMPRESSION" ]] && echo "compression: \"$COMPRESSION\""
+            echo "artifactName: \"$UNIVERSAL_ARTIFACT_NAME\""
+            echo "mac:"
+            echo "  target:"
+            echo "    - target: $target_format"
+            [[ -n "$CATEGORY" ]] && echo "  category: \"$CATEGORY\""
+            [[ -n "$MIN_SYS_VERSION" ]] && echo "  minimumSystemVersion: \"$MIN_SYS_VERSION\""
+            if [[ "$SIGN" != "true" ]]; then
+              echo "  identity: null"
+              echo "  hardenedRuntime: false"
+              echo "  gatekeeperAssess: false"
+            fi
+            if [[ "$target_format" == "dmg" ]]; then
+              echo "dmg:"
+              echo "  sign: false"
+            elif [[ "$target_format" == "pkg" ]]; then
+              echo "pkg:"
+              [[ -n "$INSTALL_LOCATION" ]] && echo "  installLocation: \"$INSTALL_LOCATION\""
+              echo "  isRelocatable: false"
+              [[ "$SIGN" != "true" ]] && echo "  identity: null"
+            fi
+          } > "$config_file"
+
+          echo "==> Generated electron-builder config for $target_format:"
+          cat "$config_file"
+        }
+
+        generate_package_json() {
+          echo "{ \"name\": \"$NPM_NAME\", \"version\": \"$BUNDLE_VERSION\", \"private\": true }" > "$1"
+        }
+
+        # ── Shared vars ───────────────────────────────────────────────────────
+        NPM_NAME="$(echo "${PRODUCT_NAME:-app}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/^-//;s/-$//')"
         BUNDLE_VERSION="$(defaults read "$UNIVERSAL_APP/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "1.0.0")"
 
-        COMPONENT_PKG="$WORK/component.pkg"
-        pkgbuild \
-          --root "$UNIVERSAL_DIR" \
-          --identifier "$BUNDLE_ID" \
-          --version "$BUNDLE_VERSION" \
-          --install-location /Applications \
-          "$COMPONENT_PKG"
+        run_electron_builder() {
+          local format="$1"
+          local eb_dir="$WORK/eb-$format"
+          mkdir -p "$eb_dir"
+          generate_package_json "$eb_dir/package.json"
+          generate_eb_config "$format" "$eb_dir/electron-builder.yml" >&2
 
-        productbuild \
-          --package "$COMPONENT_PKG" \
-          "$PKG_OUT"
+          CSC_IDENTITY_AUTO_DISCOVERY=false \
+          npx --yes electron-builder \
+            --prepackaged "$UNIVERSAL_APP" \
+            --config "$eb_dir/electron-builder.yml" \
+            --config.electronVersion=33.0.0 \
+            --mac "$format" \
+            --publish never \
+            --project "$eb_dir" >&2 \
+          || { echo "::error::electron-builder $format creation failed" >&2; exit 1; }
+
+          local out_file="$(find "$eb_dir" -name "*.$format" -type f | head -1)"
+          if [[ -n "$out_file" ]]; then
+            cp "$out_file" "$OUTPUT_DIR/"
+            echo "$OUTPUT_DIR/$(basename "$out_file")"
+          fi
+        }
+
+        # ── Create DMG via electron-builder ───────────────────────────────────
+        echo ""
+        echo "==> Creating DMG via electron-builder..."
+        DMG_OUT="$(run_electron_builder dmg)"
+        [[ -n "$DMG_OUT" ]] && echo "==> DMG created: $DMG_OUT" || echo "::warning::electron-builder did not produce a DMG"
+
+        # ── Create PKG via electron-builder ───────────────────────────────────
+        echo ""
+        echo "==> Creating PKG via electron-builder..."
+        PKG_OUT="$(run_electron_builder pkg)"
+        [[ -n "$PKG_OUT" ]] && echo "==> PKG created: $PKG_OUT" || echo "::warning::electron-builder did not produce a PKG"
+
+        PKG_OUT="$(find "$EB_PKG_DIR" -name '*.pkg' -type f | head -1)"
+        if [[ -n "$PKG_OUT" ]]; then
+          cp "$PKG_OUT" "$OUTPUT_DIR/"
+          PKG_OUT="$OUTPUT_DIR/$(basename "$PKG_OUT")"
+          echo "==> PKG created: $PKG_OUT"
+        else
+          echo "::warning::electron-builder did not produce a PKG"
+          PKG_OUT=""
+        fi
 
         # ── Outputs ───────────────────────────────────────────────────────────
         echo ""
