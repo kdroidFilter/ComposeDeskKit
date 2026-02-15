@@ -209,7 +209,7 @@ abstract class AbstractElectronBuilderPackageTask
             )
 
             configFile.delete()
-            logger.lifecycle("electron-builder package written to ${outputDir.canonicalPath}")
+            logger.lifecycle("nucleus builder package written to ${outputDir.canonicalPath}")
         }
 
         private fun resolvePublishFlag(): String {
