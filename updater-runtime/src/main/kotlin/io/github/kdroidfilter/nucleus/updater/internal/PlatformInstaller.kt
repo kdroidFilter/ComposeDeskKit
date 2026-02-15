@@ -11,13 +11,11 @@ internal object PlatformInstaller {
     ) {
         val extension = file.name.substringAfterLast('.').lowercase()
 
-        if (platform == Platform.MACOS && extension == "zip") {
-            installMacZip(file)
-            exitProcess(0)
+        when {
+            platform == Platform.MACOS && extension == "zip" -> installMacZip(file)
+            platform == Platform.WINDOWS -> installWindows(file, extension)
+            else -> buildProcessForInstaller(file, platform, extension).start()
         }
-
-        val process = buildProcessForInstaller(file, platform, extension)
-        process.start()
         exitProcess(0)
     }
 
@@ -29,7 +27,7 @@ internal object PlatformInstaller {
         when (platform) {
             Platform.LINUX -> buildLinuxInstaller(file, extension)
             Platform.MACOS -> buildMacInstaller(file)
-            Platform.WINDOWS -> buildWindowsInstaller(file, extension)
+            Platform.WINDOWS -> error("Windows uses installWindows()")
         }
 
     private fun buildLinuxInstaller(
@@ -116,12 +114,35 @@ internal object PlatformInstaller {
         return null
     }
 
-    private fun buildWindowsInstaller(
-        file: File,
-        extension: String,
-    ): ProcessBuilder =
-        when (extension) {
-            "msi" -> ProcessBuilder("msiexec", "/i", file.absolutePath, "/passive")
-            else -> ProcessBuilder(file.absolutePath, "/S")
+    private fun installWindows(file: File, extension: String) {
+        val pid = ProcessHandle.current().pid()
+        val installerCmd = when (extension) {
+            "msi" -> "Start-Process msiexec -ArgumentList '/i', '\"${file.absolutePath}\"', '/passive' -Wait"
+            else -> "Start-Process '${file.absolutePath}' -ArgumentList '/S' -Wait"
         }
+
+        val script = File(System.getProperty("java.io.tmpdir"), "nucleus-update.ps1")
+        script.writeText(
+            """
+            |# Wait for the app process to fully exit
+            |while (Get-Process -Id $pid -ErrorAction SilentlyContinue) {
+            |    Start-Sleep -Milliseconds 500
+            |}
+            |
+            |# Run the installer silently
+            |$installerCmd
+            |
+            |# Clean up
+            |Remove-Item '${file.absolutePath}' -Force -ErrorAction SilentlyContinue
+            |Remove-Item '${script.absolutePath}' -Force -ErrorAction SilentlyContinue
+            """.trimMargin()
+        )
+
+        ProcessBuilder(
+            "powershell", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script.absolutePath
+        )
+            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+    }
 }
