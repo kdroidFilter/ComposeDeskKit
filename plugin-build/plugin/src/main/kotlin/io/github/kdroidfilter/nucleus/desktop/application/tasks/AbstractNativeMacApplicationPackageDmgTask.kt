@@ -5,10 +5,13 @@
 
 package io.github.kdroidfilter.nucleus.desktop.application.tasks
 
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.DmgContentEntry
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.DmgFormat
 import io.github.kdroidfilter.nucleus.internal.utils.ioFile
 import io.github.kdroidfilter.nucleus.internal.utils.notNullProperty
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import java.io.File
@@ -28,17 +31,56 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
     @get:InputDirectory
     val appDir: DirectoryProperty = objects.directoryProperty()
 
+    @get:Input
+    @get:Optional
+    val dmgFormat: Property<DmgFormat> = objects.property(DmgFormat::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgIconSize: Property<Int> = objects.property(Int::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgWindowX: Property<Int> = objects.property(Int::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgWindowY: Property<Int> = objects.property(Int::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgWindowWidth: Property<Int> = objects.property(Int::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgWindowHeight: Property<Int> = objects.property(Int::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgTitle: Property<String> = objects.property(String::class.java)
+
+    @get:Input
+    @get:Optional
+    val dmgBackgroundColor: Property<String> = objects.property(String::class.java)
+
+    @get:Input
+    val dmgContents: ListProperty<DmgContentEntry> = objects.listProperty(DmgContentEntry::class.java).convention(emptyList())
+
     override fun createPackage(
         destinationDir: File,
         workingDir: File,
     ) {
         val packageName = packageName.get()
+        val volumeName = dmgTitle.orNull
+            ?.replace("\${productName}", packageName)
+            ?.replace("\${version}", packageVersion.get())
+            ?: packageName
         val fullPackageName = fullPackageName.get()
         val tmpImage = workingDir.resolve("$fullPackageName.tmp.dmg")
         val finalImage = destinationDir.resolve("$fullPackageName.dmg")
 
-        createImage(volumeName = packageName, imageFile = tmpImage, srcDir = appDir.ioFile)
-        val mounted = mountImage(volumeName = packageName, imageFile = tmpImage)
+        createImage(volumeName = volumeName, imageFile = tmpImage, srcDir = appDir.ioFile)
+        val mounted = mountImage(volumeName = volumeName, imageFile = tmpImage)
         try {
             runSetupScript(appName = packageName, mounted)
         } finally {
@@ -123,16 +165,20 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         tmpImage: File,
         finalImage: File,
     ) {
-        hdiutil(
+        val format = dmgFormat.orNull?.id ?: "UDZO"
+        val args = mutableListOf(
             "convert",
             tmpImage.absolutePath,
             "-format",
-            "UDZO",
-            "-imagekey",
-            "zlib-level=9",
+            format,
             "-o",
             finalImage.absolutePath,
         )
+        // Add zlib compression level for UDZO format
+        if (format == "UDZO") {
+            args.addAll(listOf("-imagekey", "zlib-level=9"))
+        }
+        hdiutil(*args.toTypedArray())
     }
 
     private fun hdiutil(vararg args: String): String {
@@ -151,31 +197,70 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
     ) {
         val disk = mounted.disk
         val installDir = installDir.get()
-        val setupScript =
-            workingDir.ioFile.resolve("setup-dmg.scpt").apply {
-                writeText(
-                    """
-                    tell application "Finder"
-                      tell disk "$disk"
-                            open
-                            set current view of container window to icon view
-                            set toolbar visible of container window to false
-                            set statusbar visible of container window to false
-                            set the bounds of container window to {400, 100, 885, 430}
-                            set theViewOptions to the icon view options of container window
-                            set arrangement of theViewOptions to not arranged
-                            set icon size of theViewOptions to 72
-                            make new alias file at container window to POSIX file "$installDir" with properties {name:"$installDir"}
-                            set position of item "$appName" of container window to {100, 100}
-                            set position of item "$installDir" of container window to {375, 100}
-                            update without registering applications
-                            delay 5
-                            close
-                      end tell
-                    end tell
-                    """.trimIndent(),
-                )
+        val iconSize = dmgIconSize.orNull ?: 72
+        val winX = dmgWindowX.orNull ?: 400
+        val winY = dmgWindowY.orNull ?: 100
+        val winW = dmgWindowWidth.orNull ?: 485
+        val winH = dmgWindowHeight.orNull ?: 330
+        val contents = dmgContents.get()
+
+        val scriptBuilder = StringBuilder()
+        scriptBuilder.appendLine("""tell application "Finder"""")
+        scriptBuilder.appendLine("""  tell disk "$disk"""")
+        scriptBuilder.appendLine("        open")
+        scriptBuilder.appendLine("        set current view of container window to icon view")
+        scriptBuilder.appendLine("        set toolbar visible of container window to false")
+        scriptBuilder.appendLine("        set statusbar visible of container window to false")
+        scriptBuilder.appendLine("        set the bounds of container window to {$winX, $winY, ${winX + winW}, ${winY + winH}}")
+        scriptBuilder.appendLine("        set theViewOptions to the icon view options of container window")
+        scriptBuilder.appendLine("        set arrangement of theViewOptions to not arranged")
+        scriptBuilder.appendLine("        set icon size of theViewOptions to $iconSize")
+
+        dmgBackgroundColor.orNull?.let { color ->
+            scriptBuilder.appendLine("        set background color of theViewOptions to {${cssColorToAppleScriptRgb(color)}}")
+        }
+
+        if (contents.isEmpty()) {
+            // Default layout when no contents specified
+            scriptBuilder.appendLine("""        make new alias file at container window to POSIX file "$installDir" with properties {name:"$installDir"}""")
+            scriptBuilder.appendLine("""        set position of item "$appName" of container window to {100, 100}""")
+            scriptBuilder.appendLine("""        set position of item "$installDir" of container window to {375, 100}""")
+        } else {
+            for (entry in contents) {
+                val entryName = entry.name ?: entry.path ?: continue
+                scriptBuilder.appendLine("""        set position of item "$entryName" of container window to {${entry.x}, ${entry.y}}""")
             }
+        }
+
+        scriptBuilder.appendLine("        update without registering applications")
+        scriptBuilder.appendLine("        delay 5")
+        scriptBuilder.appendLine("        close")
+        scriptBuilder.appendLine("  end tell")
+        scriptBuilder.appendLine("end tell")
+
+        val setupScript = workingDir.ioFile.resolve("setup-dmg.scpt").apply {
+            writeText(scriptBuilder.toString())
+        }
         runExternalTool(tool = osascript.ioFile, args = listOf(setupScript.absolutePath))
+    }
+
+    /** Converts a CSS hex color (e.g. "#ff0000") to AppleScript RGB {R, G, B} (0–65535 range). */
+    private fun cssColorToAppleScriptRgb(cssColor: String): String {
+        val hex = cssColor.removePrefix("#")
+        val (r, g, b) = when (hex.length) {
+            3 -> Triple(
+                hex.substring(0, 1).repeat(2).toInt(16),
+                hex.substring(1, 2).repeat(2).toInt(16),
+                hex.substring(2, 3).repeat(2).toInt(16),
+            )
+            6 -> Triple(
+                hex.substring(0, 2).toInt(16),
+                hex.substring(2, 4).toInt(16),
+                hex.substring(4, 6).toInt(16),
+            )
+            else -> return "65535, 65535, 65535"
+        }
+        // Scale 0–255 to 0–65535
+        return "${r * 257}, ${g * 257}, ${b * 257}"
     }
 }

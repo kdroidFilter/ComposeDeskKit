@@ -98,6 +98,19 @@ private fun configureNativeApplication(
                         app.distributions.macOS.installationPath ?: "/Applications"
                     },
                 )
+
+                val dmgDsl = app.distributions.macOS.dmg
+                dmgDsl.format?.let { dmgFormat.set(it) }
+                dmgDsl.iconSize?.let { dmgIconSize.set(it) }
+                dmgDsl.window.x?.let { dmgWindowX.set(it) }
+                dmgDsl.window.y?.let { dmgWindowY.set(it) }
+                dmgDsl.window.width?.let { dmgWindowWidth.set(it) }
+                dmgDsl.window.height?.let { dmgWindowHeight.set(it) }
+                dmgDsl.title?.let { dmgTitle.set(it) }
+                dmgDsl.backgroundColor?.let { dmgBackgroundColor.set(it) }
+                if (dmgDsl.contents.isNotEmpty()) {
+                    dmgContents.set(dmgDsl.contents.toList())
+                }
             }
     }
 }

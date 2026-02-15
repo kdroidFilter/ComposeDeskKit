@@ -93,6 +93,17 @@ nucleus.application {
             // s3 { ... }
         }
 
+        // ========== ICONS ==========
+        linux {
+            iconFile.set(project.file("packaging/icons/Icon.png"))
+        }
+        windows {
+            iconFile.set(project.file("packaging/icons/Icon.ico"))
+        }
+        macOS {
+            iconFile.set(project.file("packaging/icons/Icon.icns"))
+        }
+
         // ========== LINUX ==========
         linux {
             // --- DEB package ---
@@ -200,6 +211,12 @@ nucleus.application {
             val layeredIcons = layout.projectDirectory.dir("packaging/macos-layered-icon")
             if (layeredIcons.asFile.exists()) {
                 layeredIconDir.set(layeredIcons)
+            }
+
+            // --- DMG customization ---
+            dmg {
+                title = $$"${productName} ${version}"
+                backgroundColor = "#001F3F"
             }
         }
     }

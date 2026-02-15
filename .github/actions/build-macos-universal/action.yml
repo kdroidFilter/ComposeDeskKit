@@ -207,6 +207,7 @@ runs:
 
         if [[ -n "$METADATA_FILE" ]]; then
           echo "==> Found packaging metadata: $METADATA_FILE"
+          METADATA_DIR="$(dirname "$METADATA_FILE")"
           PRODUCT_NAME="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('productName') or '')")"
           APP_ID="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('appId') or '')")"
           COPYRIGHT="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('copyright') or '')")"
@@ -216,6 +217,28 @@ runs:
           MIN_SYS_VERSION="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('minimumSystemVersion') or '')")"
           SIGN="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(str(m.get('sign', False)).lower())")"
           INSTALL_LOCATION="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); print(m.get('installLocation') or '')")"
+          # DMG settings (file paths are relative to METADATA_DIR)
+          DMG_SIGN="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(str(d.get('sign', False)).lower())")"
+          DMG_BACKGROUND_REL="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('background') or '')")"
+          DMG_BG_COLOR="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('backgroundColor') or '')")"
+          DMG_BADGE_ICON_REL="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('badgeIcon') or '')")"
+          DMG_ICON_REL="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('icon') or '')")"
+          DMG_ICON_SIZE="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('iconSize'); print(v if v is not None else '')")"
+          DMG_ICON_TEXT_SIZE="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('iconTextSize'); print(v if v is not None else '')")"
+          DMG_TITLE="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('title') or '')")"
+          DMG_FORMAT="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(d.get('format') or '')")"
+          DMG_INTERNET_ENABLED="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); print(str(d.get('internetEnabled', False)).lower())")"
+          DMG_WIN_X="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowX'); print(v if v is not None else '')")"
+          DMG_WIN_Y="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowY'); print(v if v is not None else '')")"
+          DMG_WIN_W="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowWidth'); print(v if v is not None else '')")"
+          DMG_WIN_H="$(python3 -c "import json; m=json.load(open('$METADATA_FILE')); d=m.get('dmg',{}); v=d.get('windowHeight'); print(v if v is not None else '')")"
+          # Resolve relative asset paths to absolute
+          DMG_BACKGROUND=""
+          [[ -n "$DMG_BACKGROUND_REL" && -f "$METADATA_DIR/$DMG_BACKGROUND_REL" ]] && DMG_BACKGROUND="$METADATA_DIR/$DMG_BACKGROUND_REL"
+          DMG_BADGE_ICON=""
+          [[ -n "$DMG_BADGE_ICON_REL" && -f "$METADATA_DIR/$DMG_BADGE_ICON_REL" ]] && DMG_BADGE_ICON="$METADATA_DIR/$DMG_BADGE_ICON_REL"
+          DMG_ICON=""
+          [[ -n "$DMG_ICON_REL" && -f "$METADATA_DIR/$DMG_ICON_REL" ]] && DMG_ICON="$METADATA_DIR/$DMG_ICON_REL"
         else
           echo "==> No packaging metadata found, using defaults from Info.plist"
           PRODUCT_NAME=""
@@ -227,6 +250,20 @@ runs:
           MIN_SYS_VERSION=""
           SIGN="false"
           INSTALL_LOCATION=""
+          DMG_SIGN="false"
+          DMG_BACKGROUND=""
+          DMG_BG_COLOR=""
+          DMG_BADGE_ICON=""
+          DMG_ICON=""
+          DMG_ICON_SIZE=""
+          DMG_ICON_TEXT_SIZE=""
+          DMG_TITLE=""
+          DMG_FORMAT=""
+          DMG_INTERNET_ENABLED="false"
+          DMG_WIN_X=""
+          DMG_WIN_Y=""
+          DMG_WIN_W=""
+          DMG_WIN_H=""
         fi
 
         # Override artifactName to force universal suffix
@@ -262,7 +299,23 @@ runs:
             fi
             if [[ "$target_format" == "dmg" ]]; then
               echo "dmg:"
-              echo "  sign: false"
+              echo "  sign: $DMG_SIGN"
+              [[ -n "$DMG_BACKGROUND" ]] && echo "  background: \"$DMG_BACKGROUND\""
+              [[ -n "$DMG_BG_COLOR" ]] && echo "  backgroundColor: \"$DMG_BG_COLOR\""
+              [[ -n "$DMG_BADGE_ICON" ]] && echo "  badgeIcon: \"$DMG_BADGE_ICON\""
+              [[ -n "$DMG_ICON" ]] && echo "  icon: \"$DMG_ICON\""
+              [[ -n "$DMG_ICON_SIZE" ]] && echo "  iconSize: $DMG_ICON_SIZE"
+              [[ -n "$DMG_ICON_TEXT_SIZE" ]] && echo "  iconTextSize: $DMG_ICON_TEXT_SIZE"
+              [[ -n "$DMG_TITLE" ]] && echo "  title: \"$DMG_TITLE\""
+              [[ -n "$DMG_FORMAT" ]] && echo "  format: $DMG_FORMAT"
+              [[ "$DMG_INTERNET_ENABLED" == "true" ]] && echo "  internetEnabled: true"
+              if [[ -n "$DMG_WIN_X" || -n "$DMG_WIN_Y" || -n "$DMG_WIN_W" || -n "$DMG_WIN_H" ]]; then
+                echo "  window:"
+                [[ -n "$DMG_WIN_X" ]] && echo "    x: $DMG_WIN_X"
+                [[ -n "$DMG_WIN_Y" ]] && echo "    y: $DMG_WIN_Y"
+                [[ -n "$DMG_WIN_W" ]] && echo "    width: $DMG_WIN_W"
+                [[ -n "$DMG_WIN_H" ]] && echo "    height: $DMG_WIN_H"
+              fi
             elif [[ "$target_format" == "pkg" ]]; then
               echo "pkg:"
               [[ -n "$INSTALL_LOCATION" ]] && echo "  installLocation: \"$INSTALL_LOCATION\""

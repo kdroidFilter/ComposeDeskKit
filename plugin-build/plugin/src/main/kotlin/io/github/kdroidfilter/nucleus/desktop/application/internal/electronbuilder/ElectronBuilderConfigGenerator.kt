@@ -6,6 +6,7 @@
 package io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder
 
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.AppXSettings
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.DmgSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.FileAssociation
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.FlatpakSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.JvmApplicationDistributions
@@ -130,10 +131,7 @@ internal class ElectronBuilderConfigGenerator {
         }
 
         when (targetFormat) {
-            TargetFormat.Dmg -> {
-                yaml.appendLine("dmg:")
-                yaml.appendLine("  sign: false")
-            }
+            TargetFormat.Dmg -> generateDmgConfig(yaml, distributions.macOS.dmg)
             TargetFormat.Pkg -> {
                 yaml.appendLine("pkg:")
                 appendIfNotNull(yaml, "  installLocation", distributions.macOS.installationPath)
@@ -143,6 +141,65 @@ internal class ElectronBuilderConfigGenerator {
                 }
             }
             else -> {}
+        }
+    }
+
+    private fun generateDmgConfig(
+        yaml: StringBuilder,
+        dmg: DmgSettings,
+    ) {
+        yaml.appendLine("dmg:")
+        yaml.appendLine("  sign: ${dmg.sign}")
+        appendIfNotNull(
+            yaml,
+            "  background",
+            dmg.background.orNull
+                ?.asFile
+                ?.absolutePath,
+        )
+        appendIfNotNull(yaml, "  backgroundColor", dmg.backgroundColor)
+        appendIfNotNull(
+            yaml,
+            "  badgeIcon",
+            dmg.badgeIcon.orNull
+                ?.asFile
+                ?.absolutePath,
+        )
+        appendIfNotNull(
+            yaml,
+            "  icon",
+            dmg.icon.orNull
+                ?.asFile
+                ?.absolutePath,
+        )
+        dmg.iconSize?.let { yaml.appendLine("  iconSize: $it") }
+        dmg.iconTextSize?.let { yaml.appendLine("  iconTextSize: $it") }
+        appendIfNotNull(yaml, "  title", dmg.title)
+        dmg.format?.let { yaml.appendLine("  format: ${it.id}") }
+        appendIfNotNull(yaml, "  size", dmg.size)
+        dmg.shrink?.let { yaml.appendLine("  shrink: $it") }
+        if (dmg.internetEnabled) {
+            yaml.appendLine("  internetEnabled: true")
+        }
+
+        val w = dmg.window
+        if (w.x != null || w.y != null || w.width != null || w.height != null) {
+            yaml.appendLine("  window:")
+            w.x?.let { yaml.appendLine("    x: $it") }
+            w.y?.let { yaml.appendLine("    y: $it") }
+            w.width?.let { yaml.appendLine("    width: $it") }
+            w.height?.let { yaml.appendLine("    height: $it") }
+        }
+
+        if (dmg.contents.isNotEmpty()) {
+            yaml.appendLine("  contents:")
+            for (entry in dmg.contents) {
+                yaml.appendLine("    - x: ${entry.x}")
+                yaml.appendLine("      y: ${entry.y}")
+                entry.type?.let { yaml.appendLine("      type: ${it.id}") }
+                entry.name?.let { appendIfNotNull(yaml, "      name", it) }
+                entry.path?.let { appendIfNotNull(yaml, "      path", it) }
+            }
         }
     }
 

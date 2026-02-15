@@ -328,6 +328,13 @@ abstract class AbstractElectronBuilderPackageTask
             val appId = mac.bundleID?.takeIf { it.isNotBlank() }
                 ?: distributions.packageName?.let { "com.app.$it" }
             val sign = mac.signing.sign.orNull == true
+            val dmg = mac.dmg
+
+            // Copy DMG asset files to a subdirectory so they travel with the metadata artifact
+            val assetsDir = File(outputDir, "dmg-assets")
+            val dmgBackground = copyDmgAsset(dmg.background.orNull?.asFile, assetsDir, "background")
+            val dmgBadgeIcon = copyDmgAsset(dmg.badgeIcon.orNull?.asFile, assetsDir, "badge-icon")
+            val dmgIcon = copyDmgAsset(dmg.icon.orNull?.asFile, assetsDir, "icon")
 
             val metadata = buildString {
                 appendLine("{")
@@ -339,12 +346,41 @@ abstract class AbstractElectronBuilderPackageTask
                 appendLine("  \"category\": ${jsonStr(mac.appCategory)},")
                 appendLine("  \"minimumSystemVersion\": ${jsonStr(mac.minimumSystemVersion)},")
                 appendLine("  \"sign\": $sign,")
-                appendLine("  \"installLocation\": ${jsonStr(mac.installationPath)}")
+                appendLine("  \"installLocation\": ${jsonStr(mac.installationPath)},")
+                appendLine("  \"dmg\": {")
+                appendLine("    \"sign\": ${dmg.sign},")
+                appendLine("    \"background\": ${jsonStr(dmgBackground)},")
+                appendLine("    \"backgroundColor\": ${jsonStr(dmg.backgroundColor)},")
+                appendLine("    \"badgeIcon\": ${jsonStr(dmgBadgeIcon)},")
+                appendLine("    \"icon\": ${jsonStr(dmgIcon)},")
+                appendLine("    \"iconSize\": ${dmg.iconSize ?: "null"},")
+                appendLine("    \"iconTextSize\": ${dmg.iconTextSize ?: "null"},")
+                appendLine("    \"title\": ${jsonStr(dmg.title)},")
+                appendLine("    \"format\": ${jsonStr(dmg.format?.id)},")
+                appendLine("    \"internetEnabled\": ${dmg.internetEnabled},")
+                appendLine("    \"windowX\": ${dmg.window.x ?: "null"},")
+                appendLine("    \"windowY\": ${dmg.window.y ?: "null"},")
+                appendLine("    \"windowWidth\": ${dmg.window.width ?: "null"},")
+                appendLine("    \"windowHeight\": ${dmg.window.height ?: "null"}")
+                appendLine("  }")
                 appendLine("}")
             }
             val metadataFile = File(outputDir, "packaging-metadata.json")
             metadataFile.writeText(metadata)
             logger.info("Exported macOS packaging metadata to: ${metadataFile.absolutePath}")
+        }
+
+        /**
+         * Copies a DMG asset file into the assets directory, preserving its extension.
+         * Returns the relative path (e.g. "dmg-assets/background.png") or null if no source file.
+         */
+        private fun copyDmgAsset(source: File?, assetsDir: File, baseName: String): String? {
+            if (source == null || !source.isFile) return null
+            assetsDir.mkdirs()
+            val dest = File(assetsDir, "$baseName.${source.extension}")
+            source.copyTo(dest, overwrite = true)
+            logger.info("Copied DMG asset: ${source.absolutePath} → ${dest.absolutePath}")
+            return "dmg-assets/${dest.name}"
         }
 
         private fun jsonStr(value: String?): String =

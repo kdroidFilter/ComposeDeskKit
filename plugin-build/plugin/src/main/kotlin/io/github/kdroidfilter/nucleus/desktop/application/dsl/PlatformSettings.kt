@@ -63,6 +63,12 @@ abstract class AbstractMacOSPlatformSettings : AbstractPlatformSettings() {
     fun notarization(fn: Action<MacOSNotarizationSettings>) {
         fn.execute(notarization)
     }
+
+    val dmg: DmgSettings = objects.newInstance(DmgSettings::class.java)
+
+    fun dmg(fn: Action<DmgSettings>) {
+        fn.execute(dmg)
+    }
 }
 
 abstract class NativeApplicationMacOSPlatformSettings : AbstractMacOSPlatformSettings()
