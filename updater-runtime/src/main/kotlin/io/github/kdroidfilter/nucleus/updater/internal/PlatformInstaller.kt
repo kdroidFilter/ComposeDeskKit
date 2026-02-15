@@ -52,6 +52,9 @@ internal object PlatformInstaller {
             |#!/usr/bin/env bash
             |set -e
             |
+            |# Ignore SIGHUP to survive parent process exit
+            |trap '' HUP
+            |
             |NEW_FILE="${newAppImage.absolutePath}"
             |OLD_FILE="$currentAppImage"
             |APP_PID=$pid
@@ -61,12 +64,15 @@ internal object PlatformInstaller {
             |    sleep 0.5
             |done
             |
+            |# Wait for the AppImage FUSE mount to fully clean up
+            |sleep 1
+            |
             |# Replace the old AppImage with the new one
             |mv -f "${'$'}NEW_FILE" "${'$'}OLD_FILE"
             |chmod +x "${'$'}OLD_FILE"
             |
-            |# Relaunch
-            |"${'$'}OLD_FILE" &
+            |# Relaunch in a fully detached process
+            |nohup "${'$'}OLD_FILE" > /dev/null 2>&1 &
             |
             |# Clean up this script
             |rm -f "${'$'}{0}"
@@ -74,7 +80,9 @@ internal object PlatformInstaller {
         )
         script.setExecutable(true)
 
-        ProcessBuilder("bash", script.absolutePath)
+        // Use setsid to start the script in a new session, fully detached
+        // from the current process tree
+        ProcessBuilder("setsid", "bash", script.absolutePath)
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
             .redirectError(ProcessBuilder.Redirect.DISCARD)
             .start()
@@ -154,7 +162,7 @@ internal object PlatformInstaller {
         val pid = ProcessHandle.current().pid()
         val installerCmd = when (extension) {
             "msi" -> "Start-Process msiexec -ArgumentList '/i', '\"${file.absolutePath}\"', '/passive' -Wait"
-            else -> "Start-Process '${file.absolutePath}' -ArgumentList '/S' -Wait"
+            else -> "Start-Process '${file.absolutePath}' -ArgumentList '/S', '--updated' -Wait"
         }
 
         val script = File(System.getProperty("java.io.tmpdir"), "nucleus-update.ps1")
