@@ -209,6 +209,7 @@ abstract class AbstractElectronBuilderPackageTask
             )
 
             configFile.delete()
+            exportSigningMetadata(outputDir, dist)
             logger.lifecycle("nucleus builder package written to ${outputDir.canonicalPath}")
         }
 
@@ -285,6 +286,28 @@ abstract class AbstractElectronBuilderPackageTask
             configFile.writeText(configContent)
             logger.info("Generated electron-builder config at: ${configFile.absolutePath}")
             return configFile
+        }
+
+        private fun exportSigningMetadata(
+            outputDir: File,
+            distributions: JvmApplicationDistributions,
+        ) {
+            if (currentOS != OS.Windows) return
+            val signing = distributions.windows.signing
+            if (!signing.enabled) return
+
+            val certFile = signing.certificateFile.orNull?.asFile?.absolutePath
+            val metadata = buildString {
+                appendLine("{")
+                appendLine("  \"enabled\": true,")
+                appendLine("  \"certificateFile\": ${certFile?.let { "\"${it.replace("\\", "\\\\")}\"" } ?: "null"},")
+                appendLine("  \"algorithm\": \"${signing.algorithm.id}\",")
+                appendLine("  \"timestampServer\": ${signing.timestampServer?.let { "\"$it\"" } ?: "null"}")
+                appendLine("}")
+            }
+            val metadataFile = File(outputDir, "signing-metadata.json")
+            metadataFile.writeText(metadata)
+            logger.info("Exported signing metadata to: ${metadataFile.absolutePath}")
         }
 
         private fun ensureResourcesDirForElectronBuilder(appDir: File) {

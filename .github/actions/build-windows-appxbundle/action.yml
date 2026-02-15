@@ -1,0 +1,174 @@
+name: Build Windows APPX Bundle
+description: Merge architecture-specific .appx packages into a single .msixbundle using MakeAppx.exe
+
+inputs:
+  amd64-path:
+    description: 'Directory containing the amd64 Windows artifacts (must include a *-amd64.appx)'
+    required: true
+  arm64-path:
+    description: 'Directory containing the arm64 Windows artifacts (must include a *-arm64.appx)'
+    required: true
+  output-path:
+    description: 'Directory where the .msixbundle will be written'
+    required: false
+    default: 'bundle-output'
+  certificate-password:
+    description: 'Password for the signing certificate (read from signing-metadata.json if available). Required for signing.'
+    required: false
+    default: ''
+
+outputs:
+  bundle:
+    description: 'Path to the .msixbundle file'
+    value: ${{ steps.bundle.outputs.bundle }}
+
+runs:
+  using: composite
+  steps:
+    - name: Locate APPX files and signing metadata
+      id: locate
+      shell: pwsh
+      run: |
+        $amd64Appx = Get-ChildItem -Path "${{ inputs.amd64-path }}" -Filter "*-amd64.appx" -Recurse | Select-Object -First 1
+        $arm64Appx = Get-ChildItem -Path "${{ inputs.arm64-path }}" -Filter "*-arm64.appx" -Recurse | Select-Object -First 1
+
+        if (-not $amd64Appx) {
+          Write-Error "Could not find *-amd64.appx in ${{ inputs.amd64-path }}"
+          Get-ChildItem -Path "${{ inputs.amd64-path }}" -Recurse | ForEach-Object { Write-Host $_.FullName }
+          exit 1
+        }
+        if (-not $arm64Appx) {
+          Write-Error "Could not find *-arm64.appx in ${{ inputs.arm64-path }}"
+          Get-ChildItem -Path "${{ inputs.arm64-path }}" -Recurse | ForEach-Object { Write-Host $_.FullName }
+          exit 1
+        }
+
+        Write-Host "Found amd64: $($amd64Appx.FullName)"
+        Write-Host "Found arm64: $($arm64Appx.FullName)"
+
+        "amd64_appx=$($amd64Appx.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "arm64_appx=$($arm64Appx.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+        # Look for signing metadata in either artifact directory
+        $metadata = $null
+        foreach ($dir in @("${{ inputs.amd64-path }}", "${{ inputs.arm64-path }}")) {
+          $metaFile = Get-ChildItem -Path $dir -Filter "signing-metadata.json" -Recurse | Select-Object -First 1
+          if ($metaFile) {
+            $metadata = Get-Content $metaFile.FullName -Raw | ConvertFrom-Json
+            Write-Host "Found signing metadata in: $($metaFile.FullName)"
+            break
+          }
+        }
+
+        if ($metadata -and $metadata.enabled) {
+          "sign_enabled=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "sign_algorithm=$($metadata.algorithm)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "sign_timestamp=$($metadata.timestampServer)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+          # Resolve certificate file path
+          if ($metadata.certificateFile) {
+            "sign_cert=$($metadata.certificateFile)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          }
+        } else {
+          Write-Host "No signing metadata found or signing disabled"
+          "sign_enabled=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        }
+
+    - name: Create MSIX Bundle
+      id: bundle
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        # Locate MakeAppx.exe
+        $makeappx = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makeappx.exe" |
+          Sort-Object FullName -Descending | Select-Object -First 1
+        if (-not $makeappx) {
+          Write-Error "MakeAppx.exe not found in Windows SDK"
+          exit 1
+        }
+        Write-Host "Using MakeAppx: $($makeappx.FullName)"
+
+        # Create staging directory
+        $stageDir = Join-Path $env:RUNNER_TEMP "appx-bundle-stage"
+        New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
+
+        # Copy both .appx files to staging
+        Copy-Item "${{ steps.locate.outputs.amd64_appx }}" -Destination $stageDir
+        Copy-Item "${{ steps.locate.outputs.arm64_appx }}" -Destination $stageDir
+
+        Write-Host "Staged packages:"
+        Get-ChildItem $stageDir | ForEach-Object { Write-Host "  $($_.Name) ($([math]::Round($_.Length / 1MB, 1)) MB)" }
+
+        # Derive output name from amd64 appx
+        $amd64Name = [System.IO.Path]::GetFileNameWithoutExtension("${{ steps.locate.outputs.amd64_appx }}")
+        # Replace -amd64 with empty to get the base name
+        $baseName = $amd64Name -replace '-amd64$', ''
+        $bundleName = "$baseName.msixbundle"
+
+        $outputDir = "${{ inputs.output-path }}"
+        New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+        $bundlePath = Join-Path $outputDir $bundleName
+
+        Write-Host "Creating bundle: $bundleName"
+        & $makeappx.FullName bundle /v /d $stageDir /p $bundlePath /o
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "MakeAppx bundle failed with exit code $LASTEXITCODE"
+          exit 1
+        }
+
+        Write-Host "Bundle created: $bundlePath"
+        "bundle=$bundlePath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "bundle_name=$bundleName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+    - name: Sign bundle
+      if: steps.locate.outputs.sign_enabled == 'true' && inputs.certificate-password != ''
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        # Locate SignTool.exe
+        $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" |
+          Sort-Object FullName -Descending | Select-Object -First 1
+        if (-not $signtool) {
+          Write-Error "SignTool.exe not found in Windows SDK"
+          exit 1
+        }
+        Write-Host "Using SignTool: $($signtool.FullName)"
+
+        $certFile = "${{ steps.locate.outputs.sign_cert }}"
+        $certPassword = "${{ inputs.certificate-password }}"
+        $algorithm = "${{ steps.locate.outputs.sign_algorithm }}"
+        $timestampServer = "${{ steps.locate.outputs.sign_timestamp }}"
+        $bundlePath = "${{ steps.bundle.outputs.bundle }}"
+
+        if (-not $algorithm) { $algorithm = "SHA256" }
+
+        $signArgs = @(
+          "sign",
+          "/fd", $algorithm,
+          "/f", $certFile,
+          "/p", $certPassword
+        )
+
+        if ($timestampServer) {
+          $signArgs += @("/tr", $timestampServer, "/td", $algorithm)
+        }
+
+        $signArgs += $bundlePath
+
+        Write-Host "Signing bundle with algorithm: $algorithm"
+        & $signtool.FullName @signArgs
+        if ($LASTEXITCODE -ne 0) {
+          Write-Error "SignTool failed with exit code $LASTEXITCODE"
+          exit 1
+        }
+
+        Write-Host "Bundle signed successfully"
+
+    - name: Verify bundle
+      shell: pwsh
+      run: |
+        $bundlePath = "${{ steps.bundle.outputs.bundle }}"
+        $fileInfo = Get-Item $bundlePath
+        Write-Host "Bundle: $($fileInfo.Name) ($([math]::Round($fileInfo.Length / 1MB, 1)) MB)"
