@@ -369,7 +369,8 @@ abstract class AbstractJPackageTask
                 launcherJvmArgs.orNull?.forEach {
                     javaOption(it)
                 }
-                javaOption("-D$SKIKO_LIBRARY_PATH=${appDir()}")
+                val skikoPath = if (sandboxingEnabled.get()) "${appDir()}/resources" else appDir()
+                javaOption("-D$SKIKO_LIBRARY_PATH=$skikoPath")
                 if (currentOS == OS.MacOS) {
                     macDockName.orNull?.let { dockName ->
                         javaOption("-Xdock:name=$dockName")
