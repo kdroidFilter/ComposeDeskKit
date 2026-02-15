@@ -443,11 +443,6 @@ abstract class AbstractElectronBuilderPackageTask
                     if (!isCommandAvailable("snapcraft")) {
                         logger.lifecycle("Skipping Snap packaging: 'snapcraft' is not available on this runner.")
                         true
-                    } else if (currentArch == Arch.Arm64) {
-                        logger.lifecycle(
-                            "Skipping Snap packaging on arm64: snapcraft requires LXD tooling not available on CI.",
-                        )
-                        true
                     } else {
                         false
                     }
@@ -764,6 +759,11 @@ private fun resolveElectronBuilderEnvironment(
             env["SIGNTOOL_PATH"] = signToolPath
             env["WINDOWS_SIGNTOOL_PATH"] = signToolPath
         }
+    }
+
+    // Linux Snap: use destructive mode so snapcraft doesn't require LXD/multipass
+    if (currentOs == OS.Linux && targetFormat == TargetFormat.Snap) {
+        env["SNAPCRAFT_BUILD_ENVIRONMENT"] = "host"
     }
 
     return env
