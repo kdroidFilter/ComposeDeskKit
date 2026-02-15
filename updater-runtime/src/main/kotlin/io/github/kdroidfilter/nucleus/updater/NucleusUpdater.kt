@@ -141,9 +141,12 @@ class NucleusUpdater(
             return UpdateResult.NotAvailable
         }
 
+        // On macOS, ignore the build-time system property so auto-detection
+        // can prefer ZIP (silent install). Users can still force DMG via config.executableType.
         val format =
             config.executableType
-                ?: System.getProperty("nucleus.executable.type")
+                ?: if (platform == Platform.MACOS) null
+                else System.getProperty("nucleus.executable.type")
 
         val selectedFile =
             FileSelector.select(
