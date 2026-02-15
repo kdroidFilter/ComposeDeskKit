@@ -35,6 +35,24 @@ abstract class AppXSettings {
     /** Add auto-launch on startup capability. Default: false */
     var addAutoLaunchExtension: Boolean = false
 
+    /** Background color of the app tile (e.g. "#464646"). Default: null */
+    var backgroundColor: String? = null
+
+    /** Whether to overlay the app name on tile images. Default: false */
+    var showNameOnTiles: Boolean = false
+
+    /** Whether to set the build number. Default: false */
+    var setBuildNumber: Boolean = false
+
+    /** MinVersion for the manifest (e.g. "10.0.14316.0"). Default: null */
+    var minVersion: String? = null
+
+    /** MaxVersionTested for the manifest (e.g. "10.0.16299.0"). Default: null */
+    var maxVersionTested: String? = null
+
+    /** AppX capabilities (e.g. "runFullTrust"). Default: null */
+    var capabilities: List<String>? = null
+
     /** Store tile logo (mapped as `StoreLogo.png`) */
     val storeLogo: RegularFileProperty = objects.fileProperty()
 

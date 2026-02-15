@@ -47,3 +47,30 @@ sizes = [(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)]
 img.save('$ICO_OUT', format='ICO', sizes=sizes)
 "
 echo "Created: $ICO_OUT ($(du -h "$ICO_OUT" | cut -f1 | xargs))"
+
+# ── AppX assets (Windows Store tiles) ────────────────────────────────────────
+APPX_DIR="$SCRIPT_DIR/appx"
+mkdir -p "$APPX_DIR"
+
+python3 -c "
+from PIL import Image
+
+src = Image.open('$SRC').convert('RGBA')
+
+# Simple square tiles – just resize
+for name, size in [('StoreLogo.png', 50), ('Square44x44Logo.png', 44), ('Square150x150Logo.png', 150)]:
+    resized = src.resize((size, size), Image.LANCZOS)
+    resized.save('$APPX_DIR/' + name, format='PNG')
+    print(f'  {name} ({size}x{size})')
+
+# Wide tile – center the icon on a 310x150 canvas
+wide_w, wide_h = 310, 150
+icon_size = wide_h  # fit within the height
+icon = src.resize((icon_size, icon_size), Image.LANCZOS)
+canvas = Image.new('RGBA', (wide_w, wide_h), (0, 0, 0, 0))
+offset_x = (wide_w - icon_size) // 2
+canvas.paste(icon, (offset_x, 0), icon)
+canvas.save('$APPX_DIR/Wide310x150Logo.png', format='PNG')
+print(f'  Wide310x150Logo.png ({wide_w}x{wide_h})')
+"
+echo "Created AppX assets in $APPX_DIR"

@@ -429,6 +429,21 @@ internal class ElectronBuilderConfigGenerator {
         if (appx.addAutoLaunchExtension) {
             yaml.appendLine("  addAutoLaunchExtension: true")
         }
+        appendIfNotNull(yaml, "  backgroundColor", appx.backgroundColor)
+        if (appx.showNameOnTiles) {
+            yaml.appendLine("  showNameOnTiles: true")
+        }
+        if (appx.setBuildNumber) {
+            yaml.appendLine("  setBuildNumber: true")
+        }
+        appendIfNotNull(yaml, "  minVersion", appx.minVersion)
+        appendIfNotNull(yaml, "  maxVersionTested", appx.maxVersionTested)
+        appx.capabilities?.takeIf { it.isNotEmpty() }?.let { caps ->
+            yaml.appendLine("  capabilities:")
+            for (cap in caps) {
+                yaml.appendLine("    - \"$cap\"")
+            }
+        }
     }
 
     private fun generateLinuxConfig(

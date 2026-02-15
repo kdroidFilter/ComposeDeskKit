@@ -185,6 +185,14 @@ nucleus.application {
                 identityName = "KDroidFilter.NucleusDemo"
                 // Languages: "en-US", "fr-FR", "de-DE", etc.
                 languages = listOf("en-US", "fr-FR")
+                backgroundColor = "#001F3F"
+                showNameOnTiles = true
+
+                // AppX tile logos
+                storeLogo.set(project.file("packaging/icons/appx/StoreLogo.png"))
+                square44x44Logo.set(project.file("packaging/icons/appx/Square44x44Logo.png"))
+                square150x150Logo.set(project.file("packaging/icons/appx/Square150x150Logo.png"))
+                wide310x150Logo.set(project.file("packaging/icons/appx/Wide310x150Logo.png"))
             }
         }
 
