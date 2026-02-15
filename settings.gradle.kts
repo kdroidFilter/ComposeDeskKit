@@ -28,6 +28,7 @@ develocity {
 rootProject.name = "Nucleus"
 
 include(":example")
+include(":core-runtime")
 include(":aot-runtime")
 include(":updater-runtime")
 includeBuild("plugin-build")

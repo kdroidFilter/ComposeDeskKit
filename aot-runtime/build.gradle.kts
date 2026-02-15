@@ -5,6 +5,7 @@ plugins {
 }
 
 dependencies {
+    api(project(":core-runtime"))
     implementation(kotlin("stdlib"))
     testImplementation(libs.junit)
 }

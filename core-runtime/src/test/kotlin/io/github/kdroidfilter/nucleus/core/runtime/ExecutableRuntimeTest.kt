@@ -1,4 +1,4 @@
-package io.github.kdroidfilter.nucleus.aot.runtime
+package io.github.kdroidfilter.nucleus.core.runtime
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,11 +24,17 @@ class ExecutableRuntimeTest {
         assertEquals(ExecutableType.APPX, ExecutableRuntime.parseType("appx"))
         assertEquals(ExecutableType.SNAP, ExecutableRuntime.parseType("snap"))
         assertEquals(ExecutableType.FLATPAK, ExecutableRuntime.parseType("flatpak"))
-        assertEquals(ExecutableType.APPIMAGE, ExecutableRuntime.parseType("appimage"))
         assertEquals(ExecutableType.ZIP, ExecutableRuntime.parseType("zip"))
         assertEquals(ExecutableType.TAR, ExecutableRuntime.parseType("tar"))
         assertEquals(ExecutableType.TAR, ExecutableRuntime.parseType("tar.gz"))
         assertEquals(ExecutableType.SEVEN_Z, ExecutableRuntime.parseType("7z"))
+    }
+
+    @Test
+    fun `parses appimage as APPIMAGE not DEV`() {
+        assertEquals(ExecutableType.APPIMAGE, ExecutableRuntime.parseType("appimage"))
+        assertEquals(ExecutableType.APPIMAGE, ExecutableRuntime.parseType(".appimage"))
+        assertEquals(ExecutableType.APPIMAGE, ExecutableRuntime.parseType("APPIMAGE"))
     }
 
     @Test
@@ -78,6 +84,10 @@ class ExecutableRuntimeTest {
 
             System.setProperty(ExecutableRuntime.TYPE_PROPERTY, "snap")
             assertTrue(ExecutableRuntime.isSnap())
+            assertFalse(ExecutableRuntime.isDev())
+
+            System.setProperty(ExecutableRuntime.TYPE_PROPERTY, "appimage")
+            assertTrue(ExecutableRuntime.isAppImage())
             assertFalse(ExecutableRuntime.isDev())
 
             System.setProperty(ExecutableRuntime.TYPE_PROPERTY, "other")

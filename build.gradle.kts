@@ -74,6 +74,7 @@ tasks.register("reformatAll") {
 tasks.register("preMerge") {
     description = "Runs all the tests/verification tasks on both top level and included build."
 
+    dependsOn(":core-runtime:check")
     dependsOn(":aot-runtime:check")
     dependsOn(":example:check")
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))

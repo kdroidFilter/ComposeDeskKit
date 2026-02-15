@@ -21,7 +21,6 @@ internal object FileSelector {
             "snap" to ".snap",
             "flatpak" to ".flatpak",
             "dmg" to ".dmg",
-            "pkg" to ".pkg",
             "msi" to ".msi",
             "appx" to ".appx",
             "zip" to ".zip",
@@ -86,7 +85,7 @@ internal object FileSelector {
         val extensions =
             when (platform) {
                 Platform.WINDOWS -> listOf(".exe", ".msi")
-                Platform.MACOS -> listOf(".zip", ".dmg", ".pkg")
+                Platform.MACOS -> listOf(".zip", ".dmg")
                 Platform.LINUX -> listOf(".deb", ".rpm", ".appimage", ".snap")
             }
         return files

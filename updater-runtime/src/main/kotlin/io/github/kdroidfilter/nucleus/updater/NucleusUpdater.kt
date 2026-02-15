@@ -1,5 +1,7 @@
 package io.github.kdroidfilter.nucleus.updater
 
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
+import io.github.kdroidfilter.nucleus.core.runtime.ExecutableType
 import io.github.kdroidfilter.nucleus.updater.exception.ChecksumException
 import io.github.kdroidfilter.nucleus.updater.exception.NetworkException
 import io.github.kdroidfilter.nucleus.updater.exception.NoMatchingFileException
@@ -30,8 +32,14 @@ class NucleusUpdater(
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build()
 
+    fun isUpdateSupported(): Boolean {
+        val type = resolveExecutableType()
+        return type in SELF_UPDATABLE_TYPES
+    }
+
     suspend fun checkForUpdates(): UpdateResult {
         if (config.isDevMode()) return UpdateResult.NotAvailable
+        if (!isUpdateSupported()) return UpdateResult.NotAvailable
         return try {
             doCheckForUpdates()
         } catch (e: UpdateException) {
@@ -189,6 +197,12 @@ class NucleusUpdater(
         return UpdateResult.Available(updateInfo)
     }
 
+    private fun resolveExecutableType(): ExecutableType {
+        val explicit = config.executableType
+        if (explicit != null) return ExecutableRuntime.parseType(explicit)
+        return ExecutableRuntime.type()
+    }
+
     private fun applyAuthHeaders(builder: HttpRequest.Builder) {
         config.provider.authHeaders().forEach { (key, value) ->
             builder.header(key, value)
@@ -197,5 +211,18 @@ class NucleusUpdater(
 
     companion object {
         private const val PERCENT_MAX = 100.0
+
+        private val SELF_UPDATABLE_TYPES =
+            setOf(
+                ExecutableType.EXE,
+                ExecutableType.NSIS,
+                ExecutableType.NSIS_WEB,
+                ExecutableType.MSI,
+                ExecutableType.DMG,
+                ExecutableType.ZIP,
+                ExecutableType.APPIMAGE,
+                ExecutableType.DEB,
+                ExecutableType.RPM,
+            )
     }
 }
