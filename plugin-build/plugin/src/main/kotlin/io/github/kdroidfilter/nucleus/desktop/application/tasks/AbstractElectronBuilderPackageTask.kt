@@ -35,15 +35,15 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import java.io.ByteArrayOutputStream
-import java.io.File
 import java.awt.AlphaComposite
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.Locale
-import kotlin.math.min
-import javax.inject.Inject
 import javax.imageio.ImageIO
+import javax.inject.Inject
+import kotlin.math.min
 
 /**
  * Gradle task that packages a pre-built app-image (from jpackage) using electron-builder.
@@ -162,7 +162,9 @@ abstract class AbstractElectronBuilderPackageTask
             val windowsIconOverride = resolveWindowsIcon()
             val linuxAfterInstallTemplate = prepareLinuxAfterInstallTemplate(outputDir)
             if (targetFormat == TargetFormat.AppX) {
-                val hasExplicitWindowsIcon = dist.windows.iconFile.orNull?.asFile != null
+                val hasExplicitWindowsIcon =
+                    dist.windows.iconFile.orNull
+                        ?.asFile != null
                 stageAppXAssets(
                     outputDir = outputDir,
                     windowsIconOverride = windowsIconOverride,
@@ -352,10 +354,11 @@ abstract class AbstractElectronBuilderPackageTask
             if (iconsDir.exists()) iconsDir.deleteRecursively()
             iconsDir.mkdirs()
 
+            @Suppress("MagicNumber")
             val sizes = listOf(16, 32, 48, 64, 128, 256, 512)
             for (size in sizes) {
                 val resized = resizeIcon(source, size, size)
-                val target = iconsDir.resolve("${size}x${size}.png")
+                val target = iconsDir.resolve("${size}x$size.png")
                 ImageIO.write(resized, "png", target)
             }
             logger.info("Generated Linux icon set at: ${iconsDir.absolutePath}")
@@ -476,7 +479,8 @@ abstract class AbstractElectronBuilderPackageTask
                         true
                     } else if (currentArch == Arch.Arm64) {
                         logger.lifecycle(
-                            "Skipping Snap packaging on arm64: electron-builder uses build-snaps (gnome-3-28-1804) unavailable for arm64.",
+                            "Skipping Snap packaging on arm64: electron-builder uses " +
+                                "build-snaps (gnome-3-28-1804) unavailable for arm64.",
                         )
                         true
                     } else {
@@ -686,9 +690,10 @@ abstract class AbstractElectronBuilderPackageTask
                         }
                     }
             val repositoryField =
-                repositoryUrl?.let { value ->
-                    ",\n  \"repository\": \"${value.escapeForJson()}\""
-                } ?: ""
+                repositoryUrl
+                    ?.let { value ->
+                        ",\n  \"repository\": \"${value.escapeForJson()}\""
+                    }.orEmpty()
 
             packageJson.writeText(
                 """

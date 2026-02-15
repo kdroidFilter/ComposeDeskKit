@@ -33,6 +33,7 @@ internal class ElectronBuilderConfigGenerator {
      * @param appImageDir The prepackaged app-image directory from jpackage.
      * @return The YAML configuration content as a string.
      */
+    @Suppress("LongParameterList")
     fun generateConfig(
         distributions: JvmApplicationDistributions,
         targetFormat: TargetFormat,
@@ -154,7 +155,9 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("win:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        val windowsIcon = distributions.windows.iconFile.orNull?.asFile ?: windowsIconOverride
+        val windowsIcon =
+            distributions.windows.iconFile.orNull
+                ?.asFile ?: windowsIconOverride
         appendIfNotNull(
             yaml,
             "  icon",
@@ -380,7 +383,9 @@ internal class ElectronBuilderConfigGenerator {
         yaml.appendLine("linux:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
-        val linuxIcon = linuxIconOverride ?: distributions.linux.iconFile.orNull?.asFile
+        val linuxIcon =
+            linuxIconOverride ?: distributions.linux.iconFile.orNull
+                ?.asFile
         appendIfNotNull(
             yaml,
             "  icon",

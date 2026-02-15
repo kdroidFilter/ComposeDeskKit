@@ -5,8 +5,8 @@
 
 package io.github.kdroidfilter.nucleus.desktop.tasks
 
-import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.desktop.application.internal.ExternalToolRunner
+import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.internal.utils.notNullProperty
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ArchiveOperations

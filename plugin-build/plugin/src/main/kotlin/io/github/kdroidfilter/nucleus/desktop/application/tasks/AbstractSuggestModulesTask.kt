@@ -6,8 +6,8 @@
 package io.github.kdroidfilter.nucleus.desktop.application.tasks
 
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.DEFAULT_RUNTIME_MODULES
-import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.desktop.application.internal.ExternalToolRunner
+import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.desktop.application.internal.files.normalizedPath
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractNucleusTask
 import io.github.kdroidfilter.nucleus.internal.utils.*

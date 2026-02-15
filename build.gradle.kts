@@ -38,9 +38,14 @@ subprojects {
     detekt {
         config.setFrom(rootProject.files("config/detekt/detekt.yml"))
     }
+
+    tasks.withType<Detekt>().configureEach {
+        jvmTarget = "11"
+    }
 }
 
 tasks.withType<Detekt>().configureEach {
+    jvmTarget = "11"
     reports {
         html.required.set(true)
         html.outputLocation.set(file("build/reports/detekt.html"))

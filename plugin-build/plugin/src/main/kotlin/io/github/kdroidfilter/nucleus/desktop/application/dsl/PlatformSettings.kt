@@ -92,6 +92,7 @@ open class InfoPlistSettings {
 
 abstract class LinuxPlatformSettings : AbstractPlatformSettings() {
     var shortcut: Boolean = false
+
     /**
      * Value for StartupWMClass in desktop entry.
      *

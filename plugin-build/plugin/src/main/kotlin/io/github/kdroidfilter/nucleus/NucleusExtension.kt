@@ -22,10 +22,10 @@ abstract class NucleusExtension
     ) : ExtensionAware {
         val dependencies = NucleusPlugin.Dependencies(project)
 
-        internal var _isJvmApplicationInitialized = false
+        internal var isJvmApplicationInitialized = false
             private set
         val application: JvmApplication by lazy {
-            _isJvmApplicationInitialized = true
+            isJvmApplicationInitialized = true
             objectFactory.newInstance(JvmApplicationInternal::class.java, "main")
         }
 
@@ -33,10 +33,10 @@ abstract class NucleusExtension
             fn.execute(application)
         }
 
-        internal var _isNativeApplicationInitialized = false
+        internal var isNativeApplicationInitialized = false
             private set
         val nativeApplication: NativeApplication by lazy {
-            _isNativeApplicationInitialized = true
+            isNativeApplicationInitialized = true
             objectFactory.newInstance(NativeApplication::class.java, "main")
         }
 

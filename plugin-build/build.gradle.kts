@@ -44,6 +44,7 @@ allprojects {
 }
 
 tasks.withType<Detekt>().configureEach {
+    jvmTarget = "11"
     reports {
         html.required.set(true)
         html.outputLocation.set(file("build/reports/detekt.html"))

@@ -14,14 +14,14 @@ internal fun configureDesktop(
     project: Project,
     nucleusExtension: NucleusExtension,
 ) {
-    if (nucleusExtension._isJvmApplicationInitialized) {
+    if (nucleusExtension.isJvmApplicationInitialized) {
         val appInternal = nucleusExtension.application as JvmApplicationInternal
         val defaultBuildType = appInternal.data.buildTypes.default
         val appData = JvmApplicationContext(project, appInternal, defaultBuildType)
         appData.configureJvmApplication()
     }
 
-    if (nucleusExtension._isNativeApplicationInitialized) {
+    if (nucleusExtension.isNativeApplicationInitialized) {
         val unpackDefaultResources =
             project.registerTask<AbstractUnpackDefaultApplicationResourcesTask>(
                 "unpackDefaultNativeApplicationResources",

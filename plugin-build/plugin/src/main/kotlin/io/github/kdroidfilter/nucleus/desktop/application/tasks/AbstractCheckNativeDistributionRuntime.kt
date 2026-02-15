@@ -5,10 +5,10 @@
 
 package io.github.kdroidfilter.nucleus.desktop.application.tasks
 
-import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.desktop.application.internal.ExternalToolRunner
 import io.github.kdroidfilter.nucleus.desktop.application.internal.JdkVersionProbe
 import io.github.kdroidfilter.nucleus.desktop.application.internal.JvmRuntimeProperties
+import io.github.kdroidfilter.nucleus.desktop.application.internal.NucleusProperties
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractNucleusTask
 import io.github.kdroidfilter.nucleus.internal.utils.OS
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS

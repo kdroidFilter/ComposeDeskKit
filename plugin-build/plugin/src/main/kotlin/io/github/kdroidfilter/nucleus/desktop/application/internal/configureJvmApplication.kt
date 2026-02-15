@@ -399,10 +399,17 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
 
     packageTask.packageName.set(packageNameProvider)
     packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
-    packageTask.linuxIconFile.set(app.nativeDistributions.linux.iconFile.orElse(unpackDefaultResources.get { linuxIcon }))
-    packageTask.windowsIconFile.set(app.nativeDistributions.windows.iconFile.orElse(unpackDefaultResources.get { windowsIcon }))
+    packageTask.linuxIconFile.set(
+        app.nativeDistributions.linux.iconFile
+            .orElse(unpackDefaultResources.get { linuxIcon }),
+    )
+    packageTask.windowsIconFile.set(
+        app.nativeDistributions.windows.iconFile
+            .orElse(unpackDefaultResources.get { windowsIcon }),
+    )
     val startupWMClass =
-        app.nativeDistributions.linux.startupWMClass?.takeIf { it.isNotBlank() }
+        app.nativeDistributions.linux.startupWMClass
+            ?.takeIf { it.isNotBlank() }
             ?: app.mainClass?.replace('.', '-')
     if (startupWMClass != null) {
         packageTask.startupWMClass.set(startupWMClass)
