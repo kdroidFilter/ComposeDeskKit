@@ -10,6 +10,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 import io.github.kdroidfilter.nucleus.desktop.application.internal.validation.validatePackageVersions
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractCheckNativeDistributionRuntime
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractElectronBuilderPackageTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractExtractNativeLibsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractGenerateAotCacheTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJLinkTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJPackageTask
@@ -19,7 +20,9 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractRunDistr
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractSuggestModulesTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractUnpackDefaultApplicationResourcesTask
+import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
+import io.github.kdroidfilter.nucleus.internal.utils.currentArch
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
 import io.github.kdroidfilter.nucleus.internal.utils.currentTarget
 import io.github.kdroidfilter.nucleus.internal.utils.dependsOn
@@ -106,6 +109,36 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             }
         }
 
+    val extractNativeLibs =
+        if (app.nativeDistributions.enableSandboxing) {
+            val osName = when (currentOS) {
+                OS.Windows -> "windows"
+                OS.Linux -> "linux"
+                OS.MacOS -> "macos"
+            }
+            val archName = when (currentArch) {
+                Arch.X64 -> "x64"
+                Arch.Arm64 -> "arm64"
+            }
+
+            tasks.register<AbstractExtractNativeLibsTask>(
+                taskNameAction = "extract",
+                taskNameObject = "nativeLibsForSandboxing",
+            ) {
+                targetOs.set(osName)
+                targetArch.set(archName)
+                outputDir.set(appTmpDir.dir("sandboxing-native-libs"))
+
+                // Use original JARs (without cleanupNativeLibs transform) so we always
+                // get the native libs for the current arch even if cleanup is also enabled.
+                useAppRuntimeFiles { (runtimeJars, _) ->
+                    inputJars.from(runtimeJars)
+                }
+            }
+        } else {
+            null
+        }
+
     val prepareAppResources =
         tasks.register<Sync>(
             taskNameAction = "prepare",
@@ -117,6 +150,13 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
                 from(appResourcesRootDir.dir(currentOS.id))
                 from(appResourcesRootDir.dir(currentTarget.id))
             }
+
+            // Include extracted native libs when sandboxing is enabled
+            if (extractNativeLibs != null) {
+                dependsOn(extractNativeLibs)
+                from(extractNativeLibs.flatMap { it.outputDir })
+            }
+
             into(jvmTmpDirForTask())
         }
 
@@ -371,12 +411,19 @@ private fun JvmApplicationContext.configurePackageTask(
     }
 
     packageTask.launcherMainClass.set(app.mainClass)
+    packageTask.sandboxingEnabled.set(app.nativeDistributions.enableSandboxing)
     packageTask.launcherJvmArgs.set(
         provider {
             val executableTypeArg = "-D$APP_EXECUTABLE_TYPE=${packageTask.targetFormat.executableTypeValue}"
-            val args = defaultJvmArgs + executableTypeArg + app.jvmArgs
+            var args = defaultJvmArgs + executableTypeArg + app.jvmArgs
             val splash = app.nativeDistributions.splashImage
-            if (splash != null) args + "-splash:\$APPDIR/resources/$splash" else args
+            if (splash != null) {
+                args = args + "-splash:\$APPDIR/resources/$splash"
+            }
+            if (app.nativeDistributions.enableSandboxing) {
+                args = args + sandboxingJvmArgs("\$APPDIR/resources")
+            }
+            args
         },
     )
     packageTask.launcherArgs.set(provider { app.args })
@@ -510,6 +557,10 @@ private fun JvmApplicationContext.configureRunTask(
             val appResourcesDir = prepareAppResources.get().destinationDir
             add("-D$APP_RESOURCES_DIR=${appResourcesDir.absolutePath}")
 
+            if (app.nativeDistributions.enableSandboxing) {
+                addAll(sandboxingJvmArgs(appResourcesDir.absolutePath))
+            }
+
             app.nativeDistributions.splashImage?.let { splash ->
                 val splashFile = appResourcesDir.resolve(splash)
                 if (splashFile.exists()) {
@@ -595,3 +646,19 @@ private fun JvmApplicationContext.configurePackageUberJarForCurrentOS(
         jar.logger.lifecycle("The jar is written to ${jar.archiveFile.ioFile.canonicalPath}")
     }
 }
+
+/**
+ * Builds the list of JVM args needed for sandboxing (loading native libs from the resources directory
+ * instead of extracting them at runtime).
+ *
+ * JNA-specific args are always included: they are harmless if JNA is not on the classpath
+ * (the JVM simply ignores unknown system properties).
+ */
+private fun sandboxingJvmArgs(resourcesPath: String): List<String> =
+    listOf(
+        "-Djava.library.path=$resourcesPath",
+        "-Djna.nounpack=true",
+        "-Djna.nosys=true",
+        "-Djna.boot.library.path=$resourcesPath",
+        "-Djna.library.path=$resourcesPath",
+    )

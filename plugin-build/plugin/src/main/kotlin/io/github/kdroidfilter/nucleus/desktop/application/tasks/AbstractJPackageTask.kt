@@ -242,6 +242,9 @@ abstract class AbstractJPackageTask
         @get:Optional
         internal val macLayeredIcons: DirectoryProperty = objects.directoryProperty()
 
+        @get:Input
+        val sandboxingEnabled: Property<Boolean> = objects.notNullProperty(false)
+
         private val iconMapping by lazy {
             val icons = fileAssociations.get().mapNotNull { it.iconFile }.distinct()
             if (icons.isEmpty()) return@lazy emptyMap()
@@ -566,6 +569,20 @@ abstract class AbstractJPackageTask
                 val path = file.toPath()
                 if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && (path.isExecutable() || file.name.isDylibPath)) {
                     macSigner.sign(file, runtimeEntitlementsFile)
+                }
+            }
+
+            // When sandboxing is enabled, also sign native libs in the resources directory
+            // so they pass Gatekeeper checks in sandboxed App Store apps.
+            if (sandboxingEnabled.get()) {
+                val resourcesDir = appDir.resolve("Contents/app/resources")
+                if (resourcesDir.exists()) {
+                    resourcesDir.walk().forEach { file ->
+                        val path = file.toPath()
+                        if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
+                            macSigner.sign(file, appEntitlementsFile)
+                        }
+                    }
                 }
             }
 

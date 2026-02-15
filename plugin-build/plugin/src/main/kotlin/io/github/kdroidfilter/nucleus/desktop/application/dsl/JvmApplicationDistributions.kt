@@ -34,6 +34,19 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
     /** Enable JDK 25+ AOT cache generation for faster application startup. */
     var enableAotCache: Boolean = false
 
+    /**
+     * Enable App Sandbox compatibility for macOS App Store distribution.
+     *
+     * When enabled, the plugin:
+     * 1. Extracts native libraries (.dylib, .jnilib, .so, .dll) from dependency JARs
+     *    and places them in the app resources directory so they get signed automatically.
+     * 2. Adds JVM args to load native libs from the resources directory instead of
+     *    extracting them at runtime (which fails in sandboxed environments).
+     * 3. Auto-detects JNA in the classpath and configures it to skip runtime extraction.
+     * 4. Signs native libraries in the resources directory individually on macOS.
+     */
+    var enableSandboxing: Boolean = false
+
     val linux: LinuxPlatformSettings = objects.newInstance(LinuxPlatformSettings::class.java)
 
     open fun linux(fn: Action<LinuxPlatformSettings>) {

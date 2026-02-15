@@ -1,6 +1,8 @@
 package com.example.demo
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +30,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import com.kdroid.composetray.tray.api.Tray
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
@@ -53,6 +56,22 @@ fun main() {
     }
 
     application {
+
+        Tray(
+            iconContent = {
+                Canvas(modifier = Modifier.fillMaxSize()) { // Important to use fillMaxSize()!
+                    drawCircle(
+                        color = Color.Red,
+                        radius = size.minDimension / 2,
+                        center = center
+                    )
+                }
+            },
+            tooltip = "My Application"
+        ) {
+            Item("Quit") { exitApplication() }
+        } //Check Native lib
+
         Window(
             state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
             onCloseRequest = ::exitApplication,
