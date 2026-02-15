@@ -54,14 +54,38 @@ internal object PlatformInstaller {
         val installDir = appBundle.parentFile
         val appName = appBundle.name
 
-        // Delete the old app bundle
-        appBundle.deleteRecursively()
+        // Extract to a temp directory first, so the old app survives if extraction fails
+        val tempDir = File(System.getProperty("java.io.tmpdir"), "nucleus-update-${System.currentTimeMillis()}")
+        tempDir.mkdirs()
 
-        // Extract the ZIP into the install directory
-        ProcessBuilder("ditto", "-xk", zipFile.absolutePath, installDir.absolutePath)
+        val extractExitCode = ProcessBuilder("ditto", "-xk", zipFile.absolutePath, tempDir.absolutePath)
             .inheritIO()
             .start()
             .waitFor()
+
+        val extractedApp = tempDir.listFiles()?.firstOrNull { it.name.endsWith(".app") }
+
+        if (extractExitCode != 0 || extractedApp == null || !extractedApp.exists()) {
+            // Extraction failed — clean up temp and fall back to opening the ZIP
+            tempDir.deleteRecursively()
+            ProcessBuilder("open", zipFile.absolutePath).start()
+            return
+        }
+
+        // Extraction succeeded — now safe to replace the old app
+        appBundle.deleteRecursively()
+
+        val exitCode = ProcessBuilder("mv", extractedApp.absolutePath, File(installDir, appName).absolutePath)
+            .start()
+            .waitFor()
+
+        tempDir.deleteRecursively()
+
+        if (exitCode != 0) {
+            // Move failed (permissions?) — fall back to opening the ZIP
+            ProcessBuilder("open", zipFile.absolutePath).start()
+            return
+        }
 
         val newAppPath = File(installDir, appName).absolutePath
 
