@@ -204,6 +204,8 @@ internal class ElectronBuilderConfigGenerator {
         appendIfNotNull(yaml, "    certificateSha1", signing.certificateSha1)
         appendIfNotNull(yaml, "    certificateSubjectName", signing.certificateSubjectName)
         appendIfNotNull(yaml, "    rfc3161TimeStampServer", signing.timestampServer)
+        yaml.appendLine("    signingHashAlgorithms:")
+        yaml.appendLine("      - ${signing.algorithm}")
 
         if (signing.azureTenantId != null) {
             yaml.appendLine("  azureSignOptions:")
