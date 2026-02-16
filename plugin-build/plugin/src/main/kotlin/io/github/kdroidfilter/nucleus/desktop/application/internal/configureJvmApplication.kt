@@ -111,7 +111,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
         }
 
     val extractNativeLibs =
-        if (app.nativeDistributions.enableSandboxing) {
+        if (app.nativeDistributions.hasStoreFormats) {
             val osName =
                 when (currentOS) {
                     OS.Windows -> "windows"
@@ -198,10 +198,16 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             null
         }
 
-    // When sandboxing is enabled, native libs are extracted to app resources by
-    // AbstractExtractNativeLibsTask. Strip them from JARs to avoid duplication.
+    val hasStoreFormats = app.nativeDistributions.hasStoreFormats
+    val allEbFormats =
+        app.nativeDistributions.targetFormats
+            .filter { it.backend == PackagingBackend.ELECTRON_BUILDER }
+    val nonStoreFormats = allEbFormats.filter { !it.isStoreFormat }
+    val storeFormats = allEbFormats.filter { it.isStoreFormat }
+
+    // Strip native libs from JARs for the sandboxed pipeline (store formats only).
     val stripNativeLibsFromJars =
-        if (app.nativeDistributions.enableSandboxing) {
+        if (hasStoreFormats) {
             tasks.register<AbstractStripNativeLibsFromJarsTask>(
                 taskNameAction = "strip",
                 taskNameObject = "nativeLibsFromJars",
@@ -222,6 +228,8 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             null
         }
 
+    // === Non-sandboxed pipeline (direct distribution formats: DMG, ZIP, NSIS, etc.) ===
+
     val createDistributable =
         tasks.register<AbstractJPackageTask>(
             taskNameAction = "create",
@@ -235,7 +243,7 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                 checkRuntime = commonTasks.checkRuntime,
                 unpackDefaultResources = commonTasks.unpackDefaultResources,
                 runProguard = runProguard,
-                stripNativeLibs = stripNativeLibsFromJars,
+                sandboxed = false,
             )
         }
 
@@ -252,14 +260,8 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                 if (currentOS == OS.MacOS) {
                     val mac = app.nativeDistributions.macOS
                     val defaultResources = commonTasks.unpackDefaultResources
-                    val defaultRuntimeEntitlements =
-                        if (app.nativeDistributions.enableSandboxing) {
-                            defaultResources.get { defaultSandboxRuntimeEntitlements }
-                        } else {
-                            defaultResources.get { defaultEntitlements }
-                        }
                     macRuntimeEntitlementsFile.set(
-                        mac.runtimeEntitlementsFile.orElse(defaultRuntimeEntitlements),
+                        mac.runtimeEntitlementsFile.orElse(defaultResources.get { defaultEntitlements }),
                     )
                 }
             }
@@ -267,10 +269,84 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             null
         }
 
-    val packageFormats =
-        app.nativeDistributions.targetFormats
-            .filter { it.backend == PackagingBackend.ELECTRON_BUILDER }
-            .map { targetFormat ->
+    val nonStorePackageFormats =
+        nonStoreFormats.map { targetFormat ->
+            val packageFormat =
+                tasks.register<AbstractElectronBuilderPackageTask>(
+                    taskNameAction = "package",
+                    taskNameObject = targetFormat.name,
+                    args = listOf(targetFormat),
+                ) {
+                    configureElectronBuilderPackageTask(
+                        this,
+                        createDistributable = createDistributable,
+                        unpackDefaultResources = commonTasks.unpackDefaultResources,
+                    )
+                    generateAotCache?.let { dependsOn(it) }
+                }
+
+            if (targetFormat.isCompatibleWith(OS.MacOS)) {
+                tasks.register<AbstractNotarizationTask>(
+                    taskNameAction = "notarize",
+                    taskNameObject = targetFormat.name,
+                    args = listOf(targetFormat),
+                ) {
+                    dependsOn(packageFormat)
+                    inputDir.set(packageFormat.flatMap { it.destinationDir })
+                    configureCommonNotarizationSettings(this)
+                }
+            }
+
+            packageFormat
+        }
+
+    // === Sandboxed pipeline (store formats: PKG, AppX, Flatpak) ===
+
+    val storePackageFormats =
+        if (hasStoreFormats) {
+            val createSandboxedDistributable =
+                tasks.register<AbstractJPackageTask>(
+                    taskNameAction = "create",
+                    taskNameObject = "sandboxedDistributable",
+                    args = listOf(TargetFormat.RawAppImage),
+                ) {
+                    configurePackageTask(
+                        this,
+                        createRuntimeImage = commonTasks.createRuntimeImage,
+                        prepareAppResources = commonTasks.prepareAppResources,
+                        checkRuntime = commonTasks.checkRuntime,
+                        unpackDefaultResources = commonTasks.unpackDefaultResources,
+                        runProguard = runProguard,
+                        stripNativeLibs = stripNativeLibsFromJars,
+                        sandboxed = true,
+                    )
+                }
+
+            val generateSandboxedAotCache =
+                if (app.nativeDistributions.enableAotCache) {
+                    tasks.register<AbstractGenerateAotCacheTask>(
+                        taskNameAction = "generate",
+                        taskNameObject = "sandboxedAotCache",
+                    ) {
+                        dependsOn(createSandboxedDistributable)
+                        distributableDir.set(createSandboxedDistributable.flatMap { it.destinationDir })
+                        javaHome.set(app.javaHomeProvider)
+                        javaRuntimePropertiesFile.set(commonTasks.checkRuntime.flatMap { it.javaRuntimePropertiesFile })
+                        if (currentOS == OS.MacOS) {
+                            val mac = app.nativeDistributions.macOS
+                            val defaultResources = commonTasks.unpackDefaultResources
+                            macRuntimeEntitlementsFile.set(
+                                mac.runtimeEntitlementsFile.orElse(
+                                    defaultResources.get { defaultSandboxRuntimeEntitlements },
+                                ),
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+
+            storeFormats.map { targetFormat ->
                 val packageFormat =
                     tasks.register<AbstractElectronBuilderPackageTask>(
                         taskNameAction = "package",
@@ -279,10 +355,10 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                     ) {
                         configureElectronBuilderPackageTask(
                             this,
-                            createDistributable = createDistributable,
+                            createDistributable = createSandboxedDistributable,
                             unpackDefaultResources = commonTasks.unpackDefaultResources,
                         )
-                        generateAotCache?.let { dependsOn(it) }
+                        generateSandboxedAotCache?.let { dependsOn(it) }
                     }
 
                 if (targetFormat.isCompatibleWith(OS.MacOS)) {
@@ -299,6 +375,11 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
 
                 packageFormat
             }
+        } else {
+            emptyList()
+        }
+
+    val packageFormats = nonStorePackageFormats + storePackageFormats
 
     val packageForCurrentOS =
         tasks.register<DefaultTask>(
@@ -338,6 +419,7 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
             configurePackageUberJarForCurrentOS(this, flattenJars)
         }
 
+    // runDistributable always uses the non-sandboxed distributable (most relevant for local dev/test)
     val runDistributable =
         tasks.register<AbstractRunDistributableTask>(
             taskNameAction = "run",
@@ -403,6 +485,7 @@ private fun JvmApplicationContext.configurePackageTask(
     unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
     runProguard: Provider<AbstractProguardTask>? = null,
     stripNativeLibs: TaskProvider<AbstractStripNativeLibsFromJarsTask>? = null,
+    sandboxed: Boolean = false,
 ) {
     packageTask.enabled = packageTask.targetFormat.isCompatibleWithCurrentOS
 
@@ -422,7 +505,7 @@ private fun JvmApplicationContext.configurePackageTask(
         packageTask.javaRuntimePropertiesFile.set(checkRuntime.flatMap { it.javaRuntimePropertiesFile })
     }
 
-    this.configurePlatformSettings(packageTask, unpackDefaultResources)
+    this.configurePlatformSettings(packageTask, unpackDefaultResources, sandboxed)
 
     app.nativeDistributions.let { executables ->
         packageTask.packageName.set(packageNameProvider)
@@ -432,9 +515,10 @@ private fun JvmApplicationContext.configurePackageTask(
         packageTask.packageVersion.set(packageVersionFor(packageTask.targetFormat))
     }
 
+    val dirSuffix = if (sandboxed) "-sandboxed" else ""
     packageTask.destinationDir.set(
         app.nativeDistributions.outputBaseDir.map {
-            it.dir("$appDirName/${packageTask.targetFormat.outputDirName}")
+            it.dir("$appDirName/${packageTask.targetFormat.outputDirName}$dirSuffix")
         },
     )
     packageTask.javaHome.set(app.javaHomeProvider)
@@ -465,7 +549,7 @@ private fun JvmApplicationContext.configurePackageTask(
     }
 
     packageTask.launcherMainClass.set(app.mainClass)
-    packageTask.sandboxingEnabled.set(app.nativeDistributions.enableSandboxing)
+    packageTask.sandboxingEnabled.set(sandboxed)
     packageTask.launcherJvmArgs.set(
         provider {
             val executableTypeArg = "-D$APP_EXECUTABLE_TYPE=${packageTask.targetFormat.executableTypeValue}"
@@ -474,7 +558,7 @@ private fun JvmApplicationContext.configurePackageTask(
             if (splash != null) {
                 args = args + "-splash:\$APPDIR/resources/$splash"
             }
-            if (app.nativeDistributions.enableSandboxing) {
+            if (sandboxed) {
                 args = args + sandboxingJvmArgs("\$APPDIR/resources")
             }
             args
@@ -535,6 +619,7 @@ private fun <T : Any> TaskProvider<AbstractUnpackDefaultApplicationResourcesTask
 internal fun JvmApplicationContext.configurePlatformSettings(
     packageTask: AbstractJPackageTask,
     defaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
+    sandboxed: Boolean = false,
 ) {
     packageTask.dependsOn(defaultResources)
 
@@ -571,15 +656,14 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                 packageTask.macAppStore.set(mac.appStore)
                 packageTask.macAppCategory.set(mac.appCategory)
                 packageTask.macMinimumSystemVersion.set(mac.minimumSystemVersion)
-                val sandboxing = app.nativeDistributions.enableSandboxing
                 val defaultAppEntitlements =
-                    if (sandboxing) {
+                    if (sandboxed) {
                         defaultResources.get { defaultSandboxEntitlements }
                     } else {
                         defaultResources.get { defaultEntitlements }
                     }
                 val defaultRuntimeEntitlements =
-                    if (sandboxing) {
+                    if (sandboxed) {
                         defaultResources.get { defaultSandboxRuntimeEntitlements }
                     } else {
                         defaultResources.get { defaultEntitlements }
@@ -626,10 +710,6 @@ private fun JvmApplicationContext.configureRunTask(
             addAll(app.jvmArgs)
             val appResourcesDir = prepareAppResources.get().destinationDir
             add("-D$APP_RESOURCES_DIR=${appResourcesDir.absolutePath}")
-
-            if (app.nativeDistributions.enableSandboxing) {
-                addAll(sandboxingJvmArgs(appResourcesDir.absolutePath))
-            }
 
             app.nativeDistributions.splashImage?.let { splash ->
                 val splashFile = appResourcesDir.resolve(splash)

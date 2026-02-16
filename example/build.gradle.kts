@@ -59,7 +59,6 @@ nucleus.application {
 
         // --- Native libs handling ---
         cleanupNativeLibs = true // Auto cleanup native libraries
-        enableSandboxing = true // Extract native libs from JARs for App Store sandbox compatibility
         enableAotCache = true // Enable AOT compilation cache
         splashImage = "splash.png" // Splash screen image file
         homepage = "https://github.com/KdroidFilter/ComposeDeskKitDemo"

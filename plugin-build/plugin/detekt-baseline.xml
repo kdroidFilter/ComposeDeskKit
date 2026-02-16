@@ -31,7 +31,7 @@
     <ID>LongMethod:AbstractProguardTask.kt$AbstractProguardTask$@TaskAction fun execute()</ID>
     <ID>LongMethod:CleanNativeLibsTransform.kt$CleanNativeLibsTransform$override fun transform(outputs: TransformOutputs)</ID>
     <ID>LongMethod:LinuxPackagePostProcessor.kt$LinuxPackagePostProcessor$fun postProcessRpm( rpmFile: File, startupWMClass: String, rpmRequires: List&lt;String&gt;, compression: RpmCompression?, compressionLevel: Int?, execOperations: ExecOperations, logger: Logger, )</ID>
-    <ID>LongMethod:configureJvmApplication.kt$internal fun JvmApplicationContext.configurePlatformSettings( packageTask: AbstractJPackageTask, defaultResources: TaskProvider&lt;AbstractUnpackDefaultApplicationResourcesTask&gt;, )</ID>
+    <ID>LongMethod:configureJvmApplication.kt$internal fun JvmApplicationContext.configurePlatformSettings( packageTask: AbstractJPackageTask, defaultResources: TaskProvider&lt;AbstractUnpackDefaultApplicationResourcesTask&gt;, sandboxed: Boolean, )</ID>
     <ID>LongMethod:configureJvmApplication.kt$private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDesktopTasks</ID>
     <ID>LongMethod:configureJvmApplication.kt$private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvmDesktopTasks)</ID>
     <ID>LongParameterList:AbstractGenerateAotCacheTask.kt$AbstractGenerateAotCacheTask$( javaExe: String, appDir: File, appJarDir: File, classpath: String, javaOptions: List&lt;String&gt;, mainClass: String, aotCacheFile: File, )</ID>

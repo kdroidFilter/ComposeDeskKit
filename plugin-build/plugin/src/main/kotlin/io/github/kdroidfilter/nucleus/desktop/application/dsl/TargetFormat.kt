@@ -47,6 +47,10 @@ enum class TargetFormat(
 
     val isCompatibleWithCurrentOS: Boolean by lazy { isCompatibleWith(currentOS) }
 
+    /** Whether this format is a store format that requires sandboxing (App Store, Windows Store, Flatpak). */
+    val isStoreFormat: Boolean
+        get() = this in setOf(Pkg, AppX, Flatpak)
+
     internal fun isCompatibleWith(os: OS): Boolean = os == targetOS
 
     val outputDirName: String
