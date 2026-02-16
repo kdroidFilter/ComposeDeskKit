@@ -4,6 +4,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.tools.AppIdProvider
 import io.github.kdroidfilter.nucleus.core.runtime.tools.debugln
 import io.github.kdroidfilter.nucleus.core.runtime.tools.errorln
 import java.io.File
+import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
@@ -15,7 +16,6 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardWatchEventKinds
 
-
 /**
  * Singleton object to manage the single instance of an application.
  *
@@ -23,7 +23,6 @@ import java.nio.file.StandardWatchEventKinds
  * and provides a mechanism to notify the running instance when another instance attempts to start.
  */
 object SingleInstanceManager {
-
     private const val TAG = "SingleInstanceChecker"
 
     /**
@@ -34,12 +33,13 @@ object SingleInstanceManager {
     /**
      * Configuration for a locking mechanism.
      *
-     * @property lockFilesDir The directory where lock files will be stored. Defaults to the system's temporary directory.
+     * @property lockFilesDir The directory where lock files will be stored.
+     *   Defaults to the system's temporary directory.
      * @property lockIdentifier The lock identifier that will be used for generating lock files names.
      */
     data class Configuration(
         val lockFilesDir: Path = Paths.get(System.getProperty("java.io.tmpdir")),
-        val lockIdentifier: String = APP_IDENTIFIER
+        val lockIdentifier: String = APP_IDENTIFIER,
     ) {
         val lockFileName: String = "$lockIdentifier.lock"
         val restoreRequestFileName: String = "$lockIdentifier.restore_request"
@@ -63,7 +63,10 @@ object SingleInstanceManager {
      *
      * @param onRestoreRequest A function to be executed if a restore request is received from another instance.
      */
-    fun isSingleInstance(onRestoreFileCreated: (Path.() -> Unit)? = null, onRestoreRequest: Path.() -> Unit): Boolean {
+    fun isSingleInstance(
+        onRestoreFileCreated: (Path.() -> Unit)? = null,
+        onRestoreRequest: Path.() -> Unit,
+    ): Boolean {
         // If the lock is already acquired by this process, we are the first instance
         if (fileLock != null) {
             debugLog { "The lock is already held by this process" }
@@ -81,12 +84,14 @@ object SingleInstanceManager {
                     isWatching = true
                     watchForRestoreRequests(onRestoreRequest)
                 }
-                Runtime.getRuntime().addShutdownHook(Thread {
-                    releaseLock()
-                    lockFile.delete()
-                    deleteRestoreRequestFile()
-                    debugLog { "Shutdown hook executed" }
-                })
+                Runtime.getRuntime().addShutdownHook(
+                    Thread {
+                        releaseLock()
+                        lockFile.delete()
+                        deleteRestoreRequestFile()
+                        debugLog { "Shutdown hook executed" }
+                    },
+                )
                 true
             } else {
                 // Another instance is already running
@@ -96,9 +101,9 @@ object SingleInstanceManager {
             }
         } catch (e: OverlappingFileLockException) {
             // The lock is already held by this process
-            debugLog { "The lock is already held by this process (OverlappingFileLockException)" }
+            debugLog { "The lock is already held by this process (${e.message})" }
             return true
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             errorLog { "Error in isSingleInstance: $e" }
             false
         }
@@ -110,6 +115,7 @@ object SingleInstanceManager {
         return lockFile
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun watchForRestoreRequests(onRestoreRequest: Path.() -> Unit) {
         Thread {
             try {
@@ -153,7 +159,7 @@ object SingleInstanceManager {
                 Files.createFile(restoreRequestFilePath)
             }
             debugLog { "Restore request file created: $restoreRequestFilePath" }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             errorLog { "Error while sending restore request: $e" }
         }
     }
@@ -163,7 +169,7 @@ object SingleInstanceManager {
             val restoreRequestFilePath = configuration.restoreRequestFilePath
             Files.deleteIfExists(restoreRequestFilePath)
             debugLog { "Restore request file deleted: $restoreRequestFilePath" }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             errorLog { "Error while deleting restore request file: $e" }
         }
     }
@@ -173,7 +179,7 @@ object SingleInstanceManager {
             fileLock?.release()
             fileChannel?.close()
             debugLog { "Lock released" }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             errorLog { "Error while releasing the lock: $e" }
         }
     }

@@ -48,6 +48,7 @@ abstract class AbstractStripNativeLibsFromJarsTask : AbstractNucleusTask() {
     val mainJarInOutputDir: Provider<RegularFile>
         get() = outputDir.file(mainJarName)
 
+    @Suppress("CyclomaticComplexMethod", "NestedBlockDepth", "LoopWithTooManyJumpStatements")
     @TaskAction
     fun strip() {
         val outDir = outputDir.get().asFile

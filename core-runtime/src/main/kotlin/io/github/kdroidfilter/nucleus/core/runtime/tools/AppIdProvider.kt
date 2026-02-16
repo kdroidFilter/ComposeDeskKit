@@ -13,6 +13,7 @@ package io.github.kdroidfilter.nucleus.core.runtime.tools
  */
 object AppIdProvider {
     private const val FALLBACK_ID = "NucleusApp"
+    private const val MAX_ID_LENGTH = 128
     private val cached by lazy { computeAppId() }
 
     fun appId(): String = cached
@@ -33,6 +34,6 @@ object AppIdProvider {
     private fun sanitize(raw: String): String {
         // Replace non-alphanumeric/._- with underscore; trim length if excessively long
         val cleaned = raw.replace(Regex("[^A-Za-z0-9._-]"), "_")
-        return cleaned.take(128).ifEmpty { FALLBACK_ID }
+        return cleaned.take(MAX_ID_LENGTH).ifEmpty { FALLBACK_ID }
     }
 }

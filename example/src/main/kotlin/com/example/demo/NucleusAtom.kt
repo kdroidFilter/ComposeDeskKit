@@ -33,6 +33,7 @@ private data class OrbitConfig(
     val initialAngleDeg: Float,
 )
 
+@Suppress("LongMethod", "FunctionNaming")
 @Composable
 fun NucleusAtom(
     modifier: Modifier = Modifier,

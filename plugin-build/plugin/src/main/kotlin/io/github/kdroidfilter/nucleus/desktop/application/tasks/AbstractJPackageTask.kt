@@ -557,6 +557,7 @@ abstract class AbstractJPackageTask
             logger.lifecycle("The distribution is written to ${outputFile.canonicalPath}")
         }
 
+        @Suppress("NestedBlockDepth")
         private fun modifyRuntimeOnMacOsIfNeeded() {
             if (currentOS != OS.MacOS || targetFormat != TargetFormat.RawAppImage) return
 

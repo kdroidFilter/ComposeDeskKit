@@ -1,6 +1,5 @@
 package com.example.demo
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -20,16 +19,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import com.kdroid.composetray.tray.api.Tray
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
@@ -68,16 +66,17 @@ fun main(args: Array<String>) {
         var isWindowVisible by remember { mutableStateOf(true) }
         var restoreRequestCount by remember { mutableStateOf(0) }
 
-        val isFirstInstance = remember {
-            SingleInstanceManager.isSingleInstance(
-                onRestoreFileCreated = { DeepLinkHandler.writeUriTo(this) },
-                onRestoreRequest = {
-                    DeepLinkHandler.readUriFrom(this)
-                    isWindowVisible = true
-                    restoreRequestCount++
-                }
-            )
-        }
+        val isFirstInstance =
+            remember {
+                SingleInstanceManager.isSingleInstance(
+                    onRestoreFileCreated = { DeepLinkHandler.writeUriTo(this) },
+                    onRestoreRequest = {
+                        DeepLinkHandler.readUriFrom(this)
+                        isWindowVisible = true
+                        restoreRequestCount++
+                    },
+                )
+            }
 
         if (!isFirstInstance) {
             exitApplication()

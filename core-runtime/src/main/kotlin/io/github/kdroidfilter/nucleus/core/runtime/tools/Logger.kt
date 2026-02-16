@@ -18,17 +18,23 @@ var composeNativeTrayLoggingLevel: ComposeNativeTrayLoggingLevel = VERBOSE
 class ComposeNativeTrayLoggingLevel private constructor(
     private val priority: Int,
 ) : Comparable<ComposeNativeTrayLoggingLevel> {
-
-    override fun compareTo(other: ComposeNativeTrayLoggingLevel): Int {
-        return priority.compareTo(other.priority)
-    }
+    override fun compareTo(other: ComposeNativeTrayLoggingLevel): Int = priority.compareTo(other.priority)
 
     companion object {
-        @JvmField val VERBOSE = ComposeNativeTrayLoggingLevel(0)
-        @JvmField val DEBUG = ComposeNativeTrayLoggingLevel(1)
-        @JvmField val INFO = ComposeNativeTrayLoggingLevel(2)
-        @JvmField val WARN = ComposeNativeTrayLoggingLevel(3)
-        @JvmField val ERROR = ComposeNativeTrayLoggingLevel(4)
+        @JvmField
+        val VERBOSE = ComposeNativeTrayLoggingLevel(0)
+
+        @JvmField
+        val DEBUG = ComposeNativeTrayLoggingLevel(1)
+
+        @JvmField
+        val INFO = ComposeNativeTrayLoggingLevel(2)
+
+        @JvmField
+        val WARN = ComposeNativeTrayLoggingLevel(3)
+
+        @JvmField
+        val ERROR = ComposeNativeTrayLoggingLevel(4)
     }
 }
 
@@ -41,9 +47,7 @@ private const val COLOR_RESET = "\u001b[0m"
 // Time formatter
 private val timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
 
-private fun getCurrentTimestamp(): String {
-    return LocalDateTime.now().format(timeFormatter)
-}
+private fun getCurrentTimestamp(): String = LocalDateTime.now().format(timeFormatter)
 
 internal fun debugln(message: () -> String) {
     if (allowNucleusRuntimeLogging && composeNativeTrayLoggingLevel <= DEBUG) {
@@ -75,6 +79,9 @@ internal fun errorln(message: () -> String) {
     }
 }
 
-private fun println(message: String, color: String) {
+private fun println(
+    message: String,
+    color: String,
+) {
     println(color + message + COLOR_RESET)
 }

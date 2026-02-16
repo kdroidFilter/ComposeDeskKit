@@ -206,7 +206,6 @@ nucleus.application {
             appCategory = "public.app-category.utilities"
             dockName = "NucleusDemo"
 
-
             // --- Layered Icons (NEW - macOS 26+) ---
             val layeredIcons = layout.projectDirectory.dir("packaging/icons/macos-layered-icon")
             if (layeredIcons.asFile.exists()) {

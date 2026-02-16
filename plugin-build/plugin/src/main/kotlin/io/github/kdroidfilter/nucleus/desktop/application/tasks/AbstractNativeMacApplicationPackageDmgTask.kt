@@ -13,10 +13,26 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import java.io.File
 
 abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApplicationPackageTask() {
+    companion object {
+        private const val DEFAULT_ICON_SIZE = 72
+        private const val DEFAULT_WINDOW_X = 400
+        private const val DEFAULT_WINDOW_Y = 100
+        private const val DEFAULT_WINDOW_WIDTH = 485
+        private const val DEFAULT_WINDOW_HEIGHT = 330
+        private const val CSS_SHORT_HEX_LENGTH = 3
+        private const val CSS_FULL_HEX_LENGTH = 6
+        private const val APPLE_SCRIPT_RGB_SCALE = 257
+    }
+
     @get:InputFile
     @get:PathSensitive(PathSensitivity.ABSOLUTE)
     val hdiutil: RegularFileProperty = objects.fileProperty().value { File("/usr/bin/hdiutil") }
@@ -64,7 +80,8 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
     val dmgBackgroundColor: Property<String> = objects.property(String::class.java)
 
     @get:Input
-    val dmgContents: ListProperty<DmgContentEntry> = objects.listProperty(DmgContentEntry::class.java).convention(emptyList())
+    val dmgContents: ListProperty<DmgContentEntry> =
+        objects.listProperty(DmgContentEntry::class.java).convention(emptyList())
 
     override fun createPackage(
         destinationDir: File,
@@ -180,10 +197,10 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         if (format == "UDZO") {
             args.addAll(listOf("-imagekey", "zlib-level=9"))
         }
-        hdiutil(*args.toTypedArray())
+        hdiutil(args)
     }
 
-    private fun hdiutil(vararg args: String): String {
+    private fun hdiutil(args: List<String>): String {
         var resultStdout = ""
         val allArgs = args.toMutableList()
         if (verbose.get()) {
@@ -193,17 +210,19 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         return resultStdout
     }
 
+    private fun hdiutil(vararg args: String): String = hdiutil(args.toList())
+
     private fun runSetupScript(
         appName: String,
         mounted: MountedImage,
     ) {
         val disk = mounted.disk
         val installDir = installDir.get()
-        val iconSize = dmgIconSize.orNull ?: 72
-        val winX = dmgWindowX.orNull ?: 400
-        val winY = dmgWindowY.orNull ?: 100
-        val winW = dmgWindowWidth.orNull ?: 485
-        val winH = dmgWindowHeight.orNull ?: 330
+        val iconSize = dmgIconSize.orNull ?: DEFAULT_ICON_SIZE
+        val winX = dmgWindowX.orNull ?: DEFAULT_WINDOW_X
+        val winY = dmgWindowY.orNull ?: DEFAULT_WINDOW_Y
+        val winW = dmgWindowWidth.orNull ?: DEFAULT_WINDOW_WIDTH
+        val winH = dmgWindowHeight.orNull ?: DEFAULT_WINDOW_HEIGHT
         val contents = dmgContents.get()
 
         val scriptBuilder = StringBuilder()
@@ -213,26 +232,41 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         scriptBuilder.appendLine("        set current view of container window to icon view")
         scriptBuilder.appendLine("        set toolbar visible of container window to false")
         scriptBuilder.appendLine("        set statusbar visible of container window to false")
-        scriptBuilder.appendLine("        set the bounds of container window to {$winX, $winY, ${winX + winW}, ${winY + winH}}")
+        val boundsRight = winX + winW
+        val boundsBottom = winY + winH
+        scriptBuilder.appendLine(
+            "        set the bounds of container window to {$winX, $winY, $boundsRight, $boundsBottom}",
+        )
         scriptBuilder.appendLine("        set theViewOptions to the icon view options of container window")
         scriptBuilder.appendLine("        set arrangement of theViewOptions to not arranged")
         scriptBuilder.appendLine("        set icon size of theViewOptions to $iconSize")
 
         dmgBackgroundColor.orNull?.let { color ->
-            scriptBuilder.appendLine("        set background color of theViewOptions to {${cssColorToAppleScriptRgb(color)}}")
+            val rgb = cssColorToAppleScriptRgb(color)
+            scriptBuilder.appendLine(
+                "        set background color of theViewOptions to {$rgb}",
+            )
         }
 
         if (contents.isEmpty()) {
             // Default layout when no contents specified
             scriptBuilder.appendLine(
-                """        make new alias file at container window to POSIX file "$installDir" with properties {name:"$installDir"}""",
+                "        make new alias file at container window" +
+                    " to POSIX file \"$installDir\" with properties {name:\"$installDir\"}",
             )
-            scriptBuilder.appendLine("""        set position of item "$appName" of container window to {100, 100}""")
-            scriptBuilder.appendLine("""        set position of item "$installDir" of container window to {375, 100}""")
+            scriptBuilder.appendLine(
+                """        set position of item "$appName" of container window to {100, 100}""",
+            )
+            scriptBuilder.appendLine(
+                """        set position of item "$installDir" of container window to {375, 100}""",
+            )
         } else {
             for (entry in contents) {
                 val entryName = entry.name ?: entry.path ?: continue
-                scriptBuilder.appendLine("""        set position of item "$entryName" of container window to {${entry.x}, ${entry.y}}""")
+                scriptBuilder.appendLine(
+                    "        set position of item \"$entryName\"" +
+                        " of container window to {${entry.x}, ${entry.y}}",
+                )
             }
         }
 
@@ -250,17 +284,18 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
     }
 
     /** Converts a CSS hex color (e.g. "#ff0000") to AppleScript RGB {R, G, B} (0–65535 range). */
+    @Suppress("MagicNumber")
     private fun cssColorToAppleScriptRgb(cssColor: String): String {
         val hex = cssColor.removePrefix("#")
         val (r, g, b) =
             when (hex.length) {
-                3 ->
+                CSS_SHORT_HEX_LENGTH ->
                     Triple(
                         hex.substring(0, 1).repeat(2).toInt(16),
                         hex.substring(1, 2).repeat(2).toInt(16),
                         hex.substring(2, 3).repeat(2).toInt(16),
                     )
-                6 ->
+                CSS_FULL_HEX_LENGTH ->
                     Triple(
                         hex.substring(0, 2).toInt(16),
                         hex.substring(2, 4).toInt(16),
@@ -269,6 +304,6 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
                 else -> return "65535, 65535, 65535"
             }
         // Scale 0–255 to 0–65535
-        return "${r * 257}, ${g * 257}, ${b * 257}"
+        return "${r * APPLE_SCRIPT_RGB_SCALE}, ${g * APPLE_SCRIPT_RGB_SCALE}, ${b * APPLE_SCRIPT_RGB_SCALE}"
     }
 }

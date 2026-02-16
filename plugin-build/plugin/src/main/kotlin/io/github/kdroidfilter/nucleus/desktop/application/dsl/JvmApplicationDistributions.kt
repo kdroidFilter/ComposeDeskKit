@@ -101,4 +101,8 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
 data class UrlProtocol(
     val name: String,
     val schemes: List<String>,
-) : Serializable
+) : Serializable {
+    companion object {
+        private const val serialVersionUID: Long = 1L
+    }
+}

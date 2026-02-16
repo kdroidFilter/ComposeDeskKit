@@ -42,6 +42,7 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
+    @Suppress("NestedBlockDepth")
     @TaskAction
     fun extract() {
         val outDir = outputDir.get().asFile
@@ -74,14 +75,16 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
                             val relativePath = if (parentDir.isNotEmpty()) "$parentDir/$fileName" else fileName
                             if (fileName in extractedFiles) {
                                 logger.warn(
-                                    "Sandboxing: skipping duplicate native lib '{}' from {} (already extracted from another JAR)",
+                                    "Sandboxing: skipping duplicate native lib" +
+                                        " '{}' from {} (already extracted from another JAR)",
                                     fileName,
                                     jarFile.name,
                                 )
                             } else {
                                 val destFile = outDir.resolve(relativePath)
                                 destFile.parentFile.mkdirs()
-                                // Re-open the JAR to read the entry bytes (we may have consumed some for header detection)
+                                // Re-open the JAR to read the entry bytes
+                                // (we may have consumed some for header detection)
                                 extractEntry(jarFile, entry.name, destFile)
                                 extractedFiles.add(fileName)
                                 logger.lifecycle("Sandboxing: extracted '{}' from {}", relativePath, jarFile.name)
@@ -109,6 +112,7 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
             return pathInfo
         }
         // Fall back to binary header detection
+        @Suppress("MagicNumber")
         val header = ByteArray(64)
         val bytesRead = readFully(zis, header)
         if (bytesRead > 0) {
@@ -138,6 +142,7 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
         return true
     }
 
+    @Suppress("NestedBlockDepth")
     private fun extractEntry(
         jarFile: java.io.File,
         entryName: String,

@@ -55,6 +55,7 @@ import kotlin.math.min
  *   4. Invoke electron-builder via npx with `--prepackaged`.
  *   5. Output the final installer/package to [destinationDir].
  */
+@Suppress("LargeClass", "TooManyFunctions")
 abstract class AbstractElectronBuilderPackageTask
     @Inject
     constructor(
@@ -317,7 +318,8 @@ abstract class AbstractElectronBuilderPackageTask
                 buildString {
                     appendLine("{")
                     appendLine("  \"enabled\": true,")
-                    appendLine("  \"certificateFile\": ${certFile?.let { "\"${it.replace("\\", "\\\\")}\"" } ?: "null"},")
+                    val certJson = certFile?.let { "\"${it.replace("\\", "\\\\")}\"" } ?: "null"
+                    appendLine("  \"certificateFile\": $certJson,")
                     appendLine("  \"algorithm\": \"${signing.algorithm.id}\",")
                     appendLine("  \"timestampServer\": ${signing.timestampServer?.let { "\"$it\"" } ?: "null"}")
                     appendLine("}")
@@ -396,7 +398,7 @@ abstract class AbstractElectronBuilderPackageTask
             return "dmg-assets/${dest.name}"
         }
 
-        private fun jsonStr(value: String?): String = value?.let { "\"${it.replace("\\", "\\\\").replace("\"", "\\\"")}\"" } ?: "null"
+        private fun jsonStr(value: String?): String = value?.let { "\"${it.escapeForJson()}\"" } ?: "null"
 
         private fun ensureResourcesDirForElectronBuilder(appDir: File) {
             if (currentOS == OS.MacOS) return

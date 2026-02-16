@@ -392,6 +392,7 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         runCodesign(args)
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun runCodesign(args: List<String>) {
         try {
             val process =

@@ -3,7 +3,9 @@ package io.github.kdroidfilter.nucleus.core.runtime
 import io.github.kdroidfilter.nucleus.core.runtime.tools.debugln
 import io.github.kdroidfilter.nucleus.core.runtime.tools.errorln
 import java.awt.Desktop
+import java.io.IOException
 import java.net.URI
+import java.net.URISyntaxException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -17,7 +19,6 @@ import java.nio.file.Path
  * to the primary instance via the restore request file mechanism.
  */
 object DeepLinkHandler {
-
     private const val TAG = "DeepLinkHandler"
 
     /** The last received deep link URI. */
@@ -37,7 +38,10 @@ object DeepLinkHandler {
      * @param args command-line arguments passed to `main()`
      * @param onDeepLink callback invoked each time a deep link URI is received
      */
-    fun register(args: Array<String>, onDeepLink: (URI) -> Unit) {
+    fun register(
+        args: Array<String>,
+        onDeepLink: (URI) -> Unit,
+    ) {
         this.onDeepLink = onDeepLink
 
         // Handle protocol URLs on macOS (delivered via Apple Events)
@@ -48,7 +52,7 @@ object DeepLinkHandler {
                     handleUri(event.uri)
                 }
             } catch (e: UnsupportedOperationException) {
-                debugLog { "setOpenURIHandler not supported on this platform" }
+                debugLog { "setOpenURIHandler not supported on this platform: ${e.message}" }
             }
         }
 
@@ -58,7 +62,7 @@ object DeepLinkHandler {
                 val parsed = URI(raw)
                 debugLog { "Received URI via CLI args: $parsed" }
                 handleUri(parsed)
-            } catch (e: Exception) {
+            } catch (e: URISyntaxException) {
                 errorLog { "Failed to parse URI from args: $raw — $e" }
             }
         }
@@ -73,7 +77,7 @@ object DeepLinkHandler {
         try {
             Files.writeString(path, currentUri.toString())
             debugLog { "Wrote URI to $path: $currentUri" }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             errorLog { "Failed to write URI to $path: $e" }
         }
     }
@@ -90,7 +94,9 @@ object DeepLinkHandler {
                 debugLog { "Read URI from $path: $parsed" }
                 handleUri(parsed)
             }
-        } catch (e: Exception) {
+        } catch (e: IOException) {
+            errorLog { "Failed to read URI from $path: $e" }
+        } catch (e: URISyntaxException) {
             errorLog { "Failed to read URI from $path: $e" }
         }
     }

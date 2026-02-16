@@ -332,8 +332,9 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                     configurePackageTask(
                         this,
                         createRuntimeImage = commonTasks.createRuntimeImage,
-                        prepareAppResources = commonTasks.prepareSandboxedAppResources
-                            ?: commonTasks.prepareAppResources,
+                        prepareAppResources =
+                            commonTasks.prepareSandboxedAppResources
+                                ?: commonTasks.prepareAppResources,
                         checkRuntime = commonTasks.checkRuntime,
                         unpackDefaultResources = commonTasks.unpackDefaultResources,
                         runProguard = runProguard,

@@ -73,8 +73,10 @@ internal class InfoPlistBuilder(
         data class InfoPlistBooleanValue(
             val value: Boolean,
         ) : InfoPlistValue() {
-            override fun asPlistEntry(nestingLevel: Int): String =
-                "${indentForLevel(nestingLevel)}<${if (value) "true" else "false"}/>"
+            override fun asPlistEntry(nestingLevel: Int): String {
+                val tag = if (value) "true" else "false"
+                return "${indentForLevel(nestingLevel)}<$tag/>"
+            }
         }
     }
 

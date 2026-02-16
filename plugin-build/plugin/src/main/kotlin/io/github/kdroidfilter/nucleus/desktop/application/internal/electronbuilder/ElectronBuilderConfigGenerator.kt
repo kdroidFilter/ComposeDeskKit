@@ -191,7 +191,8 @@ internal class ElectronBuilderConfigGenerator {
         }
 
         val w = dmg.window
-        if (w.x != null || w.y != null || w.width != null || w.height != null) {
+        val hasWindowConfig = w.x != null || w.y != null || w.width != null || w.height != null
+        if (hasWindowConfig) {
             yaml.appendLine("  window:")
             w.x?.let { yaml.appendLine("    x: $it") }
             w.y?.let { yaml.appendLine("    y: $it") }
@@ -530,16 +531,17 @@ internal class ElectronBuilderConfigGenerator {
         val hasMimeTypeOverride =
             entryOverrides.keys.any { it.equals("MimeType", ignoreCase = true) }
         if (!hasMimeTypeOverride) {
-            val mimeTypes = buildList {
-                for (association in distributions.linux.fileAssociations) {
-                    association.mimeType.takeIf { it.isNotBlank() }?.let { add(it) }
-                }
-                for (protocol in distributions.protocols) {
-                    for (scheme in protocol.schemes) {
-                        add("x-scheme-handler/$scheme")
+            val mimeTypes =
+                buildList {
+                    for (association in distributions.linux.fileAssociations) {
+                        association.mimeType.takeIf { it.isNotBlank() }?.let { add(it) }
+                    }
+                    for (protocol in distributions.protocols) {
+                        for (scheme in protocol.schemes) {
+                            add("x-scheme-handler/$scheme")
+                        }
                     }
                 }
-            }
             if (mimeTypes.isNotEmpty()) {
                 entryOverrides["MimeType"] = mimeTypes.joinToString(";", postfix = ";")
             }
@@ -642,13 +644,14 @@ internal class ElectronBuilderConfigGenerator {
         val thirdPartyInstallerPrefix = "3rd Party Mac Developer Installer: "
 
         // Strip any existing Application prefix to get the bare identity (team name)
-        val bareIdentity = when {
-            identity.startsWith(developerIdAppPrefix) -> identity.removePrefix(developerIdAppPrefix)
-            identity.startsWith(thirdPartyAppPrefix) -> identity.removePrefix(thirdPartyAppPrefix)
-            identity.startsWith(developerIdInstallerPrefix) -> identity.removePrefix(developerIdInstallerPrefix)
-            identity.startsWith(thirdPartyInstallerPrefix) -> identity.removePrefix(thirdPartyInstallerPrefix)
-            else -> identity
-        }
+        val bareIdentity =
+            when {
+                identity.startsWith(developerIdAppPrefix) -> identity.removePrefix(developerIdAppPrefix)
+                identity.startsWith(thirdPartyAppPrefix) -> identity.removePrefix(thirdPartyAppPrefix)
+                identity.startsWith(developerIdInstallerPrefix) -> identity.removePrefix(developerIdInstallerPrefix)
+                identity.startsWith(thirdPartyInstallerPrefix) -> identity.removePrefix(thirdPartyInstallerPrefix)
+                else -> identity
+            }
 
         return if (appStore) {
             thirdPartyInstallerPrefix + bareIdentity
