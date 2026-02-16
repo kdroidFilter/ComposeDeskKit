@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,14 +31,24 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.kdroid.composetray.tray.api.Tray
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
+import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
+import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
 import java.io.File
+import java.net.URI
+import kotlin.system.exitProcess
 
 private const val AOT_TRAINING_DURATION_MS = 45_000L
 
+private val deepLinkUri = mutableStateOf<URI?>(null)
+
 fun main(args: Array<String>) {
+    DeepLinkHandler.register(args) { uri ->
+        deepLinkUri.value = uri
+    }
+
     // Stop app after 15 seconds during AOT training mode
     // Use -Dnucleus.aot.mode=training to test
     if (AotRuntime.isTraining()) {
@@ -46,7 +57,7 @@ fun main(args: Array<String>) {
         Thread({
             Thread.sleep(AOT_TRAINING_DURATION_MS)
             println("[AOT] Time's up, exiting...")
-            kotlin.system.exitProcess(0)
+            exitProcess(0)
         }, "aot-timer").apply {
             isDaemon = false
             start()
@@ -54,36 +65,46 @@ fun main(args: Array<String>) {
     }
 
     application {
-//        Tray(
-//            iconContent = {
-//                Canvas(modifier = Modifier.fillMaxSize()) {
-//                    // Important to use fillMaxSize()!
-//                    drawCircle(
-//                        color = Color.Red,
-//                        radius = size.minDimension / 2,
-//                        center = center,
-//                    )
-//                }
-//            },
-//            tooltip = "My Application",
-//        ) {
-//            Item("Quit") { exitApplication() }
-//        } // Check Native lib
+        var isWindowVisible by remember { mutableStateOf(true) }
+        var restoreRequestCount by remember { mutableStateOf(0) }
 
-        val deepLinkUrl = args.firstOrNull { it.startsWith("nucleus://") }
+        val isFirstInstance = remember {
+            SingleInstanceManager.isSingleInstance(
+                onRestoreFileCreated = { DeepLinkHandler.writeUriTo(this) },
+                onRestoreRequest = {
+                    DeepLinkHandler.readUriFrom(this)
+                    isWindowVisible = true
+                    restoreRequestCount++
+                }
+            )
+        }
 
-        Window(
-            state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
-            onCloseRequest = ::exitApplication,
-            title = "Nucleus Demo",
-        ) {
-            app(deepLinkUrl)
+        if (!isFirstInstance) {
+            exitApplication()
+            return@application
+        }
+
+        if (isWindowVisible) {
+            Window(
+                state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                onCloseRequest = ::exitApplication,
+                title = "Nucleus Demo",
+            ) {
+                LaunchedEffect(restoreRequestCount) {
+                    if (restoreRequestCount > 0) {
+                        window.toFront()
+                        window.requestFocus()
+                    }
+                }
+                app()
+            }
         }
     }
 }
 
 @Composable
-fun app(deepLinkUrl: String? = null) {
+fun app() {
+    val currentDeepLink by deepLinkUri
     val updater =
         remember {
             NucleusUpdater {
@@ -136,14 +157,17 @@ fun app(deepLinkUrl: String? = null) {
                 Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
                 Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
 
-                if (deepLinkUrl != null) {
+                if (currentDeepLink != null) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Deep Link",
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(deepLinkUrl)
+                    Text(
+                        text = currentDeepLink.toString(),
+                        textAlign = TextAlign.Center,
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
