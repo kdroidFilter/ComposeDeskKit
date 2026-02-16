@@ -1,12 +1,12 @@
 # Nucleus Documentation
 
-Nucleus is a Gradle plugin for building, packaging, and distributing **Compose Desktop** applications as native installers on macOS, Windows, and Linux. It uses the Compose Desktop API for app-image generation and [electron-builder](https://www.electron.build/) under the hood to produce final installers with code signing, auto-update metadata, and advanced packaging options.
+Nucleus is a Gradle plugin for building, packaging, and distributing **JVM desktop applications** as native installers on macOS, Windows, and Linux. It is compatible with any JVM application but optimized for **Compose Desktop**. It uses the Compose Desktop API for app-image generation and [electron-builder](https://www.electron.build/) under the hood to produce final installers with code signing, auto-update metadata, and advanced packaging options.
 
 ## Why Nucleus?
 
 - **16 target formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archive formats
 - **One DSL** — Configure everything from a single `nucleus.application { }` block
-- **Auto-update built-in** — The `publish` DSL generates per-artifact update metadata at build time; the CI then aggregates them into combined `latest-mac.yml`, `latest.yml`, `latest-linux.yml` files covering all architectures per platform
+- **Auto-update built-in** — The CI `generate-update-yml` action scans all build artifacts and produces combined `latest-mac.yml`, `latest.yml`, `latest-linux.yml` files covering all architectures per platform; the `publish` DSL can also configure electron-builder to publish directly to GitHub Releases or S3
 - **Code signing** — Windows (PFX, Azure Trusted Signing) and macOS (Apple Developer ID, notarization)
 - **CI/CD ready** — `setup-nucleus` composite action + GitHub Actions workflows for 6-runner multi-platform builds, universal macOS binaries, and MSIX bundles
 - **Performance** — Native library cleanup, JDK 25+ AOT cache, splash screen support
