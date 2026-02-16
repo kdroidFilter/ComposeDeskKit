@@ -12,24 +12,6 @@ Nucleus is a Gradle plugin for building, packaging, and distributing **JVM deskt
 - **Performance** — Native library cleanup, JDK 25+ AOT cache, splash screen support
 - **Deep links & file associations** — Cross-platform protocol handlers and file type registration
 
-## Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](getting-started.md) | Installation, first build, Gradle tasks |
-| [Configuration](configuration.md) | Full DSL reference for `nucleus.application { }` |
-| **Targets** | |
-| [macOS](targets/macos.md) | DMG, PKG, layered icons, universal binaries |
-| [Windows](targets/windows.md) | NSIS, MSI, AppX, Portable, code signing |
-| [Linux](targets/linux.md) | DEB, RPM, AppImage, Snap, Flatpak |
-| **Features** | |
-| [Code Signing](code-signing.md) | Windows & macOS signing and notarization |
-| [Auto Update](auto-update.md) | Update metadata, runtime library, providers |
-| [Publishing](publishing.md) | GitHub Releases, S3, release channels |
-| [CI/CD](ci-cd.md) | GitHub Actions workflows, matrix builds |
-| [Runtime APIs](runtime-apis.md) | Executable type detection, AOT, single instance, deep links |
-| [Migration](migration.md) | Migrating from `org.jetbrains.compose` |
-
 ## Quick Example
 
 ```kotlin
@@ -61,13 +43,13 @@ nucleus.application {
 
 ## Requirements
 
-| Requirement | Version |
-|-------------|---------|
-| JDK | 17+ (25+ for AOT cache) |
-| Gradle | 8.0+ |
-| Kotlin | 2.0+ |
-| Compose Multiplatform | 1.7+ |
+| Requirement | Version | Note |
+|-------------|---------|------|
+| JDK | 17+ (25+ for AOT cache) | JBR 25 recommended |
+| Gradle | 8.0+ | |
+| Kotlin | 2.0+ | |
+| Compose Multiplatform | 1.7+ | Optional — required only for Compose Desktop apps |
 
 ## License
 
-MIT — See [LICENSE](../LICENSE).
+MIT — See [LICENSE](https://github.com/kdroidFilter/ComposeDeskKit/blob/main/LICENSE).

@@ -61,12 +61,12 @@ nucleus.application {
 
 ## Requirements
 
-| Requirement | Version |
-|-------------|---------|
-| JDK | 17+ (25+ for AOT cache) |
-| Gradle | 8.0+ |
-| Kotlin | 2.0+ |
-| Compose Multiplatform | 1.7+ |
+| Requirement | Version | Note |
+|-------------|---------|------|
+| JDK | 17+ (25+ for AOT cache) | JBR 25 recommended |
+| Gradle | 8.0+ | |
+| Kotlin | 2.0+ | |
+| Compose Multiplatform | 1.7+ | Optional — required only for Compose Desktop apps |
 
 ## License
 

@@ -147,7 +147,8 @@ linux {
 }
 ```
 
-> **Note:** The default `plugs` list includes: `Desktop`, `DesktopLegacy`, `Home`, `X11`, `Wayland`, `Unity7`, `BrowserSupport`, `Network`, `Gsettings`, `AudioPlayback`, `Opengl`.
+!!! note
+    The default `plugs` list includes: `Desktop`, `DesktopLegacy`, `Home`, `X11`, `Wayland`, `Unity7`, `BrowserSupport`, `Network`, `Gsettings`, `AudioPlayback`, `Opengl`.
 
 ### Snap Plugs
 

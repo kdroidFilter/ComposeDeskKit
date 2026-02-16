@@ -111,7 +111,8 @@ jobs:
       - run: ./gradlew preMerge --continue
 ```
 
-> **Note:** Pre-merge checks only run Gradle tests and don't produce packages, so Temurin JDK 21 is sufficient. For builds that produce native packages, use `setup-nucleus` with JBR 25.
+!!! note
+    Pre-merge checks only run Gradle tests and don't produce packages, so Temurin JDK 21 is sufficient. For builds that produce native packages, use `setup-nucleus` with JBR 25.
 
 ## Release Build
 
