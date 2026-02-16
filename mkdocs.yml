@@ -39,6 +39,8 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.action.edit
+  favicon: assets/favicon.png
+  logo: assets/favicon.png
   icon:
     repo: fontawesome/brands/github
 
