@@ -156,6 +156,12 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
             copyWindowsDlls(File(toolchainJavaExe).parentFile, runtimeBinDir)
         }
 
+        if (isMacOS()) {
+            // Ad-hoc sign the copied binary so macOS allows it to execute
+            // and spawn child processes (required for AOT cache assembly step)
+            adHocSign(provisionedJava)
+        }
+
         logger.lifecycle("[aotCache] Provisioned java launcher at ${provisionedJava.absolutePath}")
         return provisionedJava.absolutePath to true
     }
@@ -336,4 +342,22 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
     }
 
     private fun isWindows(): Boolean = System.getProperty("os.name").lowercase().contains("windows")
+
+    private fun isMacOS(): Boolean = System.getProperty("os.name").lowercase().contains("mac")
+
+    private fun adHocSign(file: File) {
+        try {
+            val process =
+                ProcessBuilder("codesign", "--force", "--sign", "-", file.absolutePath)
+                    .redirectErrorStream(true)
+                    .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            if (exitCode != 0) {
+                logger.warn("[aotCache] Ad-hoc signing failed (exit $exitCode): $output")
+            }
+        } catch (e: Exception) {
+            logger.warn("[aotCache] Ad-hoc signing failed: ${e.message}")
+        }
+    }
 }
