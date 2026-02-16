@@ -19,11 +19,11 @@
   --md-accent-fg-color: #5B8DEF;
 }
 
-/* Visited link colors */
-[data-md-color-scheme="default"] .md-content a:visited {
-  color: #4a4a8a;
+/* Active nav link — current page in sidebar */
+[data-md-color-scheme="default"] .md-nav__link--active {
+  color: #3a5fcf !important;
 }
 
-[data-md-color-scheme="slate"] .md-content a:visited {
-  color: #8ea4d2;
+[data-md-color-scheme="slate"] .md-nav__link--active {
+  color: #7ba3e8 !important;
 }

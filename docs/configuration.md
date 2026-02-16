@@ -138,7 +138,7 @@ nativeDistributions {
 }
 ```
 
-Requires JDK 25+ and that the application self-terminates during the training run. See [Runtime APIs](runtime-apis.md#aot-cache) for the application-side helper.
+Requires JDK 25+ and that the application self-terminates during the training run. See [AOT Cache](runtime/aot-cache.md) for the application-side helper.
 
 ### Splash Screen
 
@@ -200,7 +200,7 @@ nativeDistributions {
 - **Windows**: Registry entries via NSIS/MSI
 - **Linux**: `MimeType` in `.desktop` file
 
-See [Runtime APIs](runtime-apis.md#deep-links) for handling incoming deep links.
+See [Deep Links](runtime/deep-links.md) for handling incoming deep links.
 
 ### File Associations
 
