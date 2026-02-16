@@ -78,14 +78,11 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         val (classpath, javaOptions, mainClass) = parseCfgFile(cfgFile, appJarDir)
 
         val aotCacheFile = File(appJarDir, AOT_CACHE_FILENAME)
-        val success = generateAotCache(javaExe, appDir, appJarDir, classpath, javaOptions, mainClass, aotCacheFile)
+        generateAotCache(javaExe, appDir, appJarDir, classpath, javaOptions, mainClass, aotCacheFile)
 
-        if (success) {
-            injectAotCacheIntoCfg(cfgFile)
-            logger.lifecycle("[aotCache] Complete: ${aotCacheFile.absolutePath} (${aotCacheFile.length() / 1024}KB)")
-        } else {
-            logger.warn("[aotCache] AOT cache generation failed — the app will still work without AOT optimization")
-        }
+        injectAotCacheIntoCfg(cfgFile)
+
+        logger.lifecycle("[aotCache] Complete: ${aotCacheFile.absolutePath} (${aotCacheFile.length() / 1024}KB)")
     }
 
     private fun checkJdkVersion() {
@@ -157,6 +154,12 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
 
         if (isWindows()) {
             copyWindowsDlls(File(toolchainJavaExe).parentFile, runtimeBinDir)
+        }
+
+        if (isMacOS()) {
+            // Ad-hoc sign the copied binary so macOS allows it to execute
+            // and spawn child processes (required for AOT cache assembly step)
+            adHocSign(provisionedJava)
         }
 
         logger.lifecycle("[aotCache] Provisioned java launcher at ${provisionedJava.absolutePath}")
@@ -247,15 +250,13 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         javaOptions: List<String>,
         mainClass: String,
         aotCacheFile: File,
-    ): Boolean {
+    ) {
         logger.lifecycle("[aotCache] Training – waiting for the application to exit...")
         runAotCacheCreation(javaExe, appDir, classpath, javaOptions, mainClass, aotCacheFile)
 
         if (!aotCacheFile.exists()) {
-            logger.warn("[aotCache] AOT cache file was not created at ${aotCacheFile.absolutePath}")
-            return false
+            throw GradleException("AOT cache file was not created at ${aotCacheFile.absolutePath}")
         }
-        return true
     }
 
     private fun runAotCacheCreation(
@@ -342,4 +343,21 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
 
     private fun isWindows(): Boolean = System.getProperty("os.name").lowercase().contains("windows")
 
+    private fun isMacOS(): Boolean = System.getProperty("os.name").lowercase().contains("mac")
+
+    private fun adHocSign(file: File) {
+        try {
+            val process =
+                ProcessBuilder("codesign", "--force", "--sign", "-", file.absolutePath)
+                    .redirectErrorStream(true)
+                    .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            if (exitCode != 0) {
+                logger.warn("[aotCache] Ad-hoc signing failed (exit $exitCode): $output")
+            }
+        } catch (e: Exception) {
+            logger.warn("[aotCache] Ad-hoc signing failed: ${e.message}")
+        }
+    }
 }
