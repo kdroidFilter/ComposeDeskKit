@@ -369,7 +369,7 @@ abstract class AbstractJPackageTask
                 launcherJvmArgs.orNull?.forEach {
                     javaOption(it)
                 }
-                val skikoPath = if (sandboxingEnabled.get()) "${appDir()}/resources" else appDir()
+                val skikoPath = if (sandboxingEnabled.get()) appDir("resources") else appDir()
                 javaOption("-D$SKIKO_LIBRARY_PATH=$skikoPath")
                 if (currentOS == OS.MacOS) {
                     macDockName.orNull?.let { dockName ->
@@ -497,6 +497,16 @@ abstract class AbstractJPackageTask
                     } else {
                         file.copyTo(destFile)
                     }
+                }
+            }
+
+            // When sandboxing is enabled, Skiko's native DLL is in resources/ but its companion
+            // data file (icudtl.dat) is extracted by unpackSkikoForCurrentOS to libsDir.
+            // Copy it next to the DLL so SkLoadICU can find it.
+            if (sandboxingEnabled.get()) {
+                val icudtl = libsDir.resolve("icudtl.dat")
+                if (icudtl.exists()) {
+                    icudtl.copyTo(destResourcesDir.resolve("icudtl.dat"), overwrite = true)
                 }
             }
 

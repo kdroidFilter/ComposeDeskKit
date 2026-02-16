@@ -314,7 +314,11 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         // Clean up JVM crash dumps
         appDir.listFiles()?.filter { it.name.startsWith("hs_err_pid") }?.forEach { hsErr ->
             logger.lifecycle("[aotCache] JVM crash dump: ${hsErr.name}")
-            logger.lifecycle(hsErr.readText().take(2000))
+            // Only read text-based .log files; .mdmp files are binary minidumps
+            // that can be hundreds of MB and would cause OOM with readText()
+            if (hsErr.extension == "log") {
+                logger.lifecycle(hsErr.readText().take(2000))
+            }
             hsErr.delete()
         }
     }
