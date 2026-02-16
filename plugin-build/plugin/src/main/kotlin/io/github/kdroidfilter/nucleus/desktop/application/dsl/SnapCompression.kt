@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Snap package compression algorithm. */
-enum class SnapCompression(internal val id: String) {
+enum class SnapCompression(
+    internal val id: String,
+) {
     Xz("xz"),
     Lzo("lzo"),
 }

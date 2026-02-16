@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Archive compression level for electron-builder output. */
-enum class CompressionLevel(internal val id: String) {
+enum class CompressionLevel(
+    internal val id: String,
+) {
     Store("store"),
     Fast("fast"),
     Normal("normal"),

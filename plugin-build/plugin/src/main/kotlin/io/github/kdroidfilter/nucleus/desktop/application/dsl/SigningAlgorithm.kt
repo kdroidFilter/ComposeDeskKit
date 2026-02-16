@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Windows code-signing hash algorithm. */
-enum class SigningAlgorithm(internal val id: String) {
+enum class SigningAlgorithm(
+    internal val id: String,
+) {
     Sha1("sha1"),
     Sha256("sha256"),
     Sha512("sha512"),

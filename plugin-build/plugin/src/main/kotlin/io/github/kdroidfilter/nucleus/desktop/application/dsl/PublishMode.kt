@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Publish mode for electron-builder output. */
-enum class PublishMode(internal val id: String) {
+enum class PublishMode(
+    internal val id: String,
+) {
     /** Disable auto-update publishing (no latest-*.yml generated). */
     Never("never"),
 

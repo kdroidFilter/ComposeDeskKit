@@ -67,8 +67,10 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
                             val fileName = entry.name.substringAfterLast('/')
                             // Preserve parent directory for libs that use path-based lookup (e.g. JNA
                             // expects <boot.library.path>/darwin-aarch64/libjnidispatch.jnilib)
-                            val parentDir = entry.name.substringBeforeLast('/', "")
-                                .substringAfterLast('/')
+                            val parentDir =
+                                entry.name
+                                    .substringBeforeLast('/', "")
+                                    .substringAfterLast('/')
                             val relativePath = if (parentDir.isNotEmpty()) "$parentDir/$fileName" else fileName
                             if (fileName in extractedFiles) {
                                 logger.warn(
@@ -98,7 +100,10 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
         }
     }
 
-    private fun detectInfo(entryName: String, zis: ZipInputStream): NativeLibArchDetector.NativeInfo {
+    private fun detectInfo(
+        entryName: String,
+        zis: ZipInputStream,
+    ): NativeLibArchDetector.NativeInfo {
         val pathInfo = NativeLibArchDetector.detectFromPath(entryName)
         if (pathInfo.os != NativeOs.UNKNOWN && pathInfo.arch != NativeArch.UNKNOWN) {
             return pathInfo
@@ -133,7 +138,11 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
         return true
     }
 
-    private fun extractEntry(jarFile: java.io.File, entryName: String, destFile: java.io.File) {
+    private fun extractEntry(
+        jarFile: java.io.File,
+        entryName: String,
+        destFile: java.io.File,
+    ) {
         ZipInputStream(BufferedInputStream(jarFile.inputStream())).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
@@ -163,7 +172,10 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
             else -> null
         }
 
-    private fun readFully(input: java.io.InputStream, buffer: ByteArray): Int {
+    private fun readFully(
+        input: java.io.InputStream,
+        buffer: ByteArray,
+    ): Int {
         var totalRead = 0
         while (totalRead < buffer.size) {
             val read = input.read(buffer, totalRead, buffer.size - totalRead)

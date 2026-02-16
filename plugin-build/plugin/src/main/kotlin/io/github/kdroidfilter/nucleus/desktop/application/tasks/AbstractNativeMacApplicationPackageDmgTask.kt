@@ -71,10 +71,11 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         workingDir: File,
     ) {
         val packageName = packageName.get()
-        val volumeName = dmgTitle.orNull
-            ?.replace("\${productName}", packageName)
-            ?.replace("\${version}", packageVersion.get())
-            ?: packageName
+        val volumeName =
+            dmgTitle.orNull
+                ?.replace("\${productName}", packageName)
+                ?.replace("\${version}", packageVersion.get())
+                ?: packageName
         val fullPackageName = fullPackageName.get()
         val tmpImage = workingDir.resolve("$fullPackageName.tmp.dmg")
         val finalImage = destinationDir.resolve("$fullPackageName.dmg")
@@ -166,14 +167,15 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         finalImage: File,
     ) {
         val format = dmgFormat.orNull?.id ?: "UDZO"
-        val args = mutableListOf(
-            "convert",
-            tmpImage.absolutePath,
-            "-format",
-            format,
-            "-o",
-            finalImage.absolutePath,
-        )
+        val args =
+            mutableListOf(
+                "convert",
+                tmpImage.absolutePath,
+                "-format",
+                format,
+                "-o",
+                finalImage.absolutePath,
+            )
         // Add zlib compression level for UDZO format
         if (format == "UDZO") {
             args.addAll(listOf("-imagekey", "zlib-level=9"))
@@ -222,7 +224,9 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
 
         if (contents.isEmpty()) {
             // Default layout when no contents specified
-            scriptBuilder.appendLine("""        make new alias file at container window to POSIX file "$installDir" with properties {name:"$installDir"}""")
+            scriptBuilder.appendLine(
+                """        make new alias file at container window to POSIX file "$installDir" with properties {name:"$installDir"}""",
+            )
             scriptBuilder.appendLine("""        set position of item "$appName" of container window to {100, 100}""")
             scriptBuilder.appendLine("""        set position of item "$installDir" of container window to {375, 100}""")
         } else {
@@ -238,28 +242,32 @@ abstract class AbstractNativeMacApplicationPackageDmgTask : AbstractNativeMacApp
         scriptBuilder.appendLine("  end tell")
         scriptBuilder.appendLine("end tell")
 
-        val setupScript = workingDir.ioFile.resolve("setup-dmg.scpt").apply {
-            writeText(scriptBuilder.toString())
-        }
+        val setupScript =
+            workingDir.ioFile.resolve("setup-dmg.scpt").apply {
+                writeText(scriptBuilder.toString())
+            }
         runExternalTool(tool = osascript.ioFile, args = listOf(setupScript.absolutePath))
     }
 
     /** Converts a CSS hex color (e.g. "#ff0000") to AppleScript RGB {R, G, B} (0–65535 range). */
     private fun cssColorToAppleScriptRgb(cssColor: String): String {
         val hex = cssColor.removePrefix("#")
-        val (r, g, b) = when (hex.length) {
-            3 -> Triple(
-                hex.substring(0, 1).repeat(2).toInt(16),
-                hex.substring(1, 2).repeat(2).toInt(16),
-                hex.substring(2, 3).repeat(2).toInt(16),
-            )
-            6 -> Triple(
-                hex.substring(0, 2).toInt(16),
-                hex.substring(2, 4).toInt(16),
-                hex.substring(4, 6).toInt(16),
-            )
-            else -> return "65535, 65535, 65535"
-        }
+        val (r, g, b) =
+            when (hex.length) {
+                3 ->
+                    Triple(
+                        hex.substring(0, 1).repeat(2).toInt(16),
+                        hex.substring(1, 2).repeat(2).toInt(16),
+                        hex.substring(2, 3).repeat(2).toInt(16),
+                    )
+                6 ->
+                    Triple(
+                        hex.substring(0, 2).toInt(16),
+                        hex.substring(2, 4).toInt(16),
+                        hex.substring(4, 6).toInt(16),
+                    )
+                else -> return "65535, 65535, 65535"
+            }
         // Scale 0–255 to 0–65535
         return "${r * 257}, ${g * 257}, ${b * 257}"
     }

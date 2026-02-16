@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Well-known Snap interface plugs. */
-enum class SnapPlug(internal val id: String) {
+enum class SnapPlug(
+    internal val id: String,
+) {
     Desktop("desktop"),
     DesktopLegacy("desktop-legacy"),
     Home("home"),

@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Update channel for auto-update publishing. */
-enum class ReleaseChannel(internal val id: String) {
+enum class ReleaseChannel(
+    internal val id: String,
+) {
     Latest("latest"),
     Beta("beta"),
     Alpha("alpha"),

@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** GitHub release type for publishing. */
-enum class ReleaseType(internal val id: String) {
+enum class ReleaseType(
+    internal val id: String,
+) {
     Release("release"),
     Draft("draft"),
     Prerelease("prerelease"),

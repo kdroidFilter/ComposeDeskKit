@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** FreeDesktop.org main application categories for .desktop files. */
-enum class AppImageCategory(internal val id: String) {
+enum class AppImageCategory(
+    internal val id: String,
+) {
     AudioVideo("AudioVideo"),
     Development("Development"),
     Education("Education"),

@@ -12,12 +12,12 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractCheckNat
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractElectronBuilderPackageTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractExtractNativeLibsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractGenerateAotCacheTask
-import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractStripNativeLibsFromJarsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJLinkTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJPackageTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractNotarizationTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractProguardTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractRunDistributableTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractStripNativeLibsFromJarsTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractSuggestModulesTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractJarsFlattenTask
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractUnpackDefaultApplicationResourcesTask
@@ -112,15 +112,17 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
 
     val extractNativeLibs =
         if (app.nativeDistributions.enableSandboxing) {
-            val osName = when (currentOS) {
-                OS.Windows -> "windows"
-                OS.Linux -> "linux"
-                OS.MacOS -> "macos"
-            }
-            val archName = when (currentArch) {
-                Arch.X64 -> "x64"
-                Arch.Arm64 -> "arm64"
-            }
+            val osName =
+                when (currentOS) {
+                    OS.Windows -> "windows"
+                    OS.Linux -> "linux"
+                    OS.MacOS -> "macos"
+                }
+            val archName =
+                when (currentArch) {
+                    Arch.X64 -> "x64"
+                    Arch.Arm64 -> "arm64"
+                }
 
             tasks.register<AbstractExtractNativeLibsTask>(
                 taskNameAction = "extract",
@@ -557,16 +559,18 @@ internal fun JvmApplicationContext.configurePlatformSettings(
                 packageTask.macAppCategory.set(mac.appCategory)
                 packageTask.macMinimumSystemVersion.set(mac.minimumSystemVersion)
                 val sandboxing = app.nativeDistributions.enableSandboxing
-                val defaultAppEntitlements = if (sandboxing) {
-                    defaultResources.get { defaultSandboxEntitlements }
-                } else {
-                    defaultResources.get { defaultEntitlements }
-                }
-                val defaultRuntimeEntitlements = if (sandboxing) {
-                    defaultResources.get { defaultSandboxRuntimeEntitlements }
-                } else {
-                    defaultResources.get { defaultEntitlements }
-                }
+                val defaultAppEntitlements =
+                    if (sandboxing) {
+                        defaultResources.get { defaultSandboxEntitlements }
+                    } else {
+                        defaultResources.get { defaultEntitlements }
+                    }
+                val defaultRuntimeEntitlements =
+                    if (sandboxing) {
+                        defaultResources.get { defaultSandboxRuntimeEntitlements }
+                    } else {
+                        defaultResources.get { defaultEntitlements }
+                    }
                 packageTask.macEntitlementsFile.set(
                     mac.entitlementsFile.orElse(defaultAppEntitlements),
                 )
@@ -728,14 +732,16 @@ private fun sandboxingJvmArgs(resourcesPath: String): List<String> {
  * This matches the directory name JNA uses inside its JAR (e.g. `darwin-aarch64`, `linux-x86-64`).
  */
 private fun jnaPlatformPrefix(): String {
-    val os = when (currentOS) {
-        OS.Windows -> "win32"
-        OS.Linux -> "linux"
-        OS.MacOS -> "darwin"
-    }
-    val arch = when (currentArch) {
-        Arch.X64 -> "x86-64"
-        Arch.Arm64 -> "aarch64"
-    }
+    val os =
+        when (currentOS) {
+            OS.Windows -> "win32"
+            OS.Linux -> "linux"
+            OS.MacOS -> "darwin"
+        }
+    val arch =
+        when (currentArch) {
+            Arch.X64 -> "x86-64"
+            Arch.Arm64 -> "aarch64"
+        }
     return "$os-$arch"
 }

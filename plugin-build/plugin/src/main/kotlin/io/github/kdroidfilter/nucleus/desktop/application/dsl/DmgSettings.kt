@@ -72,7 +72,9 @@ abstract class DmgSettings {
 }
 
 /** DMG image format passed to hdiutil / electron-builder. */
-enum class DmgFormat(val id: String) {
+enum class DmgFormat(
+    val id: String,
+) {
     /** UDIF read/write image */
     UDRW("UDRW"),
 
@@ -116,7 +118,9 @@ data class DmgContentEntry(
 )
 
 /** Type of content entry in DMG layout. */
-enum class DmgContentType(val id: String) {
+enum class DmgContentType(
+    val id: String,
+) {
     Link("link"),
     File("file"),
     Dir("dir"),

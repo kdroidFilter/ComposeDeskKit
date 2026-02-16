@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Snap package confinement level. */
-enum class SnapConfinement(internal val id: String) {
+enum class SnapConfinement(
+    internal val id: String,
+) {
     Strict("strict"),
     Classic("classic"),
     Devmode("devmode"),

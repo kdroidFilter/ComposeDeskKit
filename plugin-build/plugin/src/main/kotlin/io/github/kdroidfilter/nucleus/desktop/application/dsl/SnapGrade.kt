@@ -6,7 +6,9 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 /** Snap package quality grade. */
-enum class SnapGrade(internal val id: String) {
+enum class SnapGrade(
+    internal val id: String,
+) {
     Stable("stable"),
     Devel("devel"),
 }

@@ -124,10 +124,12 @@
 
 # JNA (Java Native Access)
 # JNA uses JNI callbacks from native code (e.g. dispose, newJavaStructure) that
-# ProGuard cannot detect. Keep all JNA core classes to prevent stripping.
-# Also keep all Callback implementations so JNA's reflection-based method lookup works.
--keep class com.sun.jna.** { *; }
--keep class com.sun.jna.platform.** { *; }
+# ProGuard cannot detect. Keep JNA core classes and user-defined Callback/Structure
+# implementations so JNI and reflection-based method lookup works.
+-keep class com.sun.jna.* { *; }
+-keep class com.sun.jna.ptr.* { *; }
+-keep class com.sun.jna.internal.* { *; }
 -keep class * implements com.sun.jna.Callback { *; }
 -keep class * implements com.sun.jna.Structure { *; }
+-dontwarn com.sun.jna.**
 -dontnote com.sun.jna.**
