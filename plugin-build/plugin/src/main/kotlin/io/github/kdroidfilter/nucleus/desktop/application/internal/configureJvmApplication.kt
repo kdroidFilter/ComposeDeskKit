@@ -249,6 +249,19 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                 distributableDir.set(createDistributable.flatMap { it.destinationDir })
                 javaHome.set(app.javaHomeProvider)
                 javaRuntimePropertiesFile.set(commonTasks.checkRuntime.flatMap { it.javaRuntimePropertiesFile })
+                if (currentOS == OS.MacOS) {
+                    val mac = app.nativeDistributions.macOS
+                    val defaultResources = commonTasks.unpackDefaultResources
+                    val defaultRuntimeEntitlements =
+                        if (app.nativeDistributions.enableSandboxing) {
+                            defaultResources.get { defaultSandboxRuntimeEntitlements }
+                        } else {
+                            defaultResources.get { defaultEntitlements }
+                        }
+                    macRuntimeEntitlementsFile.set(
+                        mac.runtimeEntitlementsFile.orElse(defaultRuntimeEntitlements),
+                    )
+                }
             }
         } else {
             null

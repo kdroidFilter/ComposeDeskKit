@@ -53,6 +53,11 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
     @get:Optional
     val javaRuntimePropertiesFile: RegularFileProperty = objects.fileProperty()
 
+    /** Runtime entitlements file for macOS. Used to re-sign jspawnhelper after AOT training. */
+    @get:InputFile
+    @get:Optional
+    val macRuntimeEntitlementsFile: RegularFileProperty = objects.fileProperty()
+
     /** Safety timeout in seconds. The task will force-kill the app if it has not exited within this time. */
     @get:Input
     val safetyTimeoutSeconds: Property<Long> =
@@ -245,8 +250,19 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
         mainClass: String,
         aotCacheFile: File,
     ) {
+        val jspawnhelper = findJspawnhelper(appDir)
+        if (jspawnhelper != null) {
+            unsandboxJspawnhelper(jspawnhelper)
+        }
+
         logger.lifecycle("[aotCache] Training – waiting for the application to exit...")
-        runAotCacheCreation(javaExe, appDir, classpath, javaOptions, mainClass, aotCacheFile)
+        try {
+            runAotCacheCreation(javaExe, appDir, classpath, javaOptions, mainClass, aotCacheFile)
+        } finally {
+            if (jspawnhelper != null) {
+                resandboxJspawnhelper(jspawnhelper)
+            }
+        }
 
         if (!aotCacheFile.exists()) {
             throw GradleException("AOT cache file was not created at ${aotCacheFile.absolutePath}")
@@ -336,4 +352,59 @@ abstract class AbstractGenerateAotCacheTask : AbstractNucleusTask() {
     }
 
     private fun isWindows(): Boolean = System.getProperty("os.name").lowercase().contains("windows")
+
+    private fun isMacOS(): Boolean = System.getProperty("os.name").lowercase().contains("mac")
+
+    /**
+     * Finds jspawnhelper in the bundled macOS runtime.
+     * jspawnhelper is used by the JVM to fork/exec child processes (needed for AOT cache assembly).
+     */
+    private fun findJspawnhelper(appDir: File): File? {
+        if (!isMacOS()) return null
+        val runtimeHome = File(appDir, "Contents/runtime/Contents/Home")
+        if (!runtimeHome.exists()) return null
+        val jspawnhelper = File(runtimeHome, "lib/jspawnhelper")
+        return if (jspawnhelper.exists()) jspawnhelper else null
+    }
+
+    /**
+     * Strips the code signature from jspawnhelper so it can spawn child processes
+     * during AOT training. When signed with app-sandbox entitlements, macOS kills
+     * jspawnhelper with SIGTRAP (signal 5) on fork/exec.
+     */
+    private fun unsandboxJspawnhelper(jspawnhelper: File) {
+        logger.lifecycle("[aotCache] Temporarily stripping signature from jspawnhelper for AOT training")
+        runCodesign(listOf("codesign", "--remove-signature", jspawnhelper.absolutePath))
+    }
+
+    /**
+     * Re-signs jspawnhelper with the runtime entitlements after AOT training,
+     * restoring the app-sandbox entitlement required for Mac App Store.
+     */
+    private fun resandboxJspawnhelper(jspawnhelper: File) {
+        val entitlementsFile = macRuntimeEntitlementsFile.orNull?.asFile
+        val args = mutableListOf("codesign", "--force", "--sign", "-")
+        if (entitlementsFile != null) {
+            args += listOf("--entitlements", entitlementsFile.absolutePath)
+        }
+        args += jspawnhelper.absolutePath
+        logger.lifecycle("[aotCache] Re-signing jspawnhelper with runtime entitlements")
+        runCodesign(args)
+    }
+
+    private fun runCodesign(args: List<String>) {
+        try {
+            val process =
+                ProcessBuilder(args)
+                    .redirectErrorStream(true)
+                    .start()
+            val output = process.inputStream.bufferedReader().readText()
+            val exitCode = process.waitFor()
+            if (exitCode != 0) {
+                logger.warn("[aotCache] codesign failed (exit $exitCode): $output")
+            }
+        } catch (e: Exception) {
+            logger.warn("[aotCache] codesign failed: ${e.message}")
+        }
+    }
 }
