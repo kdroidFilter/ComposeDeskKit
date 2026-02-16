@@ -110,11 +110,11 @@ fun NucleusAtom(
         }
 
     val nucleusPulse by infiniteTransition.animateFloat(
-        initialValue = 0f,
+        initialValue = 0.5f,
         targetValue = 1f,
         animationSpec =
             infiniteRepeatable(
-                animation = tween(2500, easing = FastOutSlowInEasing),
+                animation = tween(1400, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse,
             ),
     )
@@ -125,9 +125,9 @@ fun NucleusAtom(
         val center = Offset(canvasW / 2f, canvasH / 2f)
         val scale = minOf(canvasW, canvasH) / 340f
         val orbitRadius = 140f * scale
-        val ringStroke = 3f * scale
-        val nucleusR = 16f * scale
-        val electronR = 8f * scale
+        val ringStroke = 7.5f * scale
+        val nucleusR = 18f * scale
+        val electronR = 10f * scale
 
         fun orbitPoint3D(
             thetaDeg: Float,
@@ -171,7 +171,7 @@ fun NucleusAtom(
                 if ((z1 + z2) / 2f >= 0) continue
                 val color = gradientColor(orbit.ringColors, i.toFloat() / segments)
                 drawLine(
-                    color = color.copy(alpha = 0.5f),
+                    color = color.copy(alpha = 0.35f),
                     start = Offset(center.x + x1, center.y + y1),
                     end = Offset(center.x + x2, center.y + y2),
                     strokeWidth = ringStroke,
@@ -185,22 +185,33 @@ fun NucleusAtom(
             val angle = electronAngles[index].value
             val (ex, ey, ez) = orbitPoint3D(angle, orbit)
             if (ez >= 0) continue
+            val depthAlpha = (0.4f + 0.6f * ((ez + orbitRadius) / (2f * orbitRadius))).coerceIn(0.4f, 1f)
             val eCenter = Offset(center.x + ex, center.y + ey)
             drawCircle(
                 brush =
                     Brush.radialGradient(
-                        colors = listOf(orbit.glowColor.copy(alpha = 0.4f), Color.Transparent),
+                        colors = listOf(orbit.glowColor.copy(alpha = 0.5f * depthAlpha), Color.Transparent),
                         center = eCenter,
-                        radius = electronR * 3f,
+                        radius = electronR * 3.5f,
                     ),
                 center = eCenter,
-                radius = electronR * 3f,
+                radius = electronR * 3.5f,
             )
             drawCircle(
                 brush =
                     Brush.radialGradient(
-                        colors = orbit.electronColors.map { it.copy(alpha = 0.7f) },
-                        center = Offset(eCenter.x - electronR * 0.2f, eCenter.y - electronR * 0.2f),
+                        colors = listOf(orbit.glowColor.copy(alpha = 0.8f * depthAlpha), Color.Transparent),
+                        center = eCenter,
+                        radius = electronR * 1.8f,
+                    ),
+                center = eCenter,
+                radius = electronR * 1.8f,
+            )
+            drawCircle(
+                brush =
+                    Brush.radialGradient(
+                        colors = orbit.electronColors.map { it.copy(alpha = depthAlpha) },
+                        center = Offset(eCenter.x - electronR * 0.15f, eCenter.y - electronR * 0.15f),
                         radius = electronR,
                     ),
                 center = eCenter,
@@ -209,12 +220,14 @@ fun NucleusAtom(
         }
 
         // ── Nucleus glow + body ──
-        val glowScale = 1f + nucleusPulse * 0.3f
+        val glowScale = 1f + nucleusPulse * 0.35f
         listOf(
-            Triple(170f, Color(0xFF2850DC), 0.08f + nucleusPulse * 0.04f),
-            Triple(110f, Color(0xFF3C78FF), 0.15f + nucleusPulse * 0.08f),
-            Triple(55f, Color(0xFF5AA0FF), 0.35f + nucleusPulse * 0.1f),
-            Triple(28f, Color(0xFF96D2FF), 0.7f + nucleusPulse * 0.15f),
+            Triple(120f, Color(0xFF1840B0), 0.10f + nucleusPulse * 0.08f),
+            Triple(85f, Color(0xFF2850DC), 0.18f + nucleusPulse * 0.12f),
+            Triple(60f, Color(0xFF3C78FF), 0.30f + nucleusPulse * 0.15f),
+            Triple(42f, Color(0xFF5AA0FF), 0.50f + nucleusPulse * 0.18f),
+            Triple(28f, Color(0xFF80C0FF), 0.70f + nucleusPulse * 0.2f),
+            Triple(18f, Color(0xFFB0DFFF), 0.90f + nucleusPulse * 0.1f),
         ).forEach { (r, color, alpha) ->
             drawCircle(
                 brush =
@@ -233,12 +246,13 @@ fun NucleusAtom(
                     colors =
                         listOf(
                             Color(0xFFFFFFFF),
+                            Color(0xFFE8F4FF),
                             Color(0xFFC5E0FF),
                             Color(0xFF5BA3F5),
                             Color(0xFF2D6FD4),
                         ),
-                    center = Offset(center.x - nucleusR * 0.24f, center.y - nucleusR * 0.28f),
-                    radius = nucleusR * 1.1f,
+                    center = Offset(center.x - nucleusR * 0.2f, center.y - nucleusR * 0.22f),
+                    radius = nucleusR * 1.2f,
                 ),
             center = center,
             radius = nucleusR,
@@ -268,22 +282,33 @@ fun NucleusAtom(
             val angle = electronAngles[index].value
             val (ex, ey, ez) = orbitPoint3D(angle, orbit)
             if (ez < 0) continue
+            val depthAlpha = (0.4f + 0.6f * ((ez + orbitRadius) / (2f * orbitRadius))).coerceIn(0.4f, 1f)
             val eCenter = Offset(center.x + ex, center.y + ey)
             drawCircle(
                 brush =
                     Brush.radialGradient(
-                        colors = listOf(orbit.glowColor.copy(alpha = 0.7f), Color.Transparent),
+                        colors = listOf(orbit.glowColor.copy(alpha = 0.5f * depthAlpha), Color.Transparent),
                         center = eCenter,
-                        radius = electronR * 3f,
+                        radius = electronR * 3.5f,
                     ),
                 center = eCenter,
-                radius = electronR * 3f,
+                radius = electronR * 3.5f,
             )
             drawCircle(
                 brush =
                     Brush.radialGradient(
-                        colors = orbit.electronColors,
-                        center = Offset(eCenter.x - electronR * 0.2f, eCenter.y - electronR * 0.2f),
+                        colors = listOf(orbit.glowColor.copy(alpha = 0.8f * depthAlpha), Color.Transparent),
+                        center = eCenter,
+                        radius = electronR * 1.8f,
+                    ),
+                center = eCenter,
+                radius = electronR * 1.8f,
+            )
+            drawCircle(
+                brush =
+                    Brush.radialGradient(
+                        colors = orbit.electronColors.map { it.copy(alpha = depthAlpha) },
+                        center = Offset(eCenter.x - electronR * 0.15f, eCenter.y - electronR * 0.15f),
                         radius = electronR,
                     ),
                 center = eCenter,
