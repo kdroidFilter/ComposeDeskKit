@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.URI
 import java.net.http.HttpClient
@@ -40,12 +41,14 @@ class NucleusUpdater(
     suspend fun checkForUpdates(): UpdateResult {
         if (config.isDevMode()) return UpdateResult.NotAvailable
         if (!isUpdateSupported()) return UpdateResult.NotAvailable
-        return try {
-            doCheckForUpdates()
-        } catch (e: UpdateException) {
-            UpdateResult.Error(e)
-        } catch (e: Exception) {
-            UpdateResult.Error(NetworkException("Failed to check for updates", e))
+        return withContext(Dispatchers.IO) {
+            try {
+                doCheckForUpdates()
+            } catch (e: UpdateException) {
+                UpdateResult.Error(e)
+            } catch (e: Exception) {
+                UpdateResult.Error(NetworkException("Failed to check for updates", e))
+            }
         }
     }
 
