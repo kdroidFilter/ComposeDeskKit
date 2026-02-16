@@ -4,10 +4,10 @@ Nucleus supports two macOS installer formats and universal (fat) binaries.
 
 ## Formats
 
-| Format | Extension | Backend | Auto-Update |
-|--------|-----------|---------|-------------|
-| DMG | `.dmg` | electron-builder | Yes |
-| PKG | `.pkg` | electron-builder | Yes |
+| Format | Extension | Backend | Auto-Update | Sandboxed |
+|--------|-----------|---------|-------------|-----------|
+| DMG | `.dmg` | electron-builder | Yes | No |
+| PKG | `.pkg` | electron-builder | Yes | Yes (App Sandbox) |
 
 ```kotlin
 targetFormats(TargetFormat.Dmg, TargetFormat.Pkg)
@@ -133,6 +133,31 @@ Create one using **Xcode 26+** or **Apple Icon Composer**:
 Nucleus supports creating universal (fat) macOS binaries that run natively on both Apple Silicon and Intel. This requires building on both architectures and merging with `lipo`.
 
 See [CI/CD](../ci-cd.md#universal-macos-binaries) for the GitHub Actions workflow.
+
+## App Sandbox (PKG)
+
+PKG targets automatically use the sandboxed build pipeline. The plugin extracts native libraries from JARs, signs them individually, and injects JVM arguments so all native code loads from signed, pre-extracted locations.
+
+Default sandbox entitlements grant network access and user-selected file access. Override them for additional capabilities:
+
+```kotlin
+macOS {
+    entitlementsFile.set(project.file("packaging/sandbox-entitlements.plist"))
+    runtimeEntitlementsFile.set(project.file("packaging/sandbox-runtime-entitlements.plist"))
+}
+```
+
+For Mac App Store builds, add a provisioning profile:
+
+```kotlin
+macOS {
+    appStore = true
+    provisioningProfile.set(project.file("packaging/MyApp.provisionprofile"))
+    runtimeProvisioningProfile.set(project.file("packaging/MyApp_Runtime.provisionprofile"))
+}
+```
+
+See [Sandboxing](../sandboxing.md#macos-app-sandbox) for full details.
 
 ## Signing & Notarization
 

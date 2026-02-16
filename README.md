@@ -27,6 +27,7 @@ Nucleus is a Gradle plugin for building, packaging, and distributing **JVM deskt
 | [Windows](docs/targets/windows.md) | NSIS, MSI, AppX, Portable, code signing |
 | [Linux](docs/targets/linux.md) | DEB, RPM, AppImage, Snap, Flatpak |
 | **Features** | |
+| [Sandboxing](docs/sandboxing.md) | App Sandbox (macOS), UWP (Windows), Flatpak (Linux) |
 | [Code Signing](docs/code-signing.md) | Windows & macOS signing and notarization |
 | [Auto Update](docs/auto-update.md) | Update metadata, runtime library, providers |
 | [Publishing](docs/publishing.md) | GitHub Releases, S3, release channels |

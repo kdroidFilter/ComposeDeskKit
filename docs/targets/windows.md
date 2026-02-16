@@ -4,13 +4,13 @@ Nucleus supports five Windows installer formats and a portable mode.
 
 ## Formats
 
-| Format | Extension | Backend | Auto-Update |
-|--------|-----------|---------|-------------|
-| NSIS | `.exe` | electron-builder | Yes |
-| NSIS Web | `.exe` | electron-builder | Yes |
-| MSI | `.msi` | electron-builder | Yes |
-| AppX | `.appx` | electron-builder | No (Store) |
-| Portable | `.exe` | electron-builder | No |
+| Format | Extension | Backend | Auto-Update | Sandboxed |
+|--------|-----------|---------|-------------|-----------|
+| NSIS | `.exe` | electron-builder | Yes | No |
+| NSIS Web | `.exe` | electron-builder | Yes | No |
+| MSI | `.msi` | electron-builder | Yes | No |
+| AppX | `.appx` | electron-builder | No (Store) | Yes (UWP) |
+| Portable | `.exe` | electron-builder | No | No |
 
 ```kotlin
 targetFormats(
@@ -115,7 +115,7 @@ windows {
 
 ## AppX (Windows Store / MSIX)
 
-AppX packages are used for the Microsoft Store and sideloading.
+AppX packages run inside a UWP sandbox container and are used for the Microsoft Store and sideloading. They use the [sandboxed build pipeline](../sandboxing.md#windows-appx-sandbox) automatically.
 
 ```kotlin
 windows {

@@ -53,6 +53,7 @@ nav:
       - Windows: targets/windows.md
       - Linux: targets/linux.md
   - Features:
+      - Sandboxing: sandboxing.md
       - Code Signing: code-signing.md
       - Auto Update: auto-update.md
       - Publishing: publishing.md

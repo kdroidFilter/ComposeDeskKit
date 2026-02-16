@@ -4,13 +4,13 @@ Nucleus supports five Linux package formats.
 
 ## Formats
 
-| Format | Extension | Backend | Auto-Update |
-|--------|-----------|---------|-------------|
-| DEB | `.deb` | electron-builder | Yes |
-| RPM | `.rpm` | electron-builder | Yes |
-| AppImage | `.AppImage` | electron-builder | Yes |
-| Snap | `.snap` | electron-builder | No (Store) |
-| Flatpak | `.flatpak` | electron-builder | No |
+| Format | Extension | Backend | Auto-Update | Sandboxed |
+|--------|-----------|---------|-------------|-----------|
+| DEB | `.deb` | electron-builder | Yes | No |
+| RPM | `.rpm` | electron-builder | Yes | No |
+| AppImage | `.AppImage` | electron-builder | Yes | No |
+| Snap | `.snap` | electron-builder | No (Store) | No |
+| Flatpak | `.flatpak` | electron-builder | No | Yes |
 
 ```kotlin
 targetFormats(
@@ -181,7 +181,7 @@ sudo snap install snapcraft --classic
 
 ## Flatpak
 
-[Flatpak](https://flatpak.org/) packages with sandboxed runtime.
+[Flatpak](https://flatpak.org/) packages with sandboxed runtime. Flatpak targets use the [sandboxed build pipeline](../sandboxing.md#flatpak-sandbox) automatically.
 
 ```kotlin
 linux {
