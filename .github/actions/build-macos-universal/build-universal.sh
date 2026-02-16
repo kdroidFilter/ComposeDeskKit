@@ -437,7 +437,7 @@ run_electron_builder() {
   generate_package_json "$eb_dir/package.json"
   generate_eb_config "$format" "$eb_dir/electron-builder.yml" >&2
 
-  update_executable_type "$UNIVERSAL_APP" "$format"
+  update_executable_type "$UNIVERSAL_APP" "$format" >&2
 
   CSC_IDENTITY_AUTO_DISCOVERY=false \
   npx --yes electron-builder \
