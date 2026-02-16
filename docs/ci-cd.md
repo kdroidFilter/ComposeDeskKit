@@ -80,40 +80,6 @@ The action automatically:
 - Sets up Gradle caching via `gradle/actions/setup-gradle@v4`
 - Sets up Node.js (if enabled)
 
-## Pre-Merge Checks
-
-Run tests on every push to `main` and every pull request.
-
-```yaml
-# .github/workflows/pre-merge.yaml
-name: Pre Merge Checks
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: ['*']
-
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - uses: gradle/actions/setup-gradle@v4
-
-      - run: ./gradlew preMerge --continue
-```
-
-!!! note
-    Pre-merge checks only run Gradle tests and don't produce packages, so Temurin JDK 21 is sufficient. For builds that produce native packages, use `setup-nucleus` with JBR 25.
-
 ## Release Build
 
 Build native packages for all platforms on tag push.
@@ -411,53 +377,11 @@ After all builds complete, create a GitHub Release with all artifacts and update
           release-type: ${{ env.RELEASE_TYPE }}
 ```
 
-## Publish Plugin to Gradle Portal
-
-Automatically publish the plugin to the Gradle Plugin Portal on tag push:
-
-```yaml
-# .github/workflows/publish-plugin.yaml
-name: Publish Plugin
-
-on:
-  push:
-    tags: ['*']
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    env:
-      GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
-      GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUBLISH_SECRET }}
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: gradle/actions/setup-gradle@v4
-
-      - name: Run checks
-        run: ./gradlew preMerge --continue
-
-      - name: Publish to Gradle Plugin Portal
-        if: success()
-        run: ./gradlew -p plugin-build setupPluginUploadFromEnvironment publishPlugins
-```
-
-### Required Secrets
-
-| Secret | Description |
-|--------|-------------|
-| `GRADLE_PUBLISH_KEY` | Gradle Plugin Portal API key |
-| `GRADLE_PUBLISH_SECRET` | Gradle Plugin Portal API secret |
-
-Get these from [plugins.gradle.org/user/settings](https://plugins.gradle.org/user/settings).
-
 ## Required Secrets Summary
 
 | Secret | Used By | Description |
 |--------|---------|-------------|
 | `GITHUB_TOKEN` | Release workflow | Auto-provided by GitHub Actions |
-| `GRADLE_PUBLISH_KEY` | Plugin publish | Gradle Plugin Portal key |
-| `GRADLE_PUBLISH_SECRET` | Plugin publish | Gradle Plugin Portal secret |
 | `WIN_CSC_LINK` | Build (Windows) | Base64-encoded `.pfx` certificate |
 | `WIN_CSC_KEY_PASSWORD` | Build (Windows) | Certificate password |
 | `MACOS_CERTIFICATE` | Build (macOS) | Base64-encoded `.p12` certificate |
