@@ -90,6 +90,8 @@ markdown_extensions:
 extra_css:
   - stylesheets/extra.css
 
+copyright: Made with ❤️ by Elie Gambache - KdroidFilter
+
 extra:
   social:
     - icon: fontawesome/brands/github

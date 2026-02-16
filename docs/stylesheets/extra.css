@@ -36,3 +36,20 @@
 [data-md-color-scheme="slate"] .md-nav__link--active {
   color: #7ba3e8 !important;
 }
+
+/* Footer — center copyright and hide "Made with Material for MkDocs" */
+.md-copyright {
+  text-align: center;
+  width: 100%;
+  font-size: 0;
+}
+
+.md-copyright__highlight {
+  display: block;
+  font-size: 0.75rem;
+}
+
+/* Hide social icons in footer */
+.md-social {
+  display: none;
+}
