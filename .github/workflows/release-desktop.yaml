@@ -129,6 +129,11 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 45
 
+    env:
+      HAS_SIGNING_CERTS: ${{ secrets.MAC_CERTIFICATES_P12 != '' }}
+      HAS_PROVISIONING: ${{ secrets.MAC_PROVISIONING_PROFILE != '' }}
+      HAS_NOTARIZATION: ${{ secrets.MAC_NOTARIZATION_APPLE_ID != '' }}
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
@@ -145,14 +150,14 @@ jobs:
 
       - name: Setup macOS signing
         id: signing
-        if: ${{ secrets.MAC_CERTIFICATES_P12 != '' }}
+        if: env.HAS_SIGNING_CERTS == 'true'
         uses: ./.github/actions/setup-macos-signing
         with:
           certificate-base64: ${{ secrets.MAC_CERTIFICATES_P12 }}
           certificate-password: ${{ secrets.MAC_CERTIFICATES_PASSWORD }}
 
       - name: Decode provisioning profiles
-        if: ${{ secrets.MAC_PROVISIONING_PROFILE != '' }}
+        if: env.HAS_PROVISIONING == 'true'
         shell: bash
         run: |
           echo "${{ secrets.MAC_PROVISIONING_PROFILE }}" | base64 -d > "$RUNNER_TEMP/embedded.provisionprofile"
@@ -190,7 +195,7 @@ jobs:
           runtime-provisioning-profile: ${{ env.RUNTIME_PROVISIONING }}
 
       - name: Notarize DMG
-        if: ${{ secrets.MAC_NOTARIZATION_APPLE_ID != '' }}
+        if: env.HAS_NOTARIZATION == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -211,7 +216,7 @@ jobs:
           xcrun stapler staple "$DMG"
 
       - name: Notarize ZIP
-        if: ${{ secrets.MAC_NOTARIZATION_APPLE_ID != '' }}
+        if: env.HAS_NOTARIZATION == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -241,7 +246,7 @@ jobs:
           rm -rf "$STAPLE_WORK"
 
       - name: Cleanup keychain
-        if: always() && steps.signing.outputs.keychain-path != ''
+        if: ${{ always() && env.HAS_SIGNING_CERTS == 'true' }}
         shell: bash
         run: security delete-keychain "${{ steps.signing.outputs.keychain-path }}" || true
 
