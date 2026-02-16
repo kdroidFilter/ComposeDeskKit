@@ -70,6 +70,7 @@ internal class CommonJvmDesktopTasks(
     val checkRuntime: TaskProvider<AbstractCheckNativeDistributionRuntime>,
     val suggestRuntimeModules: TaskProvider<AbstractSuggestModulesTask>,
     val prepareAppResources: TaskProvider<Sync>,
+    val prepareSandboxedAppResources: TaskProvider<Sync>?,
     val createRuntimeImage: TaskProvider<AbstractJLinkTask>,
 )
 
@@ -154,13 +155,30 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
                 from(appResourcesRootDir.dir(currentTarget.id))
             }
 
-            // Include extracted native libs when sandboxing is enabled
-            if (extractNativeLibs != null) {
+            into(jvmTmpDirForTask())
+        }
+
+    // Separate resources task for the sandboxed pipeline, including extracted native libs
+    val prepareSandboxedAppResources =
+        if (extractNativeLibs != null) {
+            tasks.register<Sync>(
+                taskNameAction = "prepare",
+                taskNameObject = "sandboxedAppResources",
+            ) {
+                val appResourcesRootDir = app.nativeDistributions.appResourcesRootDir
+                if (appResourcesRootDir.isPresent) {
+                    from(appResourcesRootDir.dir("common"))
+                    from(appResourcesRootDir.dir(currentOS.id))
+                    from(appResourcesRootDir.dir(currentTarget.id))
+                }
+
                 dependsOn(extractNativeLibs)
                 from(extractNativeLibs.flatMap { it.outputDir })
-            }
 
-            into(jvmTmpDirForTask())
+                into(jvmTmpDirForTask())
+            }
+        } else {
+            null
         }
 
     val createRuntimeImage =
@@ -181,6 +199,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
         checkRuntime,
         suggestRuntimeModules,
         prepareAppResources,
+        prepareSandboxedAppResources,
         createRuntimeImage,
     )
 }
@@ -313,7 +332,8 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                     configurePackageTask(
                         this,
                         createRuntimeImage = commonTasks.createRuntimeImage,
-                        prepareAppResources = commonTasks.prepareAppResources,
+                        prepareAppResources = commonTasks.prepareSandboxedAppResources
+                            ?: commonTasks.prepareAppResources,
                         checkRuntime = commonTasks.checkRuntime,
                         unpackDefaultResources = commonTasks.unpackDefaultResources,
                         runProguard = runProguard,
