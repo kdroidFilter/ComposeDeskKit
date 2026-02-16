@@ -136,26 +136,28 @@ fun app() {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "Auto-Update",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(updateStatus)
-
-                if (downloadProgress in 0.0..99.9) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    LinearProgressIndicator(
-                        progress = { (downloadProgress / 100.0).toFloat() },
-                        modifier = Modifier.fillMaxWidth(0.6f),
+                if (updater.isUpdateSupported()) {
+                    Text(
+                        text = "Auto-Update",
+                        style = MaterialTheme.typography.titleMedium,
                     )
-                    Text("${downloadProgress.toInt()}%")
-                }
-
-                if (downloadedFile != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { updater.installAndRestart(downloadedFile!!) }) {
-                        Text("Install & Restart")
+                    Text(updateStatus)
+
+                    if (downloadProgress in 0.0..99.9) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { (downloadProgress / 100.0).toFloat() },
+                            modifier = Modifier.fillMaxWidth(0.6f),
+                        )
+                        Text("${downloadProgress.toInt()}%")
+                    }
+
+                    if (downloadedFile != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = { updater.installAndRestart(downloadedFile!!) }) {
+                            Text("Install & Restart")
+                        }
                     }
                 }
             }
