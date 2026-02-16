@@ -58,7 +58,12 @@ nav:
       - Auto Update: auto-update.md
       - Publishing: publishing.md
       - CI/CD: ci-cd.md
-      - Runtime APIs: runtime-apis.md
+      - Runtime APIs:
+          - Overview: runtime/index.md
+          - Executable Type: runtime/executable-type.md
+          - AOT Cache: runtime/aot-cache.md
+          - Single Instance: runtime/single-instance.md
+          - Deep Links: runtime/deep-links.md
   - Migration: migration.md
 
 plugins:
