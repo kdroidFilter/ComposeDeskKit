@@ -182,6 +182,8 @@ abstract class AbstractElectronBuilderPackageTask
                 )
             ensureProjectPackageMetadata(outputDir, dist)
 
+            cleanupParasiticFiles(outputDir)
+
             val toolManager = ElectronBuilderToolManager(execOperations, logger)
             val extraConfigArgs =
                 buildList {
@@ -208,6 +210,7 @@ abstract class AbstractElectronBuilderPackageTask
                 ),
             )
 
+            cleanupParasiticFiles(outputDir)
             configFile.delete()
             exportPackagingMetadata(outputDir, dist)
             logger.lifecycle("nucleus builder package written to ${outputDir.canonicalPath}")
@@ -829,6 +832,26 @@ abstract class AbstractElectronBuilderPackageTask
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
+
+        /**
+         * Removes parasitic executable files that electron-builder may copy from the app-image
+         * into the output directory. These raw executables (e.g. java.exe, AppName.exe) are not
+         * installers and should not be published as release assets.
+         */
+        private fun cleanupParasiticFiles(outputDir: File) {
+            if (currentOS != OS.Windows) return
+
+            val knownParasitic = setOf("java.exe", "javaw.exe")
+            val rawLauncherName = "${packageName.get()}.exe"
+
+            outputDir.listFiles()?.forEach { file ->
+                if (!file.isFile) return@forEach
+                if (file.name in knownParasitic || file.name.equals(rawLauncherName, ignoreCase = true)) {
+                    logger.info("Removing parasitic executable from output: ${file.name}")
+                    file.delete()
+                }
+            }
+        }
 
         /**
          * Resolves the actual app directory inside the jpackage app-image output.
