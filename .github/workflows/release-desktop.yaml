@@ -86,6 +86,7 @@ jobs:
             example/build/compose/binaries/**/*.msi
             example/build/compose/binaries/**/*.exe
             example/build/compose/binaries/**/*.appx
+            !example/build/compose/binaries/**/runtime/**
             example/build/compose/binaries/**/*.7z
             example/build/compose/binaries/**/*.pkg
             example/build/compose/binaries/**/*.dmg

@@ -34,6 +34,9 @@ runs:
         # File extensions to skip uploading (already included in update-yml)
         SKIP_PATTERN='\.(yml|yaml)$'
 
+        # Known parasitic files: raw executables from jpackage app-image and internal metadata
+        SKIP_NAMES='^(java\.exe|javaw\.exe|signing-metadata\.json|packaging-metadata\.json)$'
+
         # Build gh release create flags
         CREATE_FLAGS=("--title" "$TAG" "--generate-notes")
         case "$RELEASE_TYPE" in
@@ -64,6 +67,18 @@ runs:
 
             # Skip yml/yaml metadata (we upload our consolidated ones instead)
             if echo "$basename_file" | grep -qE "$SKIP_PATTERN"; then
+              continue
+            fi
+
+            # Skip known parasitic files (raw jpackage executables and internal metadata)
+            if echo "$basename_file" | grep -qE "$SKIP_NAMES"; then
+              echo "Skipping parasitic/internal file: $file"
+              continue
+            fi
+
+            # Skip raw jpackage launcher .exe (no hyphen = no version/arch in name)
+            if [[ "$basename_file" == *.exe ]] && [[ "$basename_file" != *-* ]]; then
+              echo "Skipping raw launcher executable: $file"
               continue
             fi
 
