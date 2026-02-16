@@ -69,6 +69,13 @@ internal class InfoPlistBuilder(
                     "${indentForLevel(nestingLevel)}<string>$value</string>"
                 }
         }
+
+        data class InfoPlistBooleanValue(
+            val value: Boolean,
+        ) : InfoPlistValue() {
+            override fun asPlistEntry(nestingLevel: Int): String =
+                "${indentForLevel(nestingLevel)}<${if (value) "true" else "false"}/>"
+        }
     }
 
     private val values = LinkedHashMap<InfoPlistKey, InfoPlistValue>()
@@ -89,6 +96,11 @@ internal class InfoPlistBuilder(
         key: InfoPlistKey,
         value: Map<InfoPlistKey, InfoPlistValue>?,
     ) = set(key, value?.let(::InfoPlistMapValue))
+
+    operator fun set(
+        key: InfoPlistKey,
+        value: Boolean?,
+    ) = set(key, value?.let(InfoPlistValue::InfoPlistBooleanValue))
 
     operator fun set(
         key: InfoPlistKey,
@@ -154,4 +166,5 @@ internal object PlistKeys {
     val NSHumanReadableCopyright by this
     val NSSupportsAutomaticGraphicsSwitching by this
     val NSHighResolutionCapable by this
+    val ITSAppUsesNonExemptEncryption by this
 }

@@ -54,21 +54,21 @@ fun main() {
     }
 
     application {
-        Tray(
-            iconContent = {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    // Important to use fillMaxSize()!
-                    drawCircle(
-                        color = Color.Red,
-                        radius = size.minDimension / 2,
-                        center = center,
-                    )
-                }
-            },
-            tooltip = "My Application",
-        ) {
-            Item("Quit") { exitApplication() }
-        } // Check Native lib
+//        Tray(
+//            iconContent = {
+//                Canvas(modifier = Modifier.fillMaxSize()) {
+//                    // Important to use fillMaxSize()!
+//                    drawCircle(
+//                        color = Color.Red,
+//                        radius = size.minDimension / 2,
+//                        center = center,
+//                    )
+//                }
+//            },
+//            tooltip = "My Application",
+//        ) {
+//            Item("Quit") { exitApplication() }
+//        } // Check Native lib
 
         Window(
             state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),

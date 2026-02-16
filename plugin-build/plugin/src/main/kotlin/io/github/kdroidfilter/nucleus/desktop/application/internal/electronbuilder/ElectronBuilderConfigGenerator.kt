@@ -10,6 +10,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.dsl.DmgSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.FileAssociation
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.FlatpakSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.JvmApplicationDistributions
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.JvmMacOSPlatformSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.NsisSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.PublishSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.SnapSettings
@@ -140,6 +141,11 @@ internal class ElectronBuilderConfigGenerator {
                 yaml.appendLine("  isRelocatable: false")
                 if (distributions.macOS.signing.sign.orNull != true) {
                     yaml.appendLine("  identity: null")
+                } else {
+                    val installerIdentity = resolveInstallerIdentity(distributions.macOS)
+                    if (installerIdentity != null) {
+                        yaml.appendLine("  identity: \"$installerIdentity\"")
+                    }
                 }
             }
             else -> {}
@@ -594,6 +600,37 @@ internal class ElectronBuilderConfigGenerator {
             appendIfNotNull(yaml, "    region", s3.region)
             appendIfNotNull(yaml, "    path", s3.path)
             appendIfNotNull(yaml, "    acl", s3.acl)
+        }
+    }
+
+    /**
+     * Resolves the PKG installer signing identity based on the app signing identity.
+     *
+     * For App Store builds, uses "3rd Party Mac Developer Installer: " prefix.
+     * For direct distribution builds, uses "Developer ID Installer: " prefix.
+     */
+    private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? {
+        val identity = macOS.signing.identity.orNull ?: return null
+        val appStore = macOS.appStore
+
+        val developerIdAppPrefix = "Developer ID Application: "
+        val thirdPartyAppPrefix = "3rd Party Mac Developer Application: "
+        val developerIdInstallerPrefix = "Developer ID Installer: "
+        val thirdPartyInstallerPrefix = "3rd Party Mac Developer Installer: "
+
+        // Strip any existing Application prefix to get the bare identity (team name)
+        val bareIdentity = when {
+            identity.startsWith(developerIdAppPrefix) -> identity.removePrefix(developerIdAppPrefix)
+            identity.startsWith(thirdPartyAppPrefix) -> identity.removePrefix(thirdPartyAppPrefix)
+            identity.startsWith(developerIdInstallerPrefix) -> identity.removePrefix(developerIdInstallerPrefix)
+            identity.startsWith(thirdPartyInstallerPrefix) -> identity.removePrefix(thirdPartyInstallerPrefix)
+            else -> identity
+        }
+
+        return if (appStore) {
+            thirdPartyInstallerPrefix + bareIdentity
+        } else {
+            developerIdInstallerPrefix + bareIdentity
         }
     }
 

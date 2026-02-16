@@ -660,6 +660,9 @@ abstract class AbstractJPackageTask
                 ?: "Copyright (C) $year"
             plist[PlistKeys.NSSupportsAutomaticGraphicsSwitching] = "true"
             plist[PlistKeys.NSHighResolutionCapable] = "true"
+            if (macAppStore.orNull == true) {
+                plist[PlistKeys.ITSAppUsesNonExemptEncryption] = false
+            }
             val fileAssociationMutableSet = fileAssociations.get()
             if (fileAssociationMutableSet.isNotEmpty()) {
                 plist[PlistKeys.CFBundleDocumentTypes] =
