@@ -29,6 +29,7 @@ import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.DialogWindowScope
 import androidx.compose.ui.window.rememberDialogState
 import com.jetbrains.JBR
+import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
@@ -36,6 +37,9 @@ import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.awt.geom.Area
+import java.awt.geom.Rectangle2D
+import java.awt.geom.RoundRectangle2D
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -77,19 +81,36 @@ fun DecoratedDialog(
     ) {
         var decoratedDialogState by remember { mutableStateOf(DecoratedDialogState.of(window)) }
 
+        val isGnome = remember { LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.Gnome }
+        val gnomeCornerArc = 24f
+
         DisposableEffect(window) {
+            fun updateDialogShape() {
+                decoratedDialogState = DecoratedDialogState.of(window)
+                if (isGnome) {
+                    val w = window.width.toFloat()
+                    val h = window.height.toFloat()
+                    window.shape =
+                        Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
+                            add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
+                        }
+                }
+            }
+
+            updateDialogShape()
+
             val adapter =
                 object : WindowAdapter(), ComponentListener {
                     override fun windowActivated(e: WindowEvent?) {
-                        decoratedDialogState = DecoratedDialogState.of(window)
+                        updateDialogShape()
                     }
 
                     override fun windowDeactivated(e: WindowEvent?) {
-                        decoratedDialogState = DecoratedDialogState.of(window)
+                        updateDialogShape()
                     }
 
                     override fun componentResized(e: ComponentEvent?) {
-                        decoratedDialogState = DecoratedDialogState.of(window)
+                        updateDialogShape()
                     }
 
                     override fun componentMoved(e: ComponentEvent?) {

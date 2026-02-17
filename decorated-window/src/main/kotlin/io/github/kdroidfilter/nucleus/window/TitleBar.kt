@@ -148,13 +148,6 @@ internal fun GenericTitleBarImpl(
         )
     }
 
-    Spacer(
-        Modifier
-            .layoutId(TITLE_BAR_BORDER_LAYOUT_ID)
-            .height(1.dp)
-            .fillMaxWidth()
-            .background(style.colors.border),
-    )
 }
 
 internal class TitleBarMeasurePolicy(

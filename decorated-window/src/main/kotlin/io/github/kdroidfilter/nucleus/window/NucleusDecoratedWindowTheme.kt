@@ -50,8 +50,8 @@ object DecoratedWindowDefaults {
         DecoratedWindowStyle(
             colors =
                 DecoratedWindowColors(
-                    border = Color(0xFFB0B0B0),
-                    borderInactive = Color(0xFFD0D0D0),
+                    border = Color(0x12FFFFFF),
+                    borderInactive = Color(0x12FFFFFF),
                 ),
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
@@ -60,8 +60,8 @@ object DecoratedWindowDefaults {
         DecoratedWindowStyle(
             colors =
                 DecoratedWindowColors(
-                    border = Color(0xFF555555),
-                    borderInactive = Color(0xFF3C3C3C),
+                    border = Color(0x12FFFFFF),
+                    borderInactive = Color(0x12FFFFFF),
                 ),
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
@@ -73,7 +73,7 @@ object DecoratedWindowDefaults {
                     background = Color(0xFFF0F0F0),
                     inactiveBackground = Color(0xFFFAFAFA),
                     content = Color(0xFF1E1E1E),
-                    border = Color(0xFFB0B0B0),
+                    border = Color(0x1F000006),
                     fullscreenControlButtonsBackground = Color(0xFFF0F0F0),
                     titlePaneButtonHoveredBackground = Color(0x1A000000),
                     titlePaneButtonPressedBackground = Color(0x33000000),
@@ -95,7 +95,7 @@ object DecoratedWindowDefaults {
                     background = Color(0xFF2B2B2B),
                     inactiveBackground = Color(0xFF3C3C3C),
                     content = Color(0xFFE0E0E0),
-                    border = Color(0xFF555555),
+                    border = Color(0x5C000006),
                     fullscreenControlButtonsBackground = Color(0xFF2B2B2B),
                     titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
                     titlePaneButtonPressedBackground = Color(0x33FFFFFF),

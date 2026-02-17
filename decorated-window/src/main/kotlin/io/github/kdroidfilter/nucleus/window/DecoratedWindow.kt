@@ -30,6 +30,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import com.jetbrains.JBR
+import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
@@ -37,6 +38,9 @@ import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.awt.geom.Area
+import java.awt.geom.Rectangle2D
+import java.awt.geom.RoundRectangle2D
 
 internal const val TITLE_BAR_COMPONENT_LAYOUT_ID_PREFIX = "__TITLE_BAR_"
 
@@ -86,31 +90,53 @@ fun DecoratedWindow(
     ) {
         var decoratedWindowState by remember { mutableStateOf(DecoratedWindowState.of(window)) }
 
+        val isGnome = remember { LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.Gnome }
+        val gnomeCornerArc = 24f
+
         DisposableEffect(window) {
+            fun updateWindowShape() {
+                decoratedWindowState = DecoratedWindowState.of(window)
+                if (isGnome) {
+                    val ws = DecoratedWindowState.of(window)
+                    window.shape =
+                        if (ws.isMaximized || ws.isFullscreen) {
+                            null
+                        } else {
+                            val w = window.width.toFloat()
+                            val h = window.height.toFloat()
+                            Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
+                                add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
+                            }
+                        }
+                }
+            }
+
+            updateWindowShape()
+
             val adapter =
                 object : WindowAdapter(), ComponentListener {
                     override fun windowActivated(e: WindowEvent?) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun windowDeactivated(e: WindowEvent?) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun windowIconified(e: WindowEvent?) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun windowDeiconified(e: WindowEvent?) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun windowStateChanged(e: WindowEvent) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun componentResized(e: ComponentEvent?) {
-                        decoratedWindowState = DecoratedWindowState.of(window)
+                        updateWindowShape()
                     }
 
                     override fun componentMoved(e: ComponentEvent?) {
