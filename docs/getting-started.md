@@ -31,6 +31,9 @@ dependencies {
 
     // Auto-update library (includes core-runtime)
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:1.0.0")
+
+    // Custom decorated window with native title bar
+    implementation("io.github.kdroidfilter:nucleus.decorated-window:1.0.0")
 }
 ```
 

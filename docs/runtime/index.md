@@ -9,6 +9,7 @@ Nucleus provides three runtime libraries for use in your application code. All a
 | Core Runtime | `io.github.kdroidfilter:nucleus.core-runtime` | Executable type detection, single instance, deep links |
 | AOT Runtime | `io.github.kdroidfilter:nucleus.aot-runtime` | AOT cache detection (includes core-runtime via `api`) |
 | Updater Runtime | `io.github.kdroidfilter:nucleus.updater-runtime` | Auto-update library (includes core-runtime) |
+| Decorated Window | `io.github.kdroidfilter:nucleus.decorated-window` | Custom window decorations with native title bar |
 
 ```kotlin
 dependencies {
@@ -16,5 +17,6 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.core-runtime:1.0.0")
     implementation("io.github.kdroidfilter:nucleus.aot-runtime:1.0.0")
     implementation("io.github.kdroidfilter:nucleus.updater-runtime:1.0.0")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window:1.0.0")
 }
 ```

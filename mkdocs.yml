@@ -64,6 +64,7 @@ nav:
           - AOT Cache: runtime/aot-cache.md
           - Single Instance: runtime/single-instance.md
           - Deep Links: runtime/deep-links.md
+          - Decorated Window: runtime/decorated-window.md
   - Migration: migration.md
 
 plugins:

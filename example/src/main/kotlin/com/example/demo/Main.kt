@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -34,6 +33,9 @@ import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.kdroidfilter.nucleus.window.TitleBar
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -84,18 +86,27 @@ fun main(args: Array<String>) {
         }
 
         if (isWindowVisible) {
-            Window(
-                state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
-                onCloseRequest = ::exitApplication,
-                title = "Nucleus Demo",
-            ) {
-                LaunchedEffect(restoreRequestCount) {
-                    if (restoreRequestCount > 0) {
-                        window.toFront()
-                        window.requestFocus()
+            NucleusDecoratedWindowTheme(isDark = true) {
+                DecoratedWindow(
+                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                    onCloseRequest = ::exitApplication,
+                    title = "Nucleus Demo",
+                ) {
+                    TitleBar { _ ->
+                        Text(
+                            title,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = Color.White,
+                        )
                     }
+                    LaunchedEffect(restoreRequestCount) {
+                        if (restoreRequestCount > 0) {
+                            window.toFront()
+                            window.requestFocus()
+                        }
+                    }
+                    app()
                 }
-                app()
             }
         }
     }
