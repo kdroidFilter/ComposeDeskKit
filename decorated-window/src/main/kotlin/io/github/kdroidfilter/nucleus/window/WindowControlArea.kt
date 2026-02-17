@@ -6,7 +6,6 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,14 +14,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import io.github.kdroidfilter.nucleus.window.utils.linux.linuxTitleBarIcons
 import java.awt.Frame
@@ -34,7 +28,6 @@ internal fun TitleBarScope.WindowControlArea(
     window: java.awt.Window,
     state: DecoratedWindowState,
     style: TitleBarStyle,
-    iconHoveredEffect: Boolean = false,
 ) {
     val icons = linuxTitleBarIcons()
 
@@ -42,10 +35,11 @@ internal fun TitleBarScope.WindowControlArea(
     ControlButton(
         onClick = { window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING)) },
         state = state,
-        icon = if (state.isActive) icons.close else icons.closeInactive,
+        icon = icons.close,
+        iconHover = icons.closeHover,
+        iconPressed = icons.closePressed,
         contentDescription = "Close",
         style = style,
-        iconHoveredEffect = iconHoveredEffect,
     )
 
     // Maximize/Restore button (only if resizable)
@@ -55,19 +49,21 @@ internal fun TitleBarScope.WindowControlArea(
             ControlButton(
                 onClick = { frame.extendedState = Frame.NORMAL },
                 state = state,
-                icon = if (state.isActive) icons.restore else icons.restoreInactive,
+                icon = icons.restore,
+                iconHover = icons.restoreHover,
+                iconPressed = icons.restorePressed,
                 contentDescription = "Restore",
                 style = style,
-                iconHoveredEffect = iconHoveredEffect,
             )
         } else {
             ControlButton(
                 onClick = { frame.extendedState = Frame.MAXIMIZED_BOTH },
                 state = state,
-                icon = if (state.isActive) icons.maximize else icons.maximizeInactive,
+                icon = icons.maximize,
+                iconHover = icons.maximizeHover,
+                iconPressed = icons.maximizePressed,
                 contentDescription = "Maximize",
                 style = style,
-                iconHoveredEffect = iconHoveredEffect,
             )
         }
     }
@@ -80,10 +76,11 @@ internal fun TitleBarScope.WindowControlArea(
             }
         },
         state = state,
-        icon = if (state.isActive) icons.minimize else icons.minimizeInactive,
+        icon = icons.minimize,
+        iconHover = icons.minimizeHover,
+        iconPressed = icons.minimizePressed,
         contentDescription = "Minimize",
         style = style,
-        iconHoveredEffect = iconHoveredEffect,
     )
 }
 
@@ -97,7 +94,6 @@ internal fun TitleBarScope.DialogCloseButton(
     window: java.awt.Window,
     state: DecoratedDialogState,
     style: TitleBarStyle,
-    iconHoveredEffect: Boolean = false,
 ) {
     val icons = linuxTitleBarIcons()
     val windowState = state.toDecoratedWindowState()
@@ -105,10 +101,11 @@ internal fun TitleBarScope.DialogCloseButton(
     ControlButton(
         onClick = { window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING)) },
         state = windowState,
-        icon = if (windowState.isActive) icons.close else icons.closeInactive,
+        icon = icons.close,
+        iconHover = icons.closeHover,
+        iconPressed = icons.closePressed,
         contentDescription = "Close",
         style = style,
-        iconHoveredEffect = iconHoveredEffect,
     )
 }
 
@@ -119,9 +116,10 @@ private fun TitleBarScope.ControlButton(
     onClick: () -> Unit,
     state: DecoratedWindowState,
     icon: Painter,
+    iconHover: Painter,
+    iconPressed: Painter,
     contentDescription: String,
     style: TitleBarStyle,
-    iconHoveredEffect: Boolean,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -139,27 +137,26 @@ private fun TitleBarScope.ControlButton(
         contentAlignment = Alignment.Center,
     ) {
         var hovered by remember { mutableStateOf(false) }
+        var pressed by remember { mutableStateOf(false) }
 
-        val hoverModifier =
-            if (iconHoveredEffect && state.isActive) {
-                Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .drawWithContent {
-                        drawContent()
-                        if (hovered) {
-                            // Lighten only the icon by overlaying a subtle white tint
-                            drawRect(Color.White.copy(alpha = 0.02f), blendMode = BlendMode.SrcOver)
-                        }
-                    }.onPointerEvent(PointerEventType.Enter) { hovered = true }
-                    .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            } else {
-                Modifier
+        val currentIcon =
+            when {
+                pressed && state.isActive -> iconPressed
+                hovered && state.isActive -> iconHover
+                else -> icon
             }
 
         Image(
-            painter = icon,
+            painter = currentIcon,
             contentDescription = contentDescription,
-            modifier = hoverModifier,
+            modifier =
+                Modifier
+                    .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                    .onPointerEvent(PointerEventType.Exit) {
+                        hovered = false
+                        pressed = false
+                    }.onPointerEvent(PointerEventType.Press) { pressed = true }
+                    .onPointerEvent(PointerEventType.Release) { pressed = false },
         )
     }
 }

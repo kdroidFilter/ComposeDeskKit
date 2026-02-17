@@ -139,11 +139,11 @@ object DecoratedWindowDefaults {
                     )
                 } else {
                     TitleBarColors(
-                        background = Color(0xFF2B2B2B),
-                        inactiveBackground = Color(0xFF3C3C3C),
+                        background = Color(0xFF3C3C3C),
+                        inactiveBackground = Color(0xFF2B2B2B),
                         content = Color(0xFFE0E0E0),
                         border = Color(0x5C000006),
-                        fullscreenControlButtonsBackground = Color(0xFF2B2B2B),
+                        fullscreenControlButtonsBackground = Color(0xFF3C3C3C),
                         titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
                         titlePaneButtonPressedBackground = Color(0x33FFFFFF),
                         titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),

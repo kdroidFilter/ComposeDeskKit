@@ -70,7 +70,7 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
         linuxStyle,
         { _, _ -> PaddingValues(0.dp) },
     ) { currentState ->
-        WindowControlArea(window, currentState, linuxStyle, iconHoveredEffect = true)
+        WindowControlArea(window, currentState, linuxStyle)
         content(currentState)
     }
 }

@@ -39,7 +39,7 @@ internal fun DecoratedDialogScope.LinuxDialogTitleBar(
         linuxStyle,
         { _, _ -> PaddingValues(0.dp) },
     ) { _ ->
-        DialogCloseButton(window, dialogState, linuxStyle, iconHoveredEffect = true)
+        DialogCloseButton(window, dialogState, linuxStyle)
         content(dialogState)
     }
 }
