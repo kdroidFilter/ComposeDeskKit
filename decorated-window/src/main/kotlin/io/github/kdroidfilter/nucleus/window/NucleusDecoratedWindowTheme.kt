@@ -55,34 +55,20 @@ object DecoratedWindowDefaults {
     fun lightWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
-                if (isKde) {
-                    DecoratedWindowColors(
-                        border = Color(0xFFBDBFC1),
-                        borderInactive = Color(0xFFC6C8C9),
-                    )
-                } else {
-                    DecoratedWindowColors(
-                        border = Color(0x12FFFFFF),
-                        borderInactive = Color(0x12FFFFFF),
-                    )
-                },
+                DecoratedWindowColors(
+                    border = Color(0x12FFFFFF),
+                    borderInactive = Color(0x12FFFFFF),
+                ),
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
     fun darkWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
-                if (isKde) {
-                    DecoratedWindowColors(
-                        border = Color(0xFF52565A),
-                        borderInactive = Color(0xFF4C4F52),
-                    )
-                } else {
-                    DecoratedWindowColors(
-                        border = Color(0x12FFFFFF),
-                        borderInactive = Color(0x12FFFFFF),
-                    )
-                },
+                DecoratedWindowColors(
+                    border = Color(0x12FFFFFF),
+                    borderInactive = Color(0x12FFFFFF),
+                ),
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
