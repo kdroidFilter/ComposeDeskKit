@@ -3,6 +3,7 @@ package io.github.kdroidfilter.nucleus.window
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowColors
 import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowMetrics
@@ -40,8 +41,8 @@ fun NucleusDecoratedWindowTheme(
     }
 }
 
+@Suppress("MagicNumber")
 object DecoratedWindowDefaults {
-    @Suppress("MagicNumber")
     fun lightWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
@@ -52,7 +53,6 @@ object DecoratedWindowDefaults {
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
-    @Suppress("MagicNumber")
     fun darkWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
@@ -63,43 +63,47 @@ object DecoratedWindowDefaults {
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
-    @Suppress("LongMethod", "MagicNumber")
     fun lightTitleBarStyle(): TitleBarStyle =
         TitleBarStyle(
             colors =
                 TitleBarColors(
                     background = Color(0xFFF0F0F0),
-                    backgroundInactive = Color(0xFFFAFAFA),
+                    inactiveBackground = Color(0xFFFAFAFA),
                     content = Color(0xFF1E1E1E),
-                    contentInactive = Color(0xFF888888),
                     border = Color(0xFFB0B0B0),
-                    borderInactive = Color(0xFFD0D0D0),
-                    hoverBackground = Color(0x1A000000),
-                    pressBackground = Color(0x33000000),
-                    closeHoverBackground = Color(0xFFE81123),
-                    closePressBackground = Color(0xFFF1707A),
+                    fullscreenControlButtonsBackground = Color(0xFFF0F0F0),
+                    titlePaneButtonHoveredBackground = Color(0x1A000000),
+                    titlePaneButtonPressedBackground = Color(0x33000000),
+                    titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
+                    titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
                 ),
-            metrics = TitleBarMetrics(height = 40.dp),
+            metrics =
+                TitleBarMetrics(
+                    height = 40.dp,
+                    titlePaneButtonSize = DpSize(40.dp, 40.dp),
+                ),
             icons = TitleBarIcons(),
         )
 
-    @Suppress("LongMethod", "MagicNumber")
     fun darkTitleBarStyle(): TitleBarStyle =
         TitleBarStyle(
             colors =
                 TitleBarColors(
                     background = Color(0xFF2B2B2B),
-                    backgroundInactive = Color(0xFF3C3C3C),
+                    inactiveBackground = Color(0xFF3C3C3C),
                     content = Color(0xFFE0E0E0),
-                    contentInactive = Color(0xFF888888),
                     border = Color(0xFF555555),
-                    borderInactive = Color(0xFF3C3C3C),
-                    hoverBackground = Color(0x1AFFFFFF),
-                    pressBackground = Color(0x33FFFFFF),
-                    closeHoverBackground = Color(0xFFE81123),
-                    closePressBackground = Color(0xFFF1707A),
+                    fullscreenControlButtonsBackground = Color(0xFF2B2B2B),
+                    titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
+                    titlePaneButtonPressedBackground = Color(0x33FFFFFF),
+                    titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
+                    titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
                 ),
-            metrics = TitleBarMetrics(height = 40.dp),
+            metrics =
+                TitleBarMetrics(
+                    height = 40.dp,
+                    titlePaneButtonSize = DpSize(40.dp, 40.dp),
+                ),
             icons = TitleBarIcons(),
         )
 }

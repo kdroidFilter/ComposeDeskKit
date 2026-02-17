@@ -1,119 +1,136 @@
 package io.github.kdroidfilter.nucleus.window
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsHoveredAsState
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.unit.dp
-import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import io.github.kdroidfilter.nucleus.window.utils.linux.linuxTitleBarIcons
+import java.awt.Frame
+import java.awt.event.WindowEvent
 
-private val BUTTON_SIZE = 32.dp
-private val ICON_SIZE = 16.dp
+private const val HOVER_ALPHA = 0.02f
 
-@Suppress("FunctionNaming")
 @Composable
-internal fun WindowControlArea(
-    onMinimize: () -> Unit,
-    onMaximizeRestore: () -> Unit,
-    onClose: () -> Unit,
-    isMaximized: Boolean,
-    isActive: Boolean,
-    modifier: Modifier = Modifier,
+internal fun TitleBarScope.WindowControlArea(
+    window: java.awt.Window,
+    state: DecoratedWindowState,
+    style: TitleBarStyle,
+    iconHoveredEffect: Boolean = false,
 ) {
     val icons = linuxTitleBarIcons()
-    val style = LocalTitleBarStyle.current
 
-    Row(modifier = modifier) {
-        ControlButton(
-            onClick = onMinimize,
-            icon = if (isActive) icons.minimize else icons.minimizeInactive,
-            contentDescription = "Minimize",
-            hoverColor = style.colors.hoverBackground,
-            pressColor = style.colors.pressBackground,
-        )
-        ControlButton(
-            onClick = onMaximizeRestore,
-            icon =
-                if (isActive) {
-                    if (isMaximized) icons.restore else icons.maximize
-                } else {
-                    if (isMaximized) icons.restoreInactive else icons.maximizeInactive
-                },
-            contentDescription = if (isMaximized) "Restore" else "Maximize",
-            hoverColor = style.colors.hoverBackground,
-            pressColor = style.colors.pressBackground,
-        )
-        ControlButton(
-            onClick = onClose,
-            icon = if (isActive) icons.close else icons.closeInactive,
-            contentDescription = "Close",
-            hoverColor = style.colors.closeHoverBackground,
-            pressColor = style.colors.closePressBackground,
-        )
-    }
-}
-
-@Suppress("FunctionNaming")
-@Composable
-internal fun DialogCloseButton(
-    onClick: () -> Unit,
-    isActive: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val icons = linuxTitleBarIcons()
-    val style = LocalTitleBarStyle.current
-
+    // Close button (placed first with Alignment.End, so it's rightmost)
     ControlButton(
-        onClick = onClick,
-        icon = if (isActive) icons.close else icons.closeInactive,
+        onClick = { window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING)) },
+        state = state,
+        icon = if (state.isActive) icons.close else icons.closeInactive,
         contentDescription = "Close",
-        hoverColor = style.colors.closeHoverBackground,
-        pressColor = style.colors.closePressBackground,
-        modifier = modifier,
+        style = style,
+        iconHoveredEffect = iconHoveredEffect,
+    )
+
+    // Maximize/Restore button (only if resizable)
+    val frame = window as? Frame
+    if (frame != null && frame.isResizable) {
+        if (state.isMaximized) {
+            ControlButton(
+                onClick = { frame.extendedState = Frame.NORMAL },
+                state = state,
+                icon = if (state.isActive) icons.restore else icons.restoreInactive,
+                contentDescription = "Restore",
+                style = style,
+                iconHoveredEffect = iconHoveredEffect,
+            )
+        } else {
+            ControlButton(
+                onClick = { frame.extendedState = Frame.MAXIMIZED_BOTH },
+                state = state,
+                icon = if (state.isActive) icons.maximize else icons.maximizeInactive,
+                contentDescription = "Maximize",
+                style = style,
+                iconHoveredEffect = iconHoveredEffect,
+            )
+        }
+    }
+
+    // Minimize button (placed last with Alignment.End, so it's leftmost)
+    ControlButton(
+        onClick = {
+            (window as? Frame)?.let {
+                it.extendedState = it.extendedState or Frame.ICONIFIED
+            }
+        },
+        state = state,
+        icon = if (state.isActive) icons.minimize else icons.minimizeInactive,
+        contentDescription = "Minimize",
+        style = style,
+        iconHoveredEffect = iconHoveredEffect,
     )
 }
 
-@Suppress("FunctionNaming")
+/**
+ * Close button for dialog title bars.
+ * Unlike [WindowControlArea], this only shows the close button (no minimize/maximize).
+ */
 @Composable
-private fun ControlButton(
+internal fun TitleBarScope.DialogCloseButton(
+    window: java.awt.Window,
+    state: DecoratedDialogState,
+    style: TitleBarStyle,
+    iconHoveredEffect: Boolean = false,
+) {
+    val icons = linuxTitleBarIcons()
+    val windowState = state.toDecoratedWindowState()
+
+    ControlButton(
+        onClick = { window.dispatchEvent(WindowEvent(window, WindowEvent.WINDOW_CLOSING)) },
+        state = windowState,
+        icon = if (windowState.isActive) icons.close else icons.closeInactive,
+        contentDescription = "Close",
+        style = style,
+        iconHoveredEffect = iconHoveredEffect,
+    )
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Suppress("FunctionNaming", "LongParameterList")
+@Composable
+private fun TitleBarScope.ControlButton(
     onClick: () -> Unit,
+    state: DecoratedWindowState,
     icon: Painter,
     contentDescription: String,
-    hoverColor: Color,
-    pressColor: Color,
-    modifier: Modifier = Modifier,
+    style: TitleBarStyle,
+    iconHoveredEffect: Boolean,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val isHovered by interactionSource.collectIsHoveredAsState()
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val bgColor =
-        when {
-            isPressed -> pressColor
-            isHovered -> hoverColor
-            else -> Color.Transparent
-        }
 
     Box(
         modifier =
-            modifier
-                .size(BUTTON_SIZE)
-                .hoverable(interactionSource)
-                .background(bgColor)
+            Modifier
+                .align(Alignment.End)
+                .focusable(false)
+                .size(style.metrics.titlePaneButtonSize)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
@@ -121,10 +138,27 @@ private fun ControlButton(
                 ),
         contentAlignment = Alignment.Center,
     ) {
+        var hovered by remember { mutableStateOf(false) }
+
+        val hoverModifier =
+            if (iconHoveredEffect && state.isActive) {
+                Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .drawWithContent {
+                        drawContent()
+                        if (hovered) {
+                            drawRect(Color.White.copy(alpha = HOVER_ALPHA), blendMode = BlendMode.SrcOver)
+                        }
+                    }.onPointerEvent(PointerEventType.Enter) { hovered = true }
+                    .onPointerEvent(PointerEventType.Exit) { hovered = false }
+            } else {
+                Modifier
+            }
+
         Image(
             painter = icon,
             contentDescription = contentDescription,
-            modifier = Modifier.size(ICON_SIZE),
+            modifier = hoverModifier,
         )
     }
 }

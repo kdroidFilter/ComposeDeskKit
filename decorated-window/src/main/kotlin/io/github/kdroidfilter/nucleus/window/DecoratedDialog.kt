@@ -1,151 +1,231 @@
 package io.github.kdroidfilter.nucleus.window
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.offset
+import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.DialogWindowScope
-import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberDialogState
+import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
 import io.github.kdroidfilter.nucleus.window.utils.DesktopPlatform
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
-
-@Stable
-class DecoratedDialogState(
-    val isActive: Boolean,
-)
-
-val LocalDecoratedDialogState =
-    staticCompositionLocalOf {
-        DecoratedDialogState(isActive = true)
-    }
-
-val LocalDialogWindow = staticCompositionLocalOf<ComposeDialog?> { null }
-
-interface DecoratedDialogScope : DialogWindowScope {
-    val state: DecoratedDialogState
-    val title: String
-}
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
 fun DecoratedDialog(
     onCloseRequest: () -> Unit,
+    state: DialogState = rememberDialogState(),
     visible: Boolean = true,
     title: String = "",
     icon: Painter? = null,
-    undecorated: Boolean = DesktopPlatform.Current == DesktopPlatform.Linux,
-    resizable: Boolean = true,
+    resizable: Boolean = false,
     enabled: Boolean = true,
     focusable: Boolean = true,
-    onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { false },
-    onKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { false },
+    onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
+    onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable DecoratedDialogScope.() -> Unit,
 ) {
-    val dialogState = rememberDialogState(position = WindowPosition.PlatformDefault)
+    remember {
+        check(JBR.isAvailable()) {
+            "DecoratedDialog requires JetBrains Runtime (JBR). " +
+                "Please run your application on JBR."
+        }
+    }
+
+    val undecorated = DesktopPlatform.Linux == DesktopPlatform.Current
 
     DialogWindow(
         onCloseRequest = onCloseRequest,
-        state = dialogState,
+        state = state,
         visible = visible,
         title = title,
         icon = icon,
         undecorated = undecorated,
+        transparent = false,
         resizable = resizable,
         enabled = enabled,
         focusable = focusable,
         onPreviewKeyEvent = onPreviewKeyEvent,
         onKeyEvent = onKeyEvent,
     ) {
-        var isActive by remember { mutableStateOf(true) }
+        var decoratedDialogState by remember { mutableStateOf(DecoratedDialogState.of(window)) }
 
         DisposableEffect(window) {
-            val listener =
-                object : WindowAdapter() {
+            val adapter =
+                object : WindowAdapter(), ComponentListener {
                     override fun windowActivated(e: WindowEvent?) {
-                        isActive = true
+                        decoratedDialogState = DecoratedDialogState.of(window)
                     }
 
                     override fun windowDeactivated(e: WindowEvent?) {
-                        isActive = false
+                        decoratedDialogState = DecoratedDialogState.of(window)
                     }
+
+                    override fun componentResized(e: ComponentEvent?) {
+                        decoratedDialogState = DecoratedDialogState.of(window)
+                    }
+
+                    override fun componentMoved(e: ComponentEvent?) {}
+
+                    override fun componentShown(e: ComponentEvent?) {}
+
+                    override fun componentHidden(e: ComponentEvent?) {}
                 }
-            window.addWindowListener(listener)
-            onDispose { window.removeWindowListener(listener) }
+
+            window.addWindowListener(adapter)
+            window.addComponentListener(adapter)
+
+            onDispose {
+                window.removeWindowListener(adapter)
+                window.removeComponentListener(adapter)
+            }
         }
 
-        val decoratedDialogState = DecoratedDialogState(isActive = isActive)
-
-        val scope =
-            remember(this, decoratedDialogState, title) {
-                object : DecoratedDialogScope, DialogWindowScope by this {
-                    override val state: DecoratedDialogState get() = decoratedDialogState
-                    override val title: String get() = title
-                }
-            }
-
         val style = LocalDecoratedWindowStyle.current
-
-        CompositionLocalProvider(
-            LocalDecoratedDialogState provides decoratedDialogState,
-            LocalDialogWindow provides window,
-            LocalTitleBarInfo provides title,
-        ) {
-            val borderColor = if (isActive) style.colors.border else style.colors.borderInactive
-            val showBorder = DesktopPlatform.Current == DesktopPlatform.Linux
-
-            Layout(
-                content = { scope.content() },
-                modifier =
-                    if (showBorder) {
-                        Modifier.fillMaxSize().insideBorder(style.metrics.borderWidth, borderColor)
-                    } else {
-                        Modifier.fillMaxSize()
-                    },
-            ) { measurables, constraints ->
-                if (measurables.isEmpty()) {
-                    return@Layout layout(constraints.maxWidth, constraints.maxHeight) {}
-                }
-
-                val titleBarPlaceable =
-                    measurables.firstOrNull()?.measure(
-                        Constraints(maxWidth = constraints.maxWidth),
-                    )
-                val titleBarHeight = titleBarPlaceable?.height ?: 0
-
-                val contentConstraints =
-                    Constraints(
-                        maxWidth = constraints.maxWidth,
-                        maxHeight = (constraints.maxHeight - titleBarHeight).coerceAtLeast(0),
-                    )
-
-                val contentPlaceables =
-                    if (measurables.size > 1) {
-                        measurables.drop(1).map { it.measure(contentConstraints) }
-                    } else {
-                        emptyList()
-                    }
-
-                layout(constraints.maxWidth, constraints.maxHeight) {
-                    titleBarPlaceable?.place(0, 0)
-                    contentPlaceables.forEach { it.place(0, titleBarHeight) }
-                }
+        val undecoratedWindowBorder =
+            if (undecorated) {
+                Modifier.insideBorder(
+                    style.metrics.borderWidth,
+                    style.colors.borderFor(decoratedDialogState.toDecoratedWindowState()).value,
+                )
+            } else {
+                Modifier
             }
+
+        CompositionLocalProvider(LocalDialogTitleBarInfo provides DialogTitleBarInfo(title, icon)) {
+            Layout(
+                content = {
+                    val scope =
+                        object : DecoratedDialogScope {
+                            override val state: DecoratedDialogState
+                                get() = decoratedDialogState
+
+                            override val window: ComposeDialog
+                                get() = this@DialogWindow.window
+                        }
+                    scope.content()
+                },
+                modifier = undecoratedWindowBorder,
+                measurePolicy = DecoratedDialogMeasurePolicy,
+            )
         }
     }
 }
+
+@Stable
+interface DecoratedDialogScope : DialogWindowScope {
+    override val window: ComposeDialog
+
+    val state: DecoratedDialogState
+}
+
+private object DecoratedDialogMeasurePolicy : MeasurePolicy {
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints,
+    ): MeasureResult {
+        if (measurables.isEmpty()) {
+            return layout(width = constraints.minWidth, height = constraints.minHeight) {}
+        }
+
+        val titleBars = measurables.filter { it.layoutId == TITLE_BAR_LAYOUT_ID }
+        if (titleBars.size > 1) {
+            error("Dialog can have only one title bar")
+        }
+        val titleBar = titleBars.firstOrNull()
+        val titleBarBorder = measurables.firstOrNull { it.layoutId == TITLE_BAR_BORDER_LAYOUT_ID }
+
+        val contentConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+
+        val titleBarPlaceable = titleBar?.measure(contentConstraints)
+        val titleBarHeight = titleBarPlaceable?.height ?: 0
+
+        val titleBarBorderPlaceable = titleBarBorder?.measure(contentConstraints)
+        val titleBarBorderHeight = titleBarBorderPlaceable?.height ?: 0
+
+        val measuredPlaceable = mutableListOf<Placeable>()
+
+        for (it in measurables) {
+            if (it.layoutId.toString().startsWith(TITLE_BAR_COMPONENT_LAYOUT_ID_PREFIX)) continue
+            val offsetConstraints = contentConstraints.offset(vertical = -titleBarHeight - titleBarBorderHeight)
+            val placeable = it.measure(offsetConstraints)
+            measuredPlaceable += placeable
+        }
+
+        return layout(constraints.maxWidth, constraints.maxHeight) {
+            titleBarPlaceable?.placeRelative(0, 0)
+            titleBarBorderPlaceable?.placeRelative(0, titleBarHeight)
+
+            measuredPlaceable.forEach { it.placeRelative(0, titleBarHeight + titleBarBorderHeight) }
+        }
+    }
+}
+
+@Immutable
+@JvmInline
+value class DecoratedDialogState(
+    val state: ULong,
+) {
+    val isActive: Boolean
+        get() = state and Active != 0UL
+
+    fun copy(active: Boolean = isActive): DecoratedDialogState = of(active = active)
+
+    fun toDecoratedWindowState(): DecoratedWindowState =
+        DecoratedWindowState.of(
+            fullscreen = false,
+            minimized = false,
+            maximized = false,
+            active = isActive,
+        )
+
+    override fun toString(): String = "${javaClass.simpleName}(isActive=$isActive)"
+
+    companion object {
+        val Active: ULong = 1UL shl 0
+
+        fun of(active: Boolean = true): DecoratedDialogState =
+            DecoratedDialogState(
+                if (active) Active else 0UL,
+            )
+
+        fun of(window: ComposeDialog): DecoratedDialogState = of(active = window.isActive)
+    }
+}
+
+internal data class DialogTitleBarInfo(
+    val title: String,
+    val icon: Painter?,
+)
+
+internal val LocalDialogTitleBarInfo: ProvidableCompositionLocal<DialogTitleBarInfo> =
+    compositionLocalOf {
+        error("LocalDialogTitleBarInfo not provided, DialogTitleBar must be used in DecoratedDialog")
+    }

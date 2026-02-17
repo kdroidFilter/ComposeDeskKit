@@ -1,57 +1,48 @@
 package io.github.kdroidfilter.nucleus.window
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasurePolicy
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.offset
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
+import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
 import io.github.kdroidfilter.nucleus.window.utils.DesktopPlatform
+import java.awt.event.ComponentEvent
+import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
-@Stable
-class DecoratedWindowState(
-    val isActive: Boolean,
-    val isFullscreen: Boolean,
-    val isMinimized: Boolean,
-    val isMaximized: Boolean,
-)
+internal const val TITLE_BAR_COMPONENT_LAYOUT_ID_PREFIX = "__TITLE_BAR_"
 
-val LocalDecoratedWindowState =
-    staticCompositionLocalOf<DecoratedWindowState> {
-        DecoratedWindowState(
-            isActive = true,
-            isFullscreen = false,
-            isMinimized = false,
-            isMaximized = false,
-        )
-    }
+internal const val TITLE_BAR_LAYOUT_ID = "__TITLE_BAR_CONTENT__"
 
-val LocalWindow = staticCompositionLocalOf<ComposeWindow?> { null }
-
-val LocalTitleBarInfo = staticCompositionLocalOf { "" }
-
-interface DecoratedWindowScope : FrameWindowScope {
-    val state: DecoratedWindowState
-    val title: String
-}
+internal const val TITLE_BAR_BORDER_LAYOUT_ID = "__TITLE_BAR_BORDER__"
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -61,121 +52,226 @@ fun DecoratedWindow(
     visible: Boolean = true,
     title: String = "",
     icon: Painter? = null,
-    undecorated: Boolean = DesktopPlatform.Current == DesktopPlatform.Linux,
     resizable: Boolean = true,
     enabled: Boolean = true,
     focusable: Boolean = true,
-    onPreviewKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { false },
-    onKeyEvent: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = { false },
+    alwaysOnTop: Boolean = false,
+    onPreviewKeyEvent: (KeyEvent) -> Boolean = { false },
+    onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
+    remember {
+        check(JBR.isAvailable()) {
+            "DecoratedWindow requires JetBrains Runtime (JBR). " +
+                "Please run your application on JBR."
+        }
+    }
+
+    val undecorated = DesktopPlatform.Linux == DesktopPlatform.Current
+
     Window(
-        onCloseRequest = onCloseRequest,
-        state = state,
-        visible = visible,
-        title = title,
-        icon = icon,
-        undecorated = undecorated,
-        resizable = resizable,
-        enabled = enabled,
-        focusable = focusable,
-        onPreviewKeyEvent = onPreviewKeyEvent,
-        onKeyEvent = onKeyEvent,
+        onCloseRequest,
+        state,
+        visible,
+        title,
+        icon,
+        undecorated,
+        transparent = false,
+        resizable,
+        enabled,
+        focusable,
+        alwaysOnTop,
+        onPreviewKeyEvent,
+        onKeyEvent,
     ) {
-        var isActive by remember { mutableStateOf(window.isActive) }
+        var decoratedWindowState by remember { mutableStateOf(DecoratedWindowState.of(window)) }
 
         DisposableEffect(window) {
-            val listener =
-                object : WindowAdapter() {
+            val adapter =
+                object : WindowAdapter(), ComponentListener {
                     override fun windowActivated(e: WindowEvent?) {
-                        isActive = true
+                        decoratedWindowState = DecoratedWindowState.of(window)
                     }
 
                     override fun windowDeactivated(e: WindowEvent?) {
-                        isActive = false
+                        decoratedWindowState = DecoratedWindowState.of(window)
                     }
-                }
-            window.addWindowListener(listener)
-            onDispose { window.removeWindowListener(listener) }
-        }
 
-        val decoratedState =
-            DecoratedWindowState(
-                isActive = isActive,
-                isFullscreen = state.placement == WindowPlacement.Fullscreen,
-                isMinimized =
-                    state.placement == WindowPlacement.Floating &&
-                        window.extendedState == java.awt.Frame.ICONIFIED,
-                isMaximized = state.placement == WindowPlacement.Maximized,
-            )
+                    override fun windowIconified(e: WindowEvent?) {
+                        decoratedWindowState = DecoratedWindowState.of(window)
+                    }
 
-        val scope =
-            remember(this, decoratedState, title) {
-                object : DecoratedWindowScope, FrameWindowScope by this {
-                    override val state: DecoratedWindowState get() = decoratedState
-                    override val title: String get() = title
+                    override fun windowDeiconified(e: WindowEvent?) {
+                        decoratedWindowState = DecoratedWindowState.of(window)
+                    }
+
+                    override fun windowStateChanged(e: WindowEvent) {
+                        decoratedWindowState = DecoratedWindowState.of(window)
+                    }
+
+                    override fun componentResized(e: ComponentEvent?) {
+                        decoratedWindowState = DecoratedWindowState.of(window)
+                    }
+
+                    override fun componentMoved(e: ComponentEvent?) {}
+
+                    override fun componentShown(e: ComponentEvent?) {}
+
+                    override fun componentHidden(e: ComponentEvent?) {}
                 }
+
+            window.addWindowListener(adapter)
+            window.addWindowStateListener(adapter)
+            window.addComponentListener(adapter)
+
+            onDispose {
+                window.removeWindowListener(adapter)
+                window.removeWindowStateListener(adapter)
+                window.removeComponentListener(adapter)
             }
+        }
 
         val style = LocalDecoratedWindowStyle.current
-
-        CompositionLocalProvider(
-            LocalDecoratedWindowState provides decoratedState,
-            LocalWindow provides window,
-            LocalTitleBarInfo provides title,
-        ) {
-            val borderColor = if (isActive) style.colors.border else style.colors.borderInactive
-            val showBorder = DesktopPlatform.Current == DesktopPlatform.Linux && !decoratedState.isMaximized
-
-            DecoratedWindowLayout(
-                modifier =
-                    if (showBorder) {
-                        Modifier.insideBorder(style.metrics.borderWidth, borderColor)
-                    } else {
-                        Modifier
-                    },
-            ) {
-                scope.content()
+        val undecoratedWindowBorder =
+            if (undecorated && !decoratedWindowState.isMaximized) {
+                Modifier.insideBorder(
+                    style.metrics.borderWidth,
+                    style.colors.borderFor(decoratedWindowState).value,
+                )
+            } else {
+                Modifier
             }
+
+        CompositionLocalProvider(LocalTitleBarInfo provides TitleBarInfo(title, icon)) {
+            Layout(
+                content = {
+                    val scope =
+                        object : DecoratedWindowScope {
+                            override val state: DecoratedWindowState
+                                get() = decoratedWindowState
+
+                            override val window: ComposeWindow
+                                get() = this@Window.window
+                        }
+                    scope.content()
+                },
+                modifier = undecoratedWindowBorder,
+                measurePolicy = DecoratedWindowMeasurePolicy,
+            )
         }
     }
 }
 
-@Suppress("FunctionNaming")
-@Composable
-private fun DecoratedWindowLayout(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Layout(
-        content = content,
-        modifier = modifier.fillMaxSize(),
-    ) { measurables, constraints ->
+@Stable
+interface DecoratedWindowScope : FrameWindowScope {
+    override val window: ComposeWindow
+
+    val state: DecoratedWindowState
+}
+
+private object DecoratedWindowMeasurePolicy : MeasurePolicy {
+    override fun MeasureScope.measure(
+        measurables: List<Measurable>,
+        constraints: Constraints,
+    ): MeasureResult {
         if (measurables.isEmpty()) {
-            return@Layout layout(constraints.maxWidth, constraints.maxHeight) {}
+            return layout(width = constraints.minWidth, height = constraints.minHeight) {}
         }
 
-        // First measurable is the title bar (if present), rest is content
-        val titleBarMeasurable = measurables.firstOrNull()
-        val contentMeasurables = if (measurables.size > 1) measurables.drop(1) else emptyList()
+        val titleBars = measurables.filter { it.layoutId == TITLE_BAR_LAYOUT_ID }
+        if (titleBars.size > 1) {
+            error("Window just can have only one title bar")
+        }
+        val titleBar = titleBars.firstOrNull()
+        val titleBarBorder = measurables.firstOrNull { it.layoutId == TITLE_BAR_BORDER_LAYOUT_ID }
 
-        val titleBarPlaceable =
-            titleBarMeasurable?.measure(
-                Constraints(maxWidth = constraints.maxWidth),
-            )
+        val contentConstraints = constraints.copy(minWidth = 0, minHeight = 0)
+
+        val titleBarPlaceable = titleBar?.measure(contentConstraints)
         val titleBarHeight = titleBarPlaceable?.height ?: 0
 
-        val contentConstraints =
-            Constraints(
-                maxWidth = constraints.maxWidth,
-                maxHeight = (constraints.maxHeight - titleBarHeight).coerceAtLeast(0),
-            )
+        val titleBarBorderPlaceable = titleBarBorder?.measure(contentConstraints)
+        val titleBarBorderHeight = titleBarBorderPlaceable?.height ?: 0
 
-        val contentPlaceables = contentMeasurables.map { it.measure(contentConstraints) }
+        val measuredPlaceable = mutableListOf<Placeable>()
 
-        layout(constraints.maxWidth, constraints.maxHeight) {
-            titleBarPlaceable?.place(0, 0)
-            contentPlaceables.forEach { it.place(0, titleBarHeight) }
+        for (it in measurables) {
+            if (it.layoutId.toString().startsWith(TITLE_BAR_COMPONENT_LAYOUT_ID_PREFIX)) continue
+            val offsetConstraints = contentConstraints.offset(vertical = -titleBarHeight - titleBarBorderHeight)
+            val placeable = it.measure(offsetConstraints)
+            measuredPlaceable += placeable
+        }
+
+        return layout(constraints.maxWidth, constraints.maxHeight) {
+            titleBarPlaceable?.placeRelative(0, 0)
+            titleBarBorderPlaceable?.placeRelative(0, titleBarHeight)
+
+            measuredPlaceable.forEach { it.placeRelative(0, titleBarHeight + titleBarBorderHeight) }
         }
     }
 }
+
+@Immutable
+@JvmInline
+value class DecoratedWindowState(
+    val state: ULong,
+) {
+    val isActive: Boolean
+        get() = state and Active != 0UL
+
+    val isFullscreen: Boolean
+        get() = state and Fullscreen != 0UL
+
+    val isMinimized: Boolean
+        get() = state and Minimize != 0UL
+
+    val isMaximized: Boolean
+        get() = state and Maximize != 0UL
+
+    fun copy(
+        fullscreen: Boolean = isFullscreen,
+        minimized: Boolean = isMinimized,
+        maximized: Boolean = isMaximized,
+        active: Boolean = isActive,
+    ): DecoratedWindowState = of(fullscreen = fullscreen, minimized = minimized, maximized = maximized, active = active)
+
+    override fun toString(): String = "${javaClass.simpleName}(isFullscreen=$isFullscreen, isActive=$isActive)"
+
+    companion object {
+        val Active: ULong = 1UL shl 0
+        val Fullscreen: ULong = 1UL shl 1
+        val Minimize: ULong = 1UL shl 2
+        val Maximize: ULong = 1UL shl 3
+
+        fun of(
+            fullscreen: Boolean = false,
+            minimized: Boolean = false,
+            maximized: Boolean = false,
+            active: Boolean = true,
+        ): DecoratedWindowState =
+            DecoratedWindowState(
+                (if (fullscreen) Fullscreen else 0UL) or
+                    (if (minimized) Minimize else 0UL) or
+                    (if (maximized) Maximize else 0UL) or
+                    (if (active) Active else 0UL),
+            )
+
+        fun of(window: ComposeWindow): DecoratedWindowState =
+            of(
+                fullscreen = window.placement == WindowPlacement.Fullscreen,
+                minimized = window.isMinimized,
+                maximized = window.placement == WindowPlacement.Maximized,
+                active = window.isActive,
+            )
+    }
+}
+
+internal data class TitleBarInfo(
+    val title: String,
+    val icon: Painter?,
+)
+
+internal val LocalTitleBarInfo: ProvidableCompositionLocal<TitleBarInfo> =
+    compositionLocalOf {
+        error("LocalTitleBarInfo not provided, TitleBar must be used in DecoratedWindow")
+    }

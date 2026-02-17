@@ -15,8 +15,10 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    implementation(compose.desktop.currentOs)
+    compileOnly(compose.desktop.common)
     compileOnly(libs.jbr.api)
+    compileOnly(libs.jna)
+    compileOnly(libs.jna.platform)
 }
 
 java {

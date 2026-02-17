@@ -1,10 +1,15 @@
 package io.github.kdroidfilter.nucleus.window.styling
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import io.github.kdroidfilter.nucleus.window.DecoratedWindowState
 
 data class TitleBarStyle(
     val colors: TitleBarColors,
@@ -14,28 +19,34 @@ data class TitleBarStyle(
 
 data class TitleBarColors(
     val background: Color,
-    val backgroundInactive: Color,
+    val inactiveBackground: Color,
     val content: Color,
-    val contentInactive: Color,
     val border: Color,
-    val borderInactive: Color,
-    val hoverBackground: Color,
-    val pressBackground: Color,
-    val closeHoverBackground: Color,
-    val closePressBackground: Color,
-)
+    val fullscreenControlButtonsBackground: Color = Color.Unspecified,
+    val titlePaneButtonHoveredBackground: Color,
+    val titlePaneButtonPressedBackground: Color,
+    val titlePaneCloseButtonHoveredBackground: Color,
+    val titlePaneCloseButtonPressedBackground: Color,
+    val iconButtonHoveredBackground: Color = Color.Transparent,
+    val iconButtonPressedBackground: Color = Color.Transparent,
+) {
+    @Composable
+    fun backgroundFor(state: DecoratedWindowState): State<Color> =
+        rememberUpdatedState(if (state.isActive) background else inactiveBackground)
+}
 
 data class TitleBarMetrics(
     val height: Dp = 40.dp,
-    val gradientStartX: Float = 0f,
-    val gradientEndX: Float = 0f,
+    val gradientStartX: Dp = 0.dp,
+    val gradientEndX: Dp = 0.dp,
+    val titlePaneButtonSize: DpSize = DpSize(40.dp, 40.dp),
 )
 
 data class TitleBarIcons(
-    val close: Painter? = null,
-    val minimize: Painter? = null,
-    val maximize: Painter? = null,
-    val restore: Painter? = null,
+    val closeButton: Painter? = null,
+    val minimizeButton: Painter? = null,
+    val maximizeButton: Painter? = null,
+    val restoreButton: Painter? = null,
 )
 
 val LocalTitleBarStyle =

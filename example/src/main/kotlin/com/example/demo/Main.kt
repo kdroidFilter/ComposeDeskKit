@@ -36,6 +36,7 @@ import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
 import io.github.kdroidfilter.nucleus.window.DecoratedWindow
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.newFullscreenControls
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -92,7 +93,7 @@ fun main(args: Array<String>) {
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
                 ) {
-                    TitleBar { _ ->
+                    TitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
                         Text(
                             title,
                             modifier = Modifier.align(Alignment.CenterHorizontally),
