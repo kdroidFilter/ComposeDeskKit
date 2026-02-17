@@ -637,14 +637,16 @@ internal class ElectronBuilderConfigGenerator {
     private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? {
         val identity = macOS.signing.identity.orNull ?: return null
 
-        val knownPrefixes = listOf(
-            "Developer ID Application: ",
-            "3rd Party Mac Developer Application: ",
-            "Developer ID Installer: ",
-            "3rd Party Mac Developer Installer: ",
-        )
+        val knownPrefixes =
+            listOf(
+                "Developer ID Application: ",
+                "3rd Party Mac Developer Application: ",
+                "Developer ID Installer: ",
+                "3rd Party Mac Developer Installer: ",
+            )
 
-        return knownPrefixes.firstOrNull { identity.startsWith(it) }
+        return knownPrefixes
+            .firstOrNull { identity.startsWith(it) }
             ?.let { identity.removePrefix(it) }
             ?: identity
     }
