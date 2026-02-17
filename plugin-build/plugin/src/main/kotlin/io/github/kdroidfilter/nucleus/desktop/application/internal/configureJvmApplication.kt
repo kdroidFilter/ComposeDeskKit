@@ -628,6 +628,32 @@ private fun JvmApplicationContext.configureElectronBuilderPackageTask(
     packageTask.appxSquare150x150Logo.set(app.nativeDistributions.windows.appx.square150x150Logo)
     packageTask.appxWide310x150Logo.set(app.nativeDistributions.windows.appx.wide310x150Logo)
     packageTask.distributions = app.nativeDistributions
+
+    if (currentOS == OS.MacOS) {
+        val mac = app.nativeDistributions.macOS
+        packageTask.nonValidatedMacSigningSettings = mac.signing
+        packageTask.nonValidatedMacBundleID.set(mac.bundleID)
+        packageTask.macAppStore.set(mac.appStore)
+        val sandboxed = packageTask.targetFormat.isStoreFormat
+        val defaultAppEntitlements =
+            if (sandboxed) {
+                unpackDefaultResources.get { defaultSandboxEntitlements }
+            } else {
+                unpackDefaultResources.get { defaultEntitlements }
+            }
+        val defaultRuntimeEntitlements =
+            if (sandboxed) {
+                unpackDefaultResources.get { defaultSandboxRuntimeEntitlements }
+            } else {
+                unpackDefaultResources.get { defaultEntitlements }
+            }
+        packageTask.macEntitlementsFile.set(
+            mac.entitlementsFile.orElse(defaultAppEntitlements),
+        )
+        packageTask.macRuntimeEntitlementsFile.set(
+            mac.runtimeEntitlementsFile.orElse(defaultRuntimeEntitlements),
+        )
+    }
 }
 
 internal fun JvmApplicationContext.configureCommonNotarizationSettings(notarizationTask: AbstractNotarizationTask) {

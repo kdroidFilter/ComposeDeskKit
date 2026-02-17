@@ -6,13 +6,19 @@
 package io.github.kdroidfilter.nucleus.desktop.application.tasks
 
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.JvmApplicationDistributions
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.MacOSSigningSettings
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.desktop.application.internal.MacSigner
+import io.github.kdroidfilter.nucleus.desktop.application.internal.MacSignerImpl
+import io.github.kdroidfilter.nucleus.desktop.application.internal.NoCertificateSigner
 import io.github.kdroidfilter.nucleus.desktop.application.internal.WindowsKitsLocator
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.ElectronBuilderConfigGenerator
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.ElectronBuilderInvocation
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.ElectronBuilderToolManager
 import io.github.kdroidfilter.nucleus.desktop.application.internal.electronbuilder.NodeJsDetector
+import io.github.kdroidfilter.nucleus.desktop.application.internal.files.isDylibPath
 import io.github.kdroidfilter.nucleus.desktop.application.internal.updateExecutableTypeInAppImage
+import io.github.kdroidfilter.nucleus.desktop.application.internal.validation.validate
 import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractNucleusTask
 import io.github.kdroidfilter.nucleus.internal.utils.Arch
 import io.github.kdroidfilter.nucleus.internal.utils.OS
@@ -30,6 +36,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Nested
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -40,9 +47,12 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.file.LinkOption
 import java.util.Locale
 import javax.imageio.ImageIO
 import javax.inject.Inject
+import kotlin.io.path.isExecutable
+import kotlin.io.path.isRegularFile
 import kotlin.math.min
 
 /**
@@ -132,6 +142,43 @@ abstract class AbstractElectronBuilderPackageTask
          */
         @get:Internal
         var distributions: JvmApplicationDistributions? = null
+
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val macEntitlementsFile: RegularFileProperty = objects.fileProperty()
+
+        @get:InputFile
+        @get:Optional
+        @get:PathSensitive(PathSensitivity.ABSOLUTE)
+        val macRuntimeEntitlementsFile: RegularFileProperty = objects.fileProperty()
+
+        @get:Input
+        @get:Optional
+        internal val nonValidatedMacBundleID: Property<String> = objects.nullableProperty()
+
+        @get:Input
+        @get:Optional
+        val macAppStore: Property<Boolean> = objects.nullableProperty()
+
+        @get:Optional
+        @get:Nested
+        internal var nonValidatedMacSigningSettings: MacOSSigningSettings? = null
+
+        private val macSigner: MacSigner? by lazy {
+            val nonValidatedSettings = nonValidatedMacSigningSettings
+            if (currentOS == OS.MacOS) {
+                if (nonValidatedSettings?.sign?.get() == true) {
+                    val validatedSettings =
+                        nonValidatedSettings.validate(nonValidatedMacBundleID, project, macAppStore)
+                    MacSignerImpl(validatedSettings, runExternalTool)
+                } else {
+                    NoCertificateSigner(runExternalTool)
+                }
+            } else {
+                null
+            }
+        }
 
         @TaskAction
         fun run() {
@@ -415,10 +462,12 @@ abstract class AbstractElectronBuilderPackageTask
             if (currentOS != OS.MacOS) return
             if (!appDir.isDirectory) return
 
-            // Skip ad-hoc signing for PKG - it works better without it
-            // PKG installers handle signing differently than DMG
+            // For PKG (App Store), re-sign the .app with proper entitlements after .cfg modification.
+            // The jpackage task signed the app, but updateExecutableTypeInAppImage() modified .cfg
+            // files which invalidated the code signature. We must re-sign before electron-builder
+            // packages it into the PKG.
             if (targetFormat == TargetFormat.Pkg) {
-                logger.info("Skipping ad-hoc signing for PKG format")
+                resignAppForPkg(appDir)
                 return
             }
 
@@ -440,6 +489,48 @@ abstract class AbstractElectronBuilderPackageTask
             }
 
             logger.info("Ad-hoc signature applied successfully")
+        }
+
+        /**
+         * Re-signs the .app bundle with proper entitlements for PKG (App Store) builds.
+         *
+         * This mirrors the signing flow in [AbstractJPackageTask.modifyRuntimeOnMacOsIfNeeded]:
+         * sign individual binaries inside-out, then seal each container directory.
+         */
+        private fun resignAppForPkg(appDir: File) {
+            val signer = macSigner ?: return
+            val appEntitlements = macEntitlementsFile.orNull?.asFile
+            val runtimeEntitlements = macRuntimeEntitlementsFile.orNull?.asFile
+
+            logger.info("Re-signing macOS app after .cfg modification for PKG format")
+
+            // Re-sign all executables and dylibs in the runtime directory
+            val runtimeDir = appDir.resolve("Contents/runtime")
+            if (runtimeDir.exists()) {
+                runtimeDir.walk().forEach { file ->
+                    val path = file.toPath()
+                    if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) &&
+                        (path.isExecutable() || file.name.isDylibPath)
+                    ) {
+                        signer.sign(file, runtimeEntitlements)
+                    }
+                }
+                signer.sign(runtimeDir, runtimeEntitlements, forceEntitlements = true)
+            }
+
+            // Re-sign native libs in resources directory (PKG is always sandboxed)
+            val resourcesDir = appDir.resolve("Contents/app/resources")
+            if (resourcesDir.exists()) {
+                resourcesDir.walk().forEach { file ->
+                    val path = file.toPath()
+                    if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
+                        signer.sign(file, appEntitlements)
+                    }
+                }
+            }
+
+            // Re-sign the entire app bundle
+            signer.sign(appDir, appEntitlements, forceEntitlements = true)
         }
 
         private fun prepareLinuxIconSet(outputDir: File): File? {
