@@ -11,74 +11,22 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-7F52FF?logo=kotlin&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 
-Nucleus is a Gradle plugin for building, packaging, and distributing **JVM desktop applications** as native installers on macOS, Windows, and Linux. It is compatible with any JVM application but optimized for **Compose Desktop**. It uses the Compose Desktop API for app-image generation and [electron-builder](https://www.electron.build/) under the hood to produce final installers with code signing, auto-update metadata, and advanced packaging options.
+Nucleus is a Gradle plugin for building, packaging, and distributing **JVM desktop applications** as native installers on macOS, Windows, and Linux. It is compatible with any JVM application but optimized for **Compose Desktop**.
 
-## Why Nucleus?
+## Key Features
 
-- **16 target formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archive formats
-- **One DSL** — Configure everything from a single `nucleus.application { }` block
-- **Auto-update built-in** — The CI `generate-update-yml` action scans all build artifacts and produces combined `latest-mac.yml`, `latest.yml`, `latest-linux.yml` files covering all architectures per platform; the `publish` DSL can also configure electron-builder to publish directly to GitHub Releases or S3
-- **Code signing** — Windows (PFX, Azure Trusted Signing) and macOS (Apple Developer ID, notarization)
-- **CI/CD ready** — `setup-nucleus` composite action + GitHub Actions workflows for 6-runner multi-platform builds, universal macOS binaries, and MSIX bundles
-- **Performance** — Native library cleanup, JDK 25+ AOT cache, splash screen support
+- **JDK 25+ AOT Cache** — Dramatically faster cold startup with ahead-of-time class loading cache, no GraalVM required
+- **16 modern packaging formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archives
+- **Direct store distribution** — Publish to GitHub Releases, S3, or generate store-ready packages (AppX for Microsoft Store, Snap for Snapcraft, Flatpak for Flathub)
+- **Code signing & notarization** — Windows (PFX, Azure Trusted Signing) and macOS (Apple Developer ID) with full notarization support
+- **Auto-update built-in** — Integrated update metadata generation and runtime update library
+- **App sandboxing** — macOS App Sandbox, Windows UWP, Linux Flatpak
+- **CI/CD ready** — Reusable composite actions for GitHub Actions with multi-platform matrix builds, universal macOS binaries, and MSIX bundles
 - **Deep links & file associations** — Cross-platform protocol handlers and file type registration
 
 ## Documentation
 
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](docs/getting-started.md) | Installation, first build, Gradle tasks |
-| [Configuration](docs/configuration.md) | Full DSL reference for `nucleus.application { }` |
-| **Targets** | |
-| [macOS](docs/targets/macos.md) | DMG, PKG, layered icons, universal binaries |
-| [Windows](docs/targets/windows.md) | NSIS, MSI, AppX, Portable, code signing |
-| [Linux](docs/targets/linux.md) | DEB, RPM, AppImage, Snap, Flatpak |
-| **Features** | |
-| [Sandboxing](docs/sandboxing.md) | App Sandbox (macOS), UWP (Windows), Flatpak (Linux) |
-| [Code Signing](docs/code-signing.md) | Windows & macOS signing and notarization |
-| [Auto Update](docs/auto-update.md) | Update metadata, runtime library, providers |
-| [Publishing](docs/publishing.md) | GitHub Releases, S3, release channels |
-| [CI/CD](docs/ci-cd.md) | GitHub Actions workflows, matrix builds |
-| [Runtime APIs](docs/runtime-apis.md) | Executable type detection, AOT, single instance, deep links |
-| [Migration](docs/migration.md) | Migrating from `org.jetbrains.compose` |
-
-## Quick Example
-
-```kotlin
-plugins {
-    id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
-    id("org.jetbrains.compose") version "1.10.1"
-    id("io.github.kdroidfilter.nucleus") version "1.0.0"
-}
-
-nucleus.application {
-    mainClass = "com.example.MainKt"
-
-    nativeDistributions {
-        targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb)
-        packageName = "MyApp"
-        packageVersion = "1.0.0"
-    }
-}
-```
-
-```bash
-# Build for current OS
-./gradlew packageDistributionForCurrentOS
-
-# Run locally
-./gradlew run
-```
-
-## Requirements
-
-| Requirement | Version | Note |
-|-------------|---------|------|
-| JDK | 17+ (25+ for AOT cache) | JBR 25 recommended |
-| Gradle | 8.0+ | |
-| Kotlin | 2.0+ | |
-| Compose Multiplatform | 1.7+ | Optional — required only for Compose Desktop apps |
+Full documentation is available at **[nucleus.kdroidfilter.com](https://nucleus.kdroidfilter.com/)**.
 
 ## License
 
