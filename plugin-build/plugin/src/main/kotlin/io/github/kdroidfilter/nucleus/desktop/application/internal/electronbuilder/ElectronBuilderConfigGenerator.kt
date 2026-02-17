@@ -631,11 +631,17 @@ internal class ElectronBuilderConfigGenerator {
     /**
      * Resolves the PKG installer signing identity based on the app signing identity.
      *
-     * Returns the bare identity (team name) without any certificate type prefix,
-     * as electron-builder automatically selects the appropriate certificate.
+     * PKG signing requires a different certificate type than app signing:
+     * - App Store: "3rd Party Mac Developer Installer: NAME (TEAMID)"
+     * - Direct distribution: "Developer ID Installer: NAME (TEAMID)"
+     *
+     * The user configures a single `signing.identity` (typically an Application identity
+     * or just the bare team name). This method strips any Application prefix and applies
+     * the correct Installer prefix based on whether the build targets the App Store.
      */
     private fun resolveInstallerIdentity(macOS: JvmMacOSPlatformSettings): String? {
         val identity = macOS.signing.identity.orNull ?: return null
+        val appStore = macOS.appStore == true
 
         val knownPrefixes =
             listOf(
@@ -645,10 +651,15 @@ internal class ElectronBuilderConfigGenerator {
                 "3rd Party Mac Developer Installer: ",
             )
 
-        return knownPrefixes
-            .firstOrNull { identity.startsWith(it) }
-            ?.let { identity.removePrefix(it) }
-            ?: identity
+        val bareName =
+            knownPrefixes
+                .firstOrNull { identity.startsWith(it) }
+                ?.let { identity.removePrefix(it) }
+                ?: identity
+
+        val installerPrefix =
+            if (appStore) "3rd Party Mac Developer Installer: " else "Developer ID Installer: "
+        return installerPrefix + bareName
     }
 
     private fun appendIfNotNull(
