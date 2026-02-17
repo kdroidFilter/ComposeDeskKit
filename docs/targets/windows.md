@@ -9,7 +9,7 @@ Nucleus supports five Windows installer formats and a portable mode.
 | NSIS | `.exe` | Yes | No |
 | NSIS Web | `.exe` | Yes | No |
 | MSI | `.msi` | Yes | No |
-| AppX | `.appx` | No (Store) | Yes (UWP) |
+| AppX | `.appx` | No (Store) | No |
 | Portable | `.exe` | No | No |
 
 ```kotlin
@@ -113,9 +113,62 @@ windows {
 | `includeScript` | `RegularFileProperty` | — | Extra NSIS script to include |
 | `script` | `RegularFileProperty` | — | Full custom NSIS script |
 
+### Custom Default Installation Directory
+
+By default, the NSIS installer installs to:
+
+- **Per-user** (`perMachine = false`): `%LOCALAPPDATA%\Programs\{AppName}`
+- **Per-machine** (`perMachine = true`): `%PROGRAMFILES%\{AppName}`
+
+To let users choose the installation directory, set `allowToChangeInstallationDirectory = true` (requires `oneClick = false`):
+
+```kotlin
+nsis {
+    oneClick = false
+    allowElevation = true
+    allowToChangeInstallationDirectory = true
+}
+```
+
+To also override the **default path** shown in the directory chooser, create a custom NSIS include script using the `preInit` macro.
+
+**1. Create** `packaging/nsis/installer.nsh`:
+
+```nsis
+!macro preInit
+  SetRegView 64
+  WriteRegExpandStr HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation "C:\MyCompany\MyApp"
+  WriteRegExpandStr HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation "C:\MyCompany\MyApp"
+  SetRegView 32
+  WriteRegExpandStr HKLM "${INSTALL_REGISTRY_KEY}" InstallLocation "C:\MyCompany\MyApp"
+  WriteRegExpandStr HKCU "${INSTALL_REGISTRY_KEY}" InstallLocation "C:\MyCompany\MyApp"
+!macroend
+```
+
+**2. Reference it** in the DSL:
+
+```kotlin
+nsis {
+    oneClick = false
+    allowElevation = true
+    allowToChangeInstallationDirectory = true
+    includeScript.set(project.file("packaging/nsis/installer.nsh"))
+}
+```
+
+!!! warning "Registry hive matters"
+    - If `perMachine = true`, the installer reads from `HKLM`. Write to **both** `HKLM` and `HKCU` for safety.
+    - If `perMachine = false`, only `HKCU` is checked. Writing to `HKLM` alone will have no effect.
+    - Always write to both 32-bit and 64-bit registry views (`SetRegView 64` / `SetRegView 32`).
+
+!!! info "References"
+    - [electron-builder NSIS configuration](https://www.electron.build/nsis.html)
+    - [Change default installation directory value (electron-builder#2855)](https://github.com/electron-userland/electron-builder/issues/2855)
+    - [Change $INSTDIR to a custom path (electron-builder#1961)](https://github.com/electron-userland/electron-builder/issues/1961)
+
 ## AppX (Windows Store / MSIX)
 
-AppX packages run inside a UWP sandbox container and are used for the Microsoft Store and sideloading. They use the [sandboxed build pipeline](../sandboxing.md#windows-appx-sandbox) automatically.
+AppX packages use the MSIX format for the Microsoft Store and sideloading. Desktop Bridge apps run with full trust (`runFullTrust`), so they are **not sandboxed**. They use the [store build pipeline](../sandboxing.md#windows-appx) automatically.
 
 ```kotlin
 windows {

@@ -134,7 +134,7 @@ dependencies {
 | AppX config | Not available | Full `appx { }` DSL |
 | Snap config | Not available | Full `snap { }` DSL |
 | Flatpak config | Not available | Full `flatpak { }` DSL |
-| Sandboxing | Not available | Automatic dual pipeline for store formats (PKG, AppX, Flatpak) |
+| Store pipeline | Not available | Automatic dual pipeline for store formats (PKG, AppX, Flatpak) with sandboxing for PKG and Flatpak |
 | Auto-update | Not available | Built-in with YML metadata |
 | Code signing | macOS only | + Windows PFX / Azure Trusted Signing |
 | Artifact naming | Fixed | Template with `artifactName` |

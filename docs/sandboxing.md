@@ -1,13 +1,13 @@
 # Sandboxing
 
-Nucleus automatically manages a **sandboxed build pipeline** for store formats. When your target formats include PKG, AppX, or Flatpak, the plugin splits the build into two parallel pipelines: one for direct-distribution formats (DMG, NSIS, DEB...) and one for sandboxed store formats.
+Nucleus automatically manages a **store build pipeline** for store formats. When your target formats include PKG, AppX, or Flatpak, the plugin splits the build into two parallel pipelines: one for direct-distribution formats (DMG, NSIS, DEB...) and one for store formats that require special handling (sandboxing on macOS/Linux, native library extraction for all).
 
 ## Store Formats
 
 | Format | OS | Sandbox Type |
 |--------|----|--------------|
 | PKG | macOS | [App Sandbox](https://developer.apple.com/documentation/security/app-sandbox) |
-| AppX | Windows | [UWP container](https://learn.microsoft.com/en-us/windows/msix/overview) |
+| AppX | Windows | [MSIX packaging](https://learn.microsoft.com/en-us/windows/msix/overview) (full trust — not sandboxed) |
 | Flatpak | Linux | [Flatpak sandbox](https://docs.flatpak.org/en/latest/sandbox-permissions.html) |
 
 The plugin determines which formats require sandboxing via `TargetFormat.isStoreFormat`:
@@ -143,9 +143,9 @@ When generating an AOT cache for a sandboxed build, the plugin temporarily strip
 
 This is handled automatically — no configuration needed.
 
-## Windows AppX Sandbox
+## Windows AppX
 
-AppX packages run inside a UWP container. Capabilities are declared via the AppX manifest settings:
+AppX packages use MSIX packaging for the Microsoft Store. Desktop Bridge apps run with full trust (`runFullTrust`) and are **not sandboxed** — they have the same system access as regular desktop apps. Capabilities are declared via the AppX manifest settings:
 
 ```kotlin
 windows {
