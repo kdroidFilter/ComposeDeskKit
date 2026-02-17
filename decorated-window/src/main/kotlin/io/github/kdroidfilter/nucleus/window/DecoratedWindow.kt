@@ -90,24 +90,44 @@ fun DecoratedWindow(
     ) {
         var decoratedWindowState by remember { mutableStateOf(DecoratedWindowState.of(window)) }
 
-        val isGnome = remember { LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.Gnome }
+        val linuxDe = remember { LinuxDesktopEnvironment.Current }
         val gnomeCornerArc = 24f
+        val kdeCornerArc = 20f
 
         DisposableEffect(window) {
             fun updateWindowShape() {
                 decoratedWindowState = DecoratedWindowState.of(window)
-                if (isGnome) {
-                    val ws = DecoratedWindowState.of(window)
-                    window.shape =
-                        if (ws.isMaximized || ws.isFullscreen) {
-                            null
-                        } else {
-                            val w = window.width.toFloat()
-                            val h = window.height.toFloat()
-                            Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
-                                add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
+                val ws = DecoratedWindowState.of(window)
+                val isMaxOrFull = ws.isMaximized || ws.isFullscreen
+                when (linuxDe) {
+                    LinuxDesktopEnvironment.Gnome -> {
+                        window.shape =
+                            if (isMaxOrFull) {
+                                null
+                            } else {
+                                val w = window.width.toFloat()
+                                val h = window.height.toFloat()
+                                Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
+                                    add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
+                                }
                             }
-                        }
+                    }
+                    LinuxDesktopEnvironment.KDE -> {
+                        window.shape =
+                            if (isMaxOrFull) {
+                                null
+                            } else {
+                                RoundRectangle2D.Float(
+                                    0f,
+                                    0f,
+                                    window.width.toFloat(),
+                                    window.height.toFloat(),
+                                    kdeCornerArc,
+                                    kdeCornerArc,
+                                )
+                            }
+                    }
+                    else -> {}
                 }
             }
 

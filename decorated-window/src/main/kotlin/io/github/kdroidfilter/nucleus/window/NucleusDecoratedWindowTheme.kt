@@ -5,6 +5,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowColors
 import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowMetrics
 import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowStyle
@@ -46,40 +48,72 @@ fun NucleusDecoratedWindowTheme(
 
 @Suppress("MagicNumber")
 object DecoratedWindowDefaults {
+
+    private val isKde =
+        Platform.Current == Platform.Linux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
+
     fun lightWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
-                DecoratedWindowColors(
-                    border = Color(0x12FFFFFF),
-                    borderInactive = Color(0x12FFFFFF),
-                ),
+                if (isKde) {
+                    DecoratedWindowColors(
+                        border = Color(0xFFBDBFC1),
+                        borderInactive = Color(0xFFC6C8C9),
+                    )
+                } else {
+                    DecoratedWindowColors(
+                        border = Color(0x12FFFFFF),
+                        borderInactive = Color(0x12FFFFFF),
+                    )
+                },
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
     fun darkWindowStyle(): DecoratedWindowStyle =
         DecoratedWindowStyle(
             colors =
-                DecoratedWindowColors(
-                    border = Color(0x12FFFFFF),
-                    borderInactive = Color(0x12FFFFFF),
-                ),
+                if (isKde) {
+                    DecoratedWindowColors(
+                        border = Color(0xFF52565A),
+                        borderInactive = Color(0xFF4C4F52),
+                    )
+                } else {
+                    DecoratedWindowColors(
+                        border = Color(0x12FFFFFF),
+                        borderInactive = Color(0x12FFFFFF),
+                    )
+                },
             metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
         )
 
     fun lightTitleBarStyle(): TitleBarStyle =
         TitleBarStyle(
             colors =
-                TitleBarColors(
-                    background = Color(0xFFF0F0F0),
-                    inactiveBackground = Color(0xFFFAFAFA),
-                    content = Color(0xFF1E1E1E),
-                    border = Color(0x1F000006),
-                    fullscreenControlButtonsBackground = Color(0xFFF0F0F0),
-                    titlePaneButtonHoveredBackground = Color(0x1A000000),
-                    titlePaneButtonPressedBackground = Color(0x33000000),
-                    titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                    titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
-                ),
+                if (isKde) {
+                    TitleBarColors(
+                        background = Color(0xFFE3E5E7),
+                        inactiveBackground = Color(0xFFEFF0F1),
+                        content = Color(0xFF232629),
+                        border = Color(0xFFBDBFC1),
+                        fullscreenControlButtonsBackground = Color(0xFFE3E5E7),
+                        titlePaneButtonHoveredBackground = Color(0x1A000000),
+                        titlePaneButtonPressedBackground = Color(0x33000000),
+                        titlePaneCloseButtonHoveredBackground = Color(0xFFED1515),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFF44F4F),
+                    )
+                } else {
+                    TitleBarColors(
+                        background = Color(0xFFF0F0F0),
+                        inactiveBackground = Color(0xFFFAFAFA),
+                        content = Color(0xFF1E1E1E),
+                        border = Color(0x1F000006),
+                        fullscreenControlButtonsBackground = Color(0xFFF0F0F0),
+                        titlePaneButtonHoveredBackground = Color(0x1A000000),
+                        titlePaneButtonPressedBackground = Color(0x33000000),
+                        titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
+                    )
+                },
             metrics =
                 TitleBarMetrics(
                     height = 40.dp,
@@ -91,17 +125,31 @@ object DecoratedWindowDefaults {
     fun darkTitleBarStyle(): TitleBarStyle =
         TitleBarStyle(
             colors =
-                TitleBarColors(
-                    background = Color(0xFF2B2B2B),
-                    inactiveBackground = Color(0xFF3C3C3C),
-                    content = Color(0xFFE0E0E0),
-                    border = Color(0x5C000006),
-                    fullscreenControlButtonsBackground = Color(0xFF2B2B2B),
-                    titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
-                    titlePaneButtonPressedBackground = Color(0x33FFFFFF),
-                    titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                    titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
-                ),
+                if (isKde) {
+                    TitleBarColors(
+                        background = Color(0xFF272C31),
+                        inactiveBackground = Color(0xFF202428),
+                        content = Color(0xFFFCFCFC),
+                        border = Color(0xFF52565A),
+                        fullscreenControlButtonsBackground = Color(0xFF272C31),
+                        titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
+                        titlePaneButtonPressedBackground = Color(0x33FFFFFF),
+                        titlePaneCloseButtonHoveredBackground = Color(0xFFED1515),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFF44F4F),
+                    )
+                } else {
+                    TitleBarColors(
+                        background = Color(0xFF2B2B2B),
+                        inactiveBackground = Color(0xFF3C3C3C),
+                        content = Color(0xFFE0E0E0),
+                        border = Color(0x5C000006),
+                        fullscreenControlButtonsBackground = Color(0xFF2B2B2B),
+                        titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
+                        titlePaneButtonPressedBackground = Color(0x33FFFFFF),
+                        titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
+                    )
+                },
             metrics =
                 TitleBarMetrics(
                     height = 40.dp,

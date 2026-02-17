@@ -81,19 +81,34 @@ fun DecoratedDialog(
     ) {
         var decoratedDialogState by remember { mutableStateOf(DecoratedDialogState.of(window)) }
 
-        val isGnome = remember { LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.Gnome }
+        val linuxDe = remember { LinuxDesktopEnvironment.Current }
         val gnomeCornerArc = 24f
+        val kdeCornerArc = 20f
 
         DisposableEffect(window) {
             fun updateDialogShape() {
                 decoratedDialogState = DecoratedDialogState.of(window)
-                if (isGnome) {
-                    val w = window.width.toFloat()
-                    val h = window.height.toFloat()
-                    window.shape =
-                        Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
-                            add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
-                        }
+                when (linuxDe) {
+                    LinuxDesktopEnvironment.Gnome -> {
+                        val w = window.width.toFloat()
+                        val h = window.height.toFloat()
+                        window.shape =
+                            Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
+                                add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
+                            }
+                    }
+                    LinuxDesktopEnvironment.KDE -> {
+                        window.shape =
+                            RoundRectangle2D.Float(
+                                0f,
+                                0f,
+                                window.width.toFloat(),
+                                window.height.toFloat(),
+                                kdeCornerArc,
+                                kdeCornerArc,
+                            )
+                    }
+                    else -> {}
                 }
             }
 
