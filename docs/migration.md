@@ -137,6 +137,7 @@ dependencies {
 | Store pipeline | Not available | Automatic dual pipeline for store formats (PKG, AppX, Flatpak) with sandboxing for PKG and Flatpak |
 | Auto-update | Not available | Built-in with YML metadata |
 | Code signing | macOS only | + Windows PFX / Azure Trusted Signing |
+| DMG appearance | Not customizable (jpackage defaults) | Full `dmg { }` DSL: background, icon size, window layout, content positioning, format ([details](targets/macos.md#dmg-customization)) |
 | Artifact naming | Fixed | Template with `artifactName` |
 
 ## What Stays the Same
