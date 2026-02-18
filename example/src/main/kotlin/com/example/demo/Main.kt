@@ -44,6 +44,8 @@ import androidx.compose.ui.window.rememberWindowState
 import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
+import com.example.demo.icons.VscodeCodiconsColorMode
+import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
@@ -88,7 +90,7 @@ fun main(args: Array<String>) {
     application {
         var isWindowVisible by remember { mutableStateOf(true) }
         var restoreRequestCount by remember { mutableStateOf(0) }
-        var isDark by remember { mutableStateOf(true) }
+        var themeMode by remember { mutableStateOf(ThemeMode.System) }
         var showInfoDialog by remember { mutableStateOf(false) }
 
         val isFirstInstance =
@@ -109,6 +111,11 @@ fun main(args: Array<String>) {
         }
 
         if (isWindowVisible) {
+            val isDark = when (themeMode) {
+                ThemeMode.System -> isSystemInDarkMode()
+                ThemeMode.Dark -> true
+                ThemeMode.Light -> false
+            }
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
@@ -121,10 +128,14 @@ fun main(args: Array<String>) {
                         val titleBarAlignment = if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
                         TitleBarIconButton(
-                            imageVector = if (isDark) MaterialIconsLight_mode else MaterialIconsDark_mode,
+                            imageVector = when (themeMode) {
+                                ThemeMode.System -> VscodeCodiconsColorMode
+                                ThemeMode.Dark -> MaterialIconsDark_mode
+                                ThemeMode.Light -> MaterialIconsLight_mode
+                            },
                             contentDescription = "Toggle theme",
                             modifier = Modifier.align(titleBarAlignment),
-                            onClick = { isDark = !isDark },
+                            onClick = { themeMode = themeMode.next() },
                         )
                         TitleBarIconButton(
                             imageVector = MaterialIconsInfo,
@@ -265,6 +276,19 @@ fun app() {
                 }
             }
         }
+    }
+}
+
+private enum class ThemeMode {
+    System,
+    Dark,
+    Light,
+    ;
+
+    fun next(): ThemeMode = when (this) {
+        System -> Dark
+        Dark -> Light
+        Light -> System
     }
 }
 
