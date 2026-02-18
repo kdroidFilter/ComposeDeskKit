@@ -6,7 +6,11 @@ on:
       - '*'
 
 jobs:
+  build-natives:
+    uses: ./.github/workflows/build-natives.yaml
+
   gradle:
+    needs: build-natives
     runs-on: ubuntu-latest
     env:
       GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUBLISH_KEY }}
@@ -15,10 +19,41 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Download all native artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: darkmode-detector/src/main/resources/nucleus/native/
+          pattern: '*-natives*'
+          merge-multiple: true
+
+      - name: Verify all natives present
+        run: |
+          EXPECTED=(
+            "darkmode-detector/src/main/resources/nucleus/native/win32-x64/nucleus_windows_theme.dll"
+            "darkmode-detector/src/main/resources/nucleus/native/win32-aarch64/nucleus_windows_theme.dll"
+            "darkmode-detector/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"
+            "darkmode-detector/src/main/resources/nucleus/native/darwin-x64/libnucleus_darkmode.dylib"
+            "darkmode-detector/src/main/resources/nucleus/native/linux-x64/libnucleus_linux_theme.so"
+            "darkmode-detector/src/main/resources/nucleus/native/linux-aarch64/libnucleus_linux_theme.so"
+          )
+          MISSING=0
+          for f in "${EXPECTED[@]}"; do
+            if [ -f "$f" ]; then
+              echo "OK: $f ($(wc -c < "$f") bytes)"
+            else
+              echo "MISSING: $f" >&2
+              MISSING=1
+            fi
+          done
+          if [ "$MISSING" = "1" ]; then exit 1; fi
+
       - name: Cache Gradle Caches
         uses: gradle/actions/setup-gradle@v4
+
       - name: Run Gradle tasks
         run: ./gradlew preMerge --continue
+
       - name: Publish on Plugin Portal
         run: ./gradlew --project-dir plugin-build setupPluginUploadFromEnvironment publishPlugins
         if: success()
