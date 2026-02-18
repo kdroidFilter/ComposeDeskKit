@@ -25,9 +25,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,8 +42,6 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.WindowPosition
@@ -52,8 +50,6 @@ import androidx.compose.ui.window.rememberWindowState
 import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
-import com.example.demo.icons.TablerTextDirectionLtr
-import com.example.demo.icons.TablerTextDirectionRtl
 import com.example.demo.icons.VscodeCodiconsColorMode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
@@ -69,7 +65,6 @@ import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
 import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
-import androidx.compose.runtime.CompositionLocalProvider
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -103,7 +98,6 @@ fun main(args: Array<String>) {
         var isWindowVisible by remember { mutableStateOf(true) }
         var restoreRequestCount by remember { mutableStateOf(0) }
         var themeMode by remember { mutableStateOf(ThemeMode.System) }
-        var layoutDirection by remember { mutableStateOf(LayoutDirection.Ltr) }
         var showInfoDialog by remember { mutableStateOf(false) }
 
         val isFirstInstance =
@@ -132,7 +126,6 @@ fun main(args: Array<String>) {
                 }
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
-            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
             MaterialTheme(colorScheme = colorScheme) {
                 MaterialDecoratedWindow(
                     state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
@@ -143,24 +136,6 @@ fun main(args: Array<String>) {
                         val titleBarAlignment =
                             if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
-                        TitleBarIconButton(
-                            imageVector =
-                                if (layoutDirection == LayoutDirection.Ltr) {
-                                    TablerTextDirectionLtr
-                                } else {
-                                    TablerTextDirectionRtl
-                                },
-                            contentDescription = "Toggle layout direction",
-                            modifier = Modifier.align(titleBarAlignment),
-                            onClick = {
-                                layoutDirection =
-                                    if (layoutDirection == LayoutDirection.Ltr) {
-                                        LayoutDirection.Rtl
-                                    } else {
-                                        LayoutDirection.Ltr
-                                    }
-                            },
-                        )
                         TitleBarIconButton(
                             imageVector =
                                 when (themeMode) {
@@ -227,7 +202,6 @@ fun main(args: Array<String>) {
                     }
                 }
             }
-            }
         }
     }
 }
@@ -258,9 +232,11 @@ fun app() {
                     }
                 }
             }
+
             is UpdateResult.NotAvailable -> {
                 updateStatus = "Up to date (v${updater.currentVersion})"
             }
+
             is UpdateResult.Error -> {
                 updateStatus = "Update check failed: ${result.exception.message}"
             }
