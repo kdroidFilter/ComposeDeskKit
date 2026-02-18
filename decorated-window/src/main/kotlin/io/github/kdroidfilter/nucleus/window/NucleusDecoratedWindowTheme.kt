@@ -102,7 +102,7 @@ object DecoratedWindowDefaults {
             metrics =
                 TitleBarMetrics(
                     height = 40.dp,
-                    titlePaneButtonSize = DpSize(40.dp, 40.dp),
+                    titlePaneButtonSize = if (isKde) DpSize(28.dp, 28.dp) else DpSize(40.dp, 40.dp),
                 ),
             icons = TitleBarIcons(),
         )
@@ -138,7 +138,7 @@ object DecoratedWindowDefaults {
             metrics =
                 TitleBarMetrics(
                     height = 40.dp,
-                    titlePaneButtonSize = DpSize(40.dp, 40.dp),
+                    titlePaneButtonSize = if (isKde) DpSize(28.dp, 28.dp) else DpSize(40.dp, 40.dp),
                 ),
             icons = TitleBarIcons(),
         )
