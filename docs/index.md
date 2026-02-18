@@ -69,6 +69,20 @@ nucleus.application {
 ./gradlew run
 ```
 
+## Try the Demo
+
+A pre-built demo application is available on the [GitHub Releases page](https://github.com/kdroidFilter/Nucleus/releases). Download the installer for your platform and see Nucleus features in action:
+
+- **AOT Cache** — Near-instant cold startup powered by JDK 25+ ahead-of-time class loading
+- **Material Decorated Window** — Custom title bar with native window controls, automatically themed with Material 3
+- **Dark Mode Detection** — Toggle your OS theme and watch the app switch in real time
+- **Auto-Update** — The app checks for updates on launch, downloads them with progress tracking, and can install & restart in one click
+
+!!! tip "Test auto-update yourself"
+    Download an **older release** from the [releases page](https://github.com/kdroidFilter/Nucleus/releases), install it, and launch the app. It will detect the newer version, download the update, and offer to install it — all automatically.
+
+The demo source code is in the [`example/`](https://github.com/kdroidFilter/Nucleus/tree/main/example) directory.
+
 ## Requirements
 
 | Requirement | Version | Note |

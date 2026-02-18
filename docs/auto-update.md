@@ -23,6 +23,9 @@ Build & Publish          Check & Install
                     └─────────────────────────┘
 ```
 
+!!! tip "Try it yourself"
+    Download an **older version** of the Nucleus demo app from the [GitHub Releases page](https://github.com/kdroidFilter/Nucleus/releases), install it, and launch it. The app will automatically detect that a newer version is available, download the update with a progress bar, and offer an "Install & Restart" button. This is the exact same flow your users will experience.
+
 ## Updatable Formats
 
 | Platform | Updatable Formats |
