@@ -75,11 +75,12 @@ abstract class AbstractExtractNativeLibsTask : AbstractNucleusTask() {
                                 entry.name
                                     .substringBeforeLast('/', "")
                                     .substringAfterLast('/')
-                            val relativePath = if (parentDir.isEmpty() || info.arch == NativeArch.UNIVERSAL) {
-                                fileName
-                            } else {
-                                "$parentDir/$fileName"
-                            }
+                            val relativePath =
+                                if (parentDir.isEmpty() || info.arch == NativeArch.UNIVERSAL) {
+                                    fileName
+                                } else {
+                                    "$parentDir/$fileName"
+                                }
                             if (fileName in extractedFiles) {
                                 logger.warn(
                                     "Sandboxing: skipping duplicate native lib" +
