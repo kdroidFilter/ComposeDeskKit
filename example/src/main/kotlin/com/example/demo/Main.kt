@@ -32,13 +32,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.example.demo.icons.MaterialIconsDark_mode
+import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
@@ -47,9 +50,12 @@ import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+import io.github.kdroidfilter.nucleus.window.DecoratedDialog
 import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.DialogTitleBar
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.kdroidfilter.nucleus.window.TitleBar
+import io.github.kdroidfilter.nucleus.window.TitleBarScope
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarColors
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarIcons
@@ -87,6 +93,7 @@ fun main(args: Array<String>) {
         var isWindowVisible by remember { mutableStateOf(true) }
         var restoreRequestCount by remember { mutableStateOf(0) }
         var isDark by remember { mutableStateOf(true) }
+        var showInfoDialog by remember { mutableStateOf(false) }
 
         val isFirstInstance =
             remember {
@@ -109,26 +116,28 @@ fun main(args: Array<String>) {
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
+                val titleBarStyle = TitleBarStyle(
+                    colors = TitleBarColors(
+                        background = colorScheme.surface,
+                        inactiveBackground = colorScheme.surface,
+                        content = colorScheme.onSurface,
+                        border = colorScheme.outlineVariant,
+                        fullscreenControlButtonsBackground = colorScheme.surface,
+                        titlePaneButtonHoveredBackground = colorScheme.onSurface.copy(alpha = 0.08f),
+                        titlePaneButtonPressedBackground = colorScheme.onSurface.copy(alpha = 0.12f),
+                        titlePaneCloseButtonHoveredBackground = colorScheme.error,
+                        titlePaneCloseButtonPressedBackground = colorScheme.error.copy(alpha = 0.7f),
+                    ),
+                    metrics = TitleBarMetrics(
+                        height = 40.dp,
+                        titlePaneButtonSize = DpSize(40.dp, 40.dp),
+                    ),
+                    icons = TitleBarIcons(),
+                )
+
                 NucleusDecoratedWindowTheme(
                     isDark = isDark,
-                    titleBarStyle = TitleBarStyle(
-                        colors = TitleBarColors(
-                            background = colorScheme.surface,
-                            inactiveBackground = colorScheme.surface,
-                            content = colorScheme.onSurface,
-                            border = colorScheme.outlineVariant,
-                            fullscreenControlButtonsBackground = colorScheme.surface,
-                            titlePaneButtonHoveredBackground = colorScheme.onSurface.copy(alpha = 0.08f),
-                            titlePaneButtonPressedBackground = colorScheme.onSurface.copy(alpha = 0.12f),
-                            titlePaneCloseButtonHoveredBackground = colorScheme.error,
-                            titlePaneCloseButtonPressedBackground = colorScheme.error.copy(alpha = 0.7f),
-                        ),
-                        metrics = TitleBarMetrics(
-                            height = 40.dp,
-                            titlePaneButtonSize = DpSize(40.dp, 40.dp),
-                        ),
-                        icons = TitleBarIcons(),
-                    ),
+                    titleBarStyle = titleBarStyle,
                 ) {
                     DecoratedWindow(
                         state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
@@ -136,28 +145,19 @@ fun main(args: Array<String>) {
                         title = "Nucleus Demo",
                     ) {
                         TitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
-                            val hoverInteraction = remember { MutableInteractionSource() }
-                            val isHovered by hoverInteraction.collectIsHoveredAsState()
+                            val titleBarAlignment = if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
-                            Icon(
+                            TitleBarIconButton(
                                 imageVector = if (isDark) MaterialIconsLight_mode else MaterialIconsDark_mode,
                                 contentDescription = "Toggle theme",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .align(if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start)
-                                    .padding(horizontal = 12.dp)
-                                    .clip(CircleShape)
-                                    .hoverable(hoverInteraction)
-                                    .background(
-                                        if (isHovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                                        else Color.Transparent,
-                                    )
-                                    .clickable(
-                                        interactionSource = hoverInteraction,
-                                        indication = null,
-                                    ) { isDark = !isDark }
-                                    .padding(4.dp)
-                                    .size(16.dp),
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { isDark = !isDark },
+                            )
+                            TitleBarIconButton(
+                                imageVector = MaterialIconsInfo,
+                                contentDescription = "System info",
+                                modifier = Modifier.align(titleBarAlignment),
+                                onClick = { showInfoDialog = true },
                             )
                             Text(
                                 title,
@@ -172,6 +172,38 @@ fun main(args: Array<String>) {
                             }
                         }
                         app()
+                    }
+
+                    if (showInfoDialog) {
+                        DecoratedDialog(
+                            onCloseRequest = { showInfoDialog = false },
+                            state = DialogState(size = DpSize(400.dp, 250.dp)),
+                            title = "System Info",
+                        ) {
+                            DialogTitleBar { _ ->
+                                Text(
+                                    title,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            Surface(modifier = Modifier.fillMaxSize()) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Text(
+                                        text = "System Info",
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                    Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
+                                    Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -223,17 +255,6 @@ fun app() {
             ) {
                 NucleusAtom(atomSize = 200.dp)
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "System Info",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
-                Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
-                Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
-
                 if (currentDeepLink != null) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
@@ -276,4 +297,35 @@ fun app() {
             }
         }
     }
+}
+
+@Composable
+private fun TitleBarScope.TitleBarIconButton(
+    imageVector: ImageVector,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val hoverInteraction = remember { MutableInteractionSource() }
+    val isHovered by hoverInteraction.collectIsHoveredAsState()
+
+    Icon(
+        imageVector = imageVector,
+        contentDescription = contentDescription,
+        tint = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .padding(horizontal = 12.dp)
+            .clip(CircleShape)
+            .hoverable(hoverInteraction)
+            .background(
+                if (isHovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                else Color.Transparent,
+            )
+            .clickable(
+                interactionSource = hoverInteraction,
+                indication = null,
+            ) { onClick() }
+            .padding(4.dp)
+            .size(16.dp),
+    )
 }
