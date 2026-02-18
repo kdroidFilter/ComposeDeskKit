@@ -38,6 +38,7 @@ import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.awt.Frame
 import java.awt.geom.Area
 import java.awt.geom.Rectangle2D
 import java.awt.geom.RoundRectangle2D
@@ -89,16 +90,27 @@ fun DecoratedWindow(
         onKeyEvent,
     ) {
         var decoratedWindowState by remember { mutableStateOf(DecoratedWindowState.of(window)) }
+        var isMaximizedInAnyDirection by remember { mutableStateOf(false) }
 
         val linuxDe = remember { LinuxDesktopEnvironment.Current }
         val gnomeCornerArc = 24f
         val kdeCornerArc = 20f
 
         DisposableEffect(window) {
+            var trackedExtendedState = window.extendedState
+
             fun updateWindowShape() {
                 decoratedWindowState = DecoratedWindowState.of(window)
-                val ws = DecoratedWindowState.of(window)
-                val isMaxOrFull = ws.isMaximized || ws.isFullscreen
+                val ws = decoratedWindowState
+                val hasAnyMaxBit =
+                    (trackedExtendedState and (Frame.MAXIMIZED_VERT or Frame.MAXIMIZED_HORIZ)) != 0
+                val gc = window.graphicsConfiguration
+                val fillsScreen = gc != null && (
+                    window.height >= gc.bounds.height * 0.9 ||
+                    window.width >= gc.bounds.width * 0.9
+                )
+                isMaximizedInAnyDirection = ws.isMaximized || hasAnyMaxBit || fillsScreen
+                val isMaxOrFull = ws.isFullscreen || isMaximizedInAnyDirection
                 when (linuxDe) {
                     LinuxDesktopEnvironment.Gnome -> {
                         window.shape =
@@ -152,6 +164,7 @@ fun DecoratedWindow(
                     }
 
                     override fun windowStateChanged(e: WindowEvent) {
+                        trackedExtendedState = e.newState
                         updateWindowShape()
                     }
 
@@ -185,7 +198,7 @@ fun DecoratedWindow(
 
         val style = LocalDecoratedWindowStyle.current
         val undecoratedWindowBorder =
-            if (undecorated && !decoratedWindowState.isMaximized) {
+            if (undecorated && !decoratedWindowState.isMaximized && !isMaximizedInAnyDirection) {
                 Modifier.insideBorder(
                     style.metrics.borderWidth,
                     style.colors.borderFor(decoratedWindowState).value,
