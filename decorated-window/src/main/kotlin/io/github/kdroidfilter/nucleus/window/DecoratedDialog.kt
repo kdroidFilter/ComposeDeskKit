@@ -85,7 +85,7 @@ fun DecoratedDialog(
 
         val linuxDe = remember { LinuxDesktopEnvironment.Current }
         val gnomeCornerArc = 24f
-        val kdeCornerArc = 20f
+        val kdeCornerArc = 10f
 
         DisposableEffect(window) {
             fun updateDialogShape() {
