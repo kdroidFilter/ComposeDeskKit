@@ -373,7 +373,11 @@ abstract class AbstractJPackageTask
                 launcherJvmArgs.orNull?.forEach {
                     javaOption(it)
                 }
-                val skikoPath = if (sandboxingEnabled.get()) appDir("resources") else appDir()
+                val skikoPath = when {
+                    sandboxingEnabled.get() && currentOS == OS.MacOS -> appDir("..", "Frameworks")
+                    sandboxingEnabled.get() -> appDir("resources")
+                    else -> appDir()
+                }
                 javaOption("-D$SKIKO_LIBRARY_PATH=$skikoPath")
                 if (currentOS == OS.MacOS) {
                     macDockName.orNull?.let { dockName ->
@@ -588,12 +592,32 @@ abstract class AbstractJPackageTask
                 }
             }
 
-            // When sandboxing is enabled, also sign native libs in the resources directory
-            // so they pass Gatekeeper checks in sandboxed App Store apps.
+            // When sandboxing is enabled, move native libs from resources/ to Contents/Frameworks/
+            // (Apple convention for sandboxed apps) and sign them.
             if (sandboxingEnabled.get()) {
                 val resourcesDir = appDir.resolve("Contents/app/resources")
+                val frameworksDir = appDir.resolve("Contents/Frameworks")
                 if (resourcesDir.exists()) {
+                    frameworksDir.mkdirs()
                     resourcesDir.walk().forEach { file ->
+                        if (file == resourcesDir) return@forEach
+                        val relPath = file.relativeTo(resourcesDir).path
+                        if (file.isDirectory) return@forEach
+                        if (file.name.isDylibPath || file.name == "icudtl.dat") {
+                            val target = frameworksDir.resolve(relPath)
+                            target.parentFile.mkdirs()
+                            java.nio.file.Files.move(file.toPath(), target.toPath())
+                        }
+                    }
+                    // Clean up empty directories left in resources/
+                    resourcesDir.walk()
+                        .sortedDescending()
+                        .filter { it.isDirectory && it != resourcesDir && it.listFiles()?.isEmpty() == true }
+                        .forEach { it.delete() }
+                }
+                // Sign native libs in Frameworks/
+                if (frameworksDir.exists()) {
+                    frameworksDir.walk().forEach { file ->
                         val path = file.toPath()
                         if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
                             macSigner.sign(file, appEntitlementsFile)

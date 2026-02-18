@@ -586,7 +586,8 @@ private fun JvmApplicationContext.configurePackageTask(
                 args = args + "-splash:\$APPDIR/resources/$splash"
             }
             if (sandboxed) {
-                args = args + sandboxingJvmArgs("\$APPDIR/resources")
+                val nativeLibPath = if (currentOS == OS.MacOS) "\$APPDIR/../Frameworks" else "\$APPDIR/resources"
+                args = args + sandboxingJvmArgs(nativeLibPath)
             }
             args
         },
