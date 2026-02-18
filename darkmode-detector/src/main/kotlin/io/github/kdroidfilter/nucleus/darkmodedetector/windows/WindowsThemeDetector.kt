@@ -7,11 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.darkmodedetector.debugln
 import io.github.kdroidfilter.nucleus.darkmodedetector.errorln
-import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
-import java.awt.Window
 import java.util.concurrent.ConcurrentHashMap
 import java.util.function.Consumer
 
@@ -130,22 +127,4 @@ internal fun isWindowsInDarkMode(): Boolean {
     }
 
     return darkModeState.value
-}
-
-/**
- * Sets the dark mode title bar appearance for a Windows application window.
- *
- * @param dark Boolean value indicating whether the title bar should use dark mode.
- *    Defaults to the result of [isSystemInDarkMode].
- */
-@Suppress("TooGenericExceptionCaught")
-@Composable
-fun Window.setWindowsAdaptiveTitleBar(dark: Boolean = isSystemInDarkMode()) {
-    try {
-        if (Platform.Current == Platform.Windows) {
-            NativeWindowsBridge.nativeSetDarkModeTitleBar(this, dark)
-        }
-    } catch (e: Exception) {
-        debugln(TAG) { "Failed to set dark mode: ${e.message}" }
-    }
 }

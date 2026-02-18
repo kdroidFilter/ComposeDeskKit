@@ -1,6 +1,5 @@
 package io.github.kdroidfilter.nucleus.darkmodedetector.windows
 
-import java.awt.Component
 import java.nio.file.Files
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -62,10 +61,4 @@ internal object NativeWindowsBridge {
 
     @JvmStatic
     external fun nativeCloseKey(hKey: Long)
-
-    @JvmStatic
-    external fun nativeSetDarkModeTitleBar(
-        awtComponent: Component,
-        dark: Boolean,
-    ): Boolean
 }

@@ -65,7 +65,7 @@ cl /LD /O2 /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
     /Fe:"%OUT_DIR_X64%\nucleus_windows_theme.dll" ^
-    /link advapi32.lib dwmapi.lib "%JAVA_HOME%\lib\jawt.lib"
+    /link advapi32.lib
 if errorlevel 1 (
     echo ERROR: x64 compilation failed >&2
     exit /b 1
@@ -88,7 +88,7 @@ cl /LD /O2 /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
     /Fe:"%OUT_DIR_ARM64%\nucleus_windows_theme.dll" ^
-    /link advapi32.lib dwmapi.lib "%JAVA_HOME%\lib\jawt.lib"
+    /link advapi32.lib
 if errorlevel 1 (
     echo WARNING: ARM64 compilation failed. >&2
     echo Skipping ARM64 build.
