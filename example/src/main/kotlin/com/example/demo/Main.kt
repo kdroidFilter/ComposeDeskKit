@@ -51,20 +51,12 @@ import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
-import io.github.kdroidfilter.nucleus.window.DecoratedDialog
-import io.github.kdroidfilter.nucleus.window.DecoratedWindow
-import io.github.kdroidfilter.nucleus.window.DialogTitleBar
-import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
-import io.github.kdroidfilter.nucleus.window.TitleBar
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
+import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
+import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
+import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
+import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
-import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowColors
-import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowMetrics
-import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowStyle
-import io.github.kdroidfilter.nucleus.window.styling.TitleBarColors
-import io.github.kdroidfilter.nucleus.window.styling.TitleBarIcons
-import io.github.kdroidfilter.nucleus.window.styling.TitleBarMetrics
-import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -120,99 +112,66 @@ fun main(args: Array<String>) {
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
-                val windowStyle = DecoratedWindowStyle(
-                    colors = DecoratedWindowColors(
-                        border = colorScheme.outlineVariant,
-                        borderInactive = colorScheme.outlineVariant.copy(alpha = 0.5f),
-                    ),
-                    metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
-                )
-
-                val titleBarStyle = TitleBarStyle(
-                    colors = TitleBarColors(
-                        background = colorScheme.surface,
-                        inactiveBackground = colorScheme.surface,
-                        content = colorScheme.onSurface,
-                        border = colorScheme.outlineVariant,
-                        fullscreenControlButtonsBackground = colorScheme.surface,
-                        titlePaneButtonHoveredBackground = colorScheme.onSurface.copy(alpha = 0.08f),
-                        titlePaneButtonPressedBackground = colorScheme.onSurface.copy(alpha = 0.12f),
-                        titlePaneCloseButtonHoveredBackground = colorScheme.error,
-                        titlePaneCloseButtonPressedBackground = colorScheme.error.copy(alpha = 0.7f),
-                    ),
-                    metrics = TitleBarMetrics(
-                        height = 40.dp,
-                        titlePaneButtonSize = DpSize(40.dp, 40.dp),
-                    ),
-                    icons = TitleBarIcons(),
-                )
-
-                NucleusDecoratedWindowTheme(
-                    isDark = isDark,
-                    windowStyle = windowStyle,
-                    titleBarStyle = titleBarStyle,
+                MaterialDecoratedWindow(
+                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                    onCloseRequest = ::exitApplication,
+                    title = "Nucleus Demo",
                 ) {
-                    DecoratedWindow(
-                        state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
-                        onCloseRequest = ::exitApplication,
-                        title = "Nucleus Demo",
-                    ) {
-                        TitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
-                            val titleBarAlignment = if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
+                    MaterialTitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
+                        val titleBarAlignment = if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
-                            TitleBarIconButton(
-                                imageVector = if (isDark) MaterialIconsLight_mode else MaterialIconsDark_mode,
-                                contentDescription = "Toggle theme",
-                                modifier = Modifier.align(titleBarAlignment),
-                                onClick = { isDark = !isDark },
-                            )
-                            TitleBarIconButton(
-                                imageVector = MaterialIconsInfo,
-                                contentDescription = "System info",
-                                modifier = Modifier.align(titleBarAlignment),
-                                onClick = { showInfoDialog = true },
-                            )
-                            Text(
-                                title,
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                        TitleBarIconButton(
+                            imageVector = if (isDark) MaterialIconsLight_mode else MaterialIconsDark_mode,
+                            contentDescription = "Toggle theme",
+                            modifier = Modifier.align(titleBarAlignment),
+                            onClick = { isDark = !isDark },
+                        )
+                        TitleBarIconButton(
+                            imageVector = MaterialIconsInfo,
+                            contentDescription = "System info",
+                            modifier = Modifier.align(titleBarAlignment),
+                            onClick = { showInfoDialog = true },
+                        )
+                        Text(
+                            title,
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                    LaunchedEffect(restoreRequestCount) {
+                        if (restoreRequestCount > 0) {
+                            window.toFront()
+                            window.requestFocus()
                         }
-                        LaunchedEffect(restoreRequestCount) {
-                            if (restoreRequestCount > 0) {
-                                window.toFront()
-                                window.requestFocus()
+                    }
+                    app()
+
+                    if (showInfoDialog) {
+                        MaterialDecoratedDialog(
+                            onCloseRequest = { showInfoDialog = false },
+                            state = DialogState(size = DpSize(400.dp, 250.dp)),
+                            title = "System Info",
+                        ) {
+                            val background = MaterialTheme.colorScheme.surface
+                            LaunchedEffect(window, background) {
+                                window.background = java.awt.Color(background.toArgb())
                             }
-                        }
-                        app()
-
-                        if (showInfoDialog) {
-                            DecoratedDialog(
-                                onCloseRequest = { showInfoDialog = false },
-                                state = DialogState(size = DpSize(400.dp, 250.dp)),
-                                title = "System Info",
-                            ) {
-                                val background = MaterialTheme.colorScheme.surface
-                                LaunchedEffect(window, background) {
-                                    window.background = java.awt.Color(background.toArgb())
-                                }
-                                DialogTitleBar { _ ->
-                                    Text(
-                                        title,
-                                        modifier = Modifier.align(Alignment.CenterHorizontally),
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                Surface(modifier = Modifier.fillMaxSize()) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize().padding(24.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center,
-                                    ) {
-                                        Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
-                                        Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
-                                        Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
-                                    }
+                            MaterialDialogTitleBar { _ ->
+                                Text(
+                                    title,
+                                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            Surface(modifier = Modifier.fillMaxSize()) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                    Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
+                                    Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
                                 }
                             }
                         }
@@ -258,52 +217,50 @@ fun app() {
         }
     }
 
-    MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                NucleusAtom(atomSize = 200.dp)
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            NucleusAtom(atomSize = 200.dp)
 
-                if (currentDeepLink != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Deep Link",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+            if (currentDeepLink != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Deep Link",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = currentDeepLink.toString(),
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (updater.isUpdateSupported()) {
+                Text(
+                    text = "Auto-Update",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(updateStatus)
+
+                if (downloadProgress in 0.0..99.9) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = currentDeepLink.toString(),
-                        textAlign = TextAlign.Center,
+                    LinearProgressIndicator(
+                        progress = { (downloadProgress / 100.0).toFloat() },
+                        modifier = Modifier.fillMaxWidth(0.6f),
                     )
+                    Text("${downloadProgress.toInt()}%")
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                if (updater.isUpdateSupported()) {
-                    Text(
-                        text = "Auto-Update",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                if (downloadedFile != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(updateStatus)
-
-                    if (downloadProgress in 0.0..99.9) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        LinearProgressIndicator(
-                            progress = { (downloadProgress / 100.0).toFloat() },
-                            modifier = Modifier.fillMaxWidth(0.6f),
-                        )
-                        Text("${downloadProgress.toInt()}%")
-                    }
-
-                    if (downloadedFile != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { updater.installAndRestart(downloadedFile!!) }) {
-                            Text("Install & Restart")
-                        }
+                    Button(onClick = { updater.installAndRestart(downloadedFile!!) }) {
+                        Text("Install & Restart")
                     }
                 }
             }
