@@ -61,11 +61,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-cl /LD /O2 /nologo ^
+cl /LD /O1 /GS- /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
     /Fe:"%OUT_DIR_X64%\nucleus_windows_theme.dll" ^
-    /link advapi32.lib
+    /link /NODEFAULTLIB /ENTRY:DllMain advapi32.lib kernel32.lib
 if errorlevel 1 (
     echo ERROR: x64 compilation failed >&2
     exit /b 1
@@ -84,11 +84,11 @@ if errorlevel 1 (
     goto :done
 )
 
-cl /LD /O2 /nologo ^
+cl /LD /O1 /GS- /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
     /Fe:"%OUT_DIR_ARM64%\nucleus_windows_theme.dll" ^
-    /link advapi32.lib
+    /link /NODEFAULTLIB /ENTRY:DllMain advapi32.lib kernel32.lib
 if errorlevel 1 (
     echo WARNING: ARM64 compilation failed. >&2
     echo Skipping ARM64 build.
