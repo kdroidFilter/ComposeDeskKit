@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -29,6 +30,23 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_11)
     }
+}
+
+val buildNativeMacOs by tasks.registering(Exec::class) {
+    description = "Compiles the Objective-C JNI bridge into macOS dylibs (arm64 + x64)"
+    group = "build"
+    enabled = Os.isFamily(Os.FAMILY_MAC)
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/macos")
+    val outputDir = layout.projectDirectory.dir("src/main/resources/nucleus/native")
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
+tasks.processResources {
+    dependsOn(buildNativeMacOs)
 }
 
 mavenPublishing {

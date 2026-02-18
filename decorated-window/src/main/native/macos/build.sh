@@ -1,6 +1,6 @@
 #!/bin/bash
-# Compiles NucleusMacBridge.m into a universal (arm64 + x86_64) dylib.
-# The output is placed in the JAR resources so it ships with the library.
+# Compiles NucleusMacBridge.m into per-architecture dylibs (arm64 + x86_64).
+# The outputs are placed in the JAR resources so they ship with the library.
 #
 # Prerequisites: Xcode command-line tools (clang).
 # Usage: ./build.sh
@@ -9,8 +9,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC="$SCRIPT_DIR/NucleusMacBridge.m"
-OUT_DIR="$SCRIPT_DIR/../../resources/nucleus/native/darwin-universal"
-OUT_LIB="$OUT_DIR/libnucleus_macos.dylib"
+RESOURCE_DIR="$SCRIPT_DIR/../../resources/nucleus/native"
+OUT_DIR_ARM64="$RESOURCE_DIR/darwin-aarch64"
+OUT_DIR_X64="$RESOURCE_DIR/darwin-x64"
 
 # Detect JAVA_HOME for JNI headers
 if [ -z "${JAVA_HOME:-}" ]; then
@@ -29,15 +30,12 @@ if [ ! -d "$JNI_INCLUDE" ]; then
     exit 1
 fi
 
-mkdir -p "$OUT_DIR"
-
-TMPDIR_BUILD="$(mktemp -d)"
-trap 'rm -rf "$TMPDIR_BUILD"' EXIT
+mkdir -p "$OUT_DIR_ARM64" "$OUT_DIR_X64"
 
 # Compile for arm64
 clang -arch arm64 \
     -dynamiclib \
-    -o "$TMPDIR_BUILD/libnucleus_macos_arm64.dylib" \
+    -o "$OUT_DIR_ARM64/libnucleus_macos.dylib" \
     -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN" \
     -framework Cocoa \
     -mmacosx-version-min=10.13 \
@@ -47,18 +45,13 @@ clang -arch arm64 \
 # Compile for x86_64
 clang -arch x86_64 \
     -dynamiclib \
-    -o "$TMPDIR_BUILD/libnucleus_macos_x86_64.dylib" \
+    -o "$OUT_DIR_X64/libnucleus_macos.dylib" \
     -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN" \
     -framework Cocoa \
     -mmacosx-version-min=10.13 \
     -fobjc-arc \
     "$SRC"
 
-# Create universal binary
-lipo -create \
-    "$TMPDIR_BUILD/libnucleus_macos_arm64.dylib" \
-    "$TMPDIR_BUILD/libnucleus_macos_x86_64.dylib" \
-    -output "$OUT_LIB"
-
-echo "Built universal dylib:"
-file "$OUT_LIB"
+echo "Built per-architecture dylibs:"
+file "$OUT_DIR_ARM64/libnucleus_macos.dylib"
+file "$OUT_DIR_X64/libnucleus_macos.dylib"
