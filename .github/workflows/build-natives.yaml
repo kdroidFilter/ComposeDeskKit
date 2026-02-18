@@ -104,5 +104,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-natives-${{ matrix.arch }}
-          path: darkmode-detector/src/main/resources/nucleus/native/linux-${{ matrix.arch }}/
+          path: darkmode-detector/src/main/resources/nucleus/native/linux-*/
           retention-days: 1
