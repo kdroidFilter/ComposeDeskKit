@@ -54,7 +54,7 @@ The `setup-nucleus` composite action (`.github/actions/setup-nucleus`) sets up t
 ```yaml
 - uses: kdroidFilter/Nucleus/.github/actions/setup-nucleus@main
   with:
-    jbr-version: '25b176.4'
+    jbr-version: '25.0.2b329.66'
     packaging-tools: 'true'
     flatpak: 'true'
     snap: 'true'
@@ -66,7 +66,7 @@ The `setup-nucleus` composite action (`.github/actions/setup-nucleus`) sets up t
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `jbr-version` | `25.0.2b315.62` | JBR version (e.g. `25b176.4`, `25.0.2b315.62`) |
+| `jbr-version` | `25.0.2b329.66` | JBR version (e.g. `25.0.2b329.66`) |
 | `jbr-variant` | `jbrsdk` | JBR variant (`jbrsdk`, `jbrsdk_jcef`, etc.) |
 | `jbr-download-url` | — | Override complete JBR download URL (bypasses version/variant) |
 | `packaging-tools` | `true` | Install xvfb, rpm, fakeroot (Linux only) |
@@ -163,7 +163,7 @@ jobs:
       - name: Setup Nucleus
         uses: kdroidFilter/Nucleus/.github/actions/setup-nucleus@main
         with:
-          jbr-version: '25b176.4'
+          jbr-version: '25.0.2b329.66'
           packaging-tools: 'true'
           flatpak: 'true'
           snap: 'true'
@@ -216,7 +216,7 @@ matrix:
 steps:
   - uses: kdroidFilter/Nucleus/.github/actions/setup-nucleus@main
     with:
-      jbr-version: '25b176.4'
+      jbr-version: '25.0.2b329.66'
       jbr-download-url: ${{ matrix.jbr-download-url || '' }}
 ```
 
