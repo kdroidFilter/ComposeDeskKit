@@ -32,26 +32,29 @@ fi
 
 mkdir -p "$OUT_DIR_ARM64" "$OUT_DIR_X64"
 
+COMMON_FLAGS=(
+    -dynamiclib
+    -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN"
+    -framework Cocoa
+    -mmacosx-version-min=10.13
+    -fobjc-arc
+    -Oz                     # optimize for smallest code size
+    -flto                   # link-time optimization
+    -fvisibility=hidden     # hide all symbols except JNIEXPORT ones
+    -Wl,-dead_strip         # strip unreachable code
+    -Wl,-x                  # strip local symbols at link time
+)
+
 # Compile for arm64
-clang -arch arm64 \
-    -dynamiclib \
-    -o "$OUT_DIR_ARM64/libnucleus_macos.dylib" \
-    -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN" \
-    -framework Cocoa \
-    -mmacosx-version-min=10.13 \
-    -fobjc-arc \
-    "$SRC"
+clang -arch arm64 "${COMMON_FLAGS[@]}" \
+    -o "$OUT_DIR_ARM64/libnucleus_macos.dylib" "$SRC"
+strip -x "$OUT_DIR_ARM64/libnucleus_macos.dylib"
 
 # Compile for x86_64
-clang -arch x86_64 \
-    -dynamiclib \
-    -o "$OUT_DIR_X64/libnucleus_macos.dylib" \
-    -I"$JNI_INCLUDE" -I"$JNI_INCLUDE_DARWIN" \
-    -framework Cocoa \
-    -mmacosx-version-min=10.13 \
-    -fobjc-arc \
-    "$SRC"
+clang -arch x86_64 "${COMMON_FLAGS[@]}" \
+    -o "$OUT_DIR_X64/libnucleus_macos.dylib" "$SRC"
+strip -x "$OUT_DIR_X64/libnucleus_macos.dylib"
 
 echo "Built per-architecture dylibs:"
-file "$OUT_DIR_ARM64/libnucleus_macos.dylib"
-file "$OUT_DIR_X64/libnucleus_macos.dylib"
+ls -lh "$OUT_DIR_ARM64/libnucleus_macos.dylib"
+ls -lh "$OUT_DIR_X64/libnucleus_macos.dylib"
