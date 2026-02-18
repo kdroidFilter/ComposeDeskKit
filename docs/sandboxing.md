@@ -34,7 +34,7 @@ When at least one store format is configured, Nucleus registers additional Gradl
 
 ### 1. Extract Native Libraries from JARs
 
-Sandboxed apps (especially macOS App Sandbox) cannot load unsigned native code extracted to temp directories at runtime. The plugin scans all dependency JARs for `.dylib`, `.jnilib`, `.so`, and `.dll` files and extracts them to the app's `resources/` directory.
+Sandboxed apps (especially macOS App Sandbox) cannot load unsigned native code extracted to temp directories at runtime. The plugin scans all dependency JARs for `.dylib`, `.jnilib`, `.so`, and `.dll` files and extracts them. On macOS, these are placed in the app's `Contents/Frameworks/` directory (Apple convention); on other platforms they go into the app's `resources/` directory.
 
 **Task:** `extractNativeLibsForSandboxing`
 
@@ -52,8 +52,18 @@ A separate `Sync` task merges the user's `appResources` with the extracted nativ
 
 ### 4. Inject Sandboxing JVM Arguments
 
-The sandboxed app-image is configured with JVM arguments that redirect native library loading to the pre-extracted resources directory:
+The sandboxed app-image is configured with JVM arguments that redirect native library loading to the pre-extracted location. On macOS, the path points to `Contents/Frameworks/` (`$APPDIR/../Frameworks`); on other platforms it points to `$APPDIR/resources`:
 
+**macOS:**
+```
+-Djava.library.path=$APPDIR/../Frameworks
+-Djna.nounpack=true
+-Djna.nosys=true
+-Djna.boot.library.path=$APPDIR/../Frameworks
+-Djna.library.path=$APPDIR/../Frameworks
+```
+
+**Windows / Linux:**
 ```
 -Djava.library.path=$APPDIR/resources
 -Djna.nounpack=true
@@ -64,13 +74,13 @@ The sandboxed app-image is configured with JVM arguments that redirect native li
 
 This ensures JNA/JNI libraries are loaded from signed, pre-extracted locations instead of being dynamically extracted to temp at runtime.
 
-### 5. Sign Native Libraries in Resources (macOS)
+### 5. Sign Native Libraries (macOS)
 
-On macOS, all `.dylib` files in the sandboxed app's `resources/` directory are individually code-signed so they pass Gatekeeper checks.
+On macOS, all `.dylib` files in the sandboxed app's `Contents/Frameworks/` directory are individually code-signed so they pass Gatekeeper checks.
 
 ### 6. Handle Skiko and icudtl.dat
 
-The Skiko library path is adjusted to point to `resources/` instead of the app root. The companion `icudtl.dat` file is copied alongside the Skiko native library.
+The Skiko library path is adjusted to point to `Contents/Frameworks/` (macOS) or `resources/` (other platforms) instead of the app root. The companion `icudtl.dat` file is placed alongside the Skiko native library.
 
 ## macOS App Sandbox
 

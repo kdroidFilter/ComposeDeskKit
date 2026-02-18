@@ -75,6 +75,7 @@ import java.io.File
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable
+import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.util.ArrayList
 import java.util.Calendar
@@ -373,7 +374,12 @@ abstract class AbstractJPackageTask
                 launcherJvmArgs.orNull?.forEach {
                     javaOption(it)
                 }
-                val skikoPath = if (sandboxingEnabled.get()) appDir("resources") else appDir()
+                val skikoPath =
+                    when {
+                        sandboxingEnabled.get() && currentOS == OS.MacOS -> appDir("..", "Frameworks")
+                        sandboxingEnabled.get() -> appDir("resources")
+                        else -> appDir()
+                    }
                 javaOption("-D$SKIKO_LIBRARY_PATH=$skikoPath")
                 if (currentOS == OS.MacOS) {
                     macDockName.orNull?.let { dockName ->
@@ -588,18 +594,8 @@ abstract class AbstractJPackageTask
                 }
             }
 
-            // When sandboxing is enabled, also sign native libs in the resources directory
-            // so they pass Gatekeeper checks in sandboxed App Store apps.
             if (sandboxingEnabled.get()) {
-                val resourcesDir = appDir.resolve("Contents/app/resources")
-                if (resourcesDir.exists()) {
-                    resourcesDir.walk().forEach { file ->
-                        val path = file.toPath()
-                        if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
-                            macSigner.sign(file, appEntitlementsFile)
-                        }
-                    }
-                }
+                moveNativeLibsToFrameworks(appDir, macSigner, appEntitlementsFile)
             }
 
             macSigner.sign(runtimeDir, runtimeEntitlementsFile, forceEntitlements = true)
@@ -610,6 +606,46 @@ abstract class AbstractJPackageTask
                     if (originalIcon.exists()) {
                         newIcon.ensureParentDirsCreated()
                         originalIcon.copyTo(newIcon)
+                    }
+                }
+            }
+        }
+
+        /**
+         * Moves native libraries from `Contents/app/resources/` to `Contents/Frameworks/`
+         * (Apple convention for sandboxed apps) and signs them.
+         */
+        private fun moveNativeLibsToFrameworks(
+            appDir: File,
+            macSigner: MacSigner,
+            entitlementsFile: File?,
+        ) {
+            val resourcesDir = appDir.resolve("Contents/app/resources")
+            val frameworksDir = appDir.resolve("Contents/Frameworks")
+            if (resourcesDir.exists()) {
+                frameworksDir.mkdirs()
+                resourcesDir.walk().forEach { file ->
+                    if (file == resourcesDir) return@forEach
+                    if (file.isDirectory) return@forEach
+                    if (file.name.isDylibPath || file.name == "icudtl.dat") {
+                        val target = frameworksDir.resolve(file.relativeTo(resourcesDir).path)
+                        target.parentFile.mkdirs()
+                        Files.move(file.toPath(), target.toPath())
+                    }
+                }
+                // Clean up empty directories left in resources/
+                resourcesDir
+                    .walk()
+                    .sortedDescending()
+                    .filter { it.isDirectory && it != resourcesDir && it.listFiles()?.isEmpty() == true }
+                    .forEach { it.delete() }
+            }
+            // Sign native libs in Frameworks/
+            if (frameworksDir.exists()) {
+                frameworksDir.walk().forEach { file ->
+                    val path = file.toPath()
+                    if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
+                        macSigner.sign(file, entitlementsFile)
                     }
                 }
             }

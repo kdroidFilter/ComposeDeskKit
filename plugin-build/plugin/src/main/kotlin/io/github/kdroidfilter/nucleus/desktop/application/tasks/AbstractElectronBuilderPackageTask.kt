@@ -523,10 +523,10 @@ abstract class AbstractElectronBuilderPackageTask
                 signer.sign(runtimeDir, runtimeEntitlements, forceEntitlements = true)
             }
 
-            // Re-sign native libs in resources directory (PKG is always sandboxed)
-            val resourcesDir = appDir.resolve("Contents/app/resources")
-            if (resourcesDir.exists()) {
-                resourcesDir.walk().forEach { file ->
+            // Re-sign native libs in Frameworks directory (PKG is always sandboxed)
+            val frameworksDir = appDir.resolve("Contents/Frameworks")
+            if (frameworksDir.exists()) {
+                frameworksDir.walk().forEach { file ->
                     val path = file.toPath()
                     if (path.isRegularFile(LinkOption.NOFOLLOW_LINKS) && file.name.isDylibPath) {
                         signer.sign(file, appEntitlements)
