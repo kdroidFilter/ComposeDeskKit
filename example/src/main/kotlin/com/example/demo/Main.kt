@@ -185,39 +185,34 @@ fun main(args: Array<String>) {
                             }
                         }
                         app()
-                    }
 
-                    if (showInfoDialog) {
-                        DecoratedDialog(
-                            onCloseRequest = { showInfoDialog = false },
-                            state = DialogState(size = DpSize(400.dp, 250.dp)),
-                            title = "System Info",
-                        ) {
-                            val background = MaterialTheme.colorScheme.surface
-                            LaunchedEffect(window, background) {
-                                window.background = java.awt.Color(background.toArgb())
-                            }
-                            DialogTitleBar { _ ->
-                                Text(
-                                    title,
-                                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                            Surface(modifier = Modifier.fillMaxSize()) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize().padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
+                        if (showInfoDialog) {
+                            DecoratedDialog(
+                                onCloseRequest = { showInfoDialog = false },
+                                state = DialogState(size = DpSize(400.dp, 250.dp)),
+                                title = "System Info",
+                            ) {
+                                val background = MaterialTheme.colorScheme.surface
+                                LaunchedEffect(window, background) {
+                                    window.background = java.awt.Color(background.toArgb())
+                                }
+                                DialogTitleBar { _ ->
                                     Text(
-                                        text = "System Info",
-                                        style = MaterialTheme.typography.titleMedium,
+                                        title,
+                                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                                        color = MaterialTheme.colorScheme.onSurface,
                                     )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
-                                    Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
-                                    Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                }
+                                Surface(modifier = Modifier.fillMaxSize()) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
+                                        Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
+                                        Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
+                                        Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
+                                    }
                                 }
                             }
                         }
