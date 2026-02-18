@@ -12,7 +12,6 @@ batik = "1.19"
 vanniktechMavenPublish = "0.36.0"
 jbrApi = "1.10.1"
 jna = "5.17.0"
-jfa = "1.2.0"
 
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt"}
@@ -34,4 +33,3 @@ batik-transcoder = { module = "org.apache.xmlgraphics:batik-transcoder", version
 jbr-api = { module = "org.jetbrains.runtime:jbr-api", version.ref = "jbrApi" }
 jna-jpms = { module = "net.java.dev.jna:jna-jpms", version.ref = "jna" }
 jna-platform-jpms = { module = "net.java.dev.jna:jna-platform-jpms", version.ref = "jna" }
-jfa = { module = "de.jangassen:jfa", version.ref = "jfa" }
