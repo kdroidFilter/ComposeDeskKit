@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.window
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -11,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeDialog
 import androidx.compose.ui.graphics.painter.Painter
@@ -43,7 +43,7 @@ import java.awt.geom.Area
 import java.awt.geom.Rectangle2D
 import java.awt.geom.RoundRectangle2D
 
-@Suppress("FunctionNaming", "LongParameterList")
+@Suppress("FunctionNaming", "LongParameterList", "MagicNumber")
 @Composable
 fun DecoratedDialog(
     onCloseRequest: () -> Unit,
@@ -153,16 +153,18 @@ fun DecoratedDialog(
         }
 
         val style = LocalDecoratedWindowStyle.current
-        val borderShape = when (linuxDe) {
-            LinuxDesktopEnvironment.Gnome -> RoundedCornerShape(
-                topStart = (gnomeCornerArc / 2).dp,
-                topEnd = (gnomeCornerArc / 2).dp,
-                bottomStart = 0.dp,
-                bottomEnd = 0.dp,
-            )
-            LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
-            else -> RoundedCornerShape(0.dp)
-        }
+        val borderShape =
+            when (linuxDe) {
+                LinuxDesktopEnvironment.Gnome ->
+                    RoundedCornerShape(
+                        topStart = (gnomeCornerArc / 2).dp,
+                        topEnd = (gnomeCornerArc / 2).dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp,
+                    )
+                LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
+                else -> RoundedCornerShape(0.dp)
+            }
         val undecoratedWindowBorder =
             if (undecorated) {
                 Modifier.insideBorder(

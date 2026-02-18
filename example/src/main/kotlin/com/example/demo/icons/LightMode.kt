@@ -1,4 +1,6 @@
-package com.example.demo.icons/*
+package com.example.demo.icons
+
+/*
 
                                  Apache License
                            Version 2.0, January 2004
@@ -208,57 +210,112 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
-val MaterialIconsInfo: ImageVector
+val MaterialIconsLight_mode: ImageVector
     get() {
-        if (_MaterialIconsInfo != null) return _MaterialIconsInfo!!
+        if (_MaterialIconsLight_mode != null) return _MaterialIconsLight_mode!!
 
-        _MaterialIconsInfo = ImageVector.Builder(
-            name = "info",
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f
-        ).apply {
-            path(
-                fill = SolidColor(Color.Transparent)
-            ) {
-                moveTo(0f, 0f)
-                horizontalLineToRelative(24f)
-                verticalLineToRelative(24f)
-                horizontalLineTo(0f)
-                verticalLineTo(0f)
-                close()
-            }
-            path(
-                fill = SolidColor(Color.Black)
-            ) {
-                moveTo(11f, 7f)
-                horizontalLineToRelative(2f)
-                verticalLineToRelative(2f)
-                horizontalLineToRelative(-2f)
-                close()
-                moveToRelative(0f, 4f)
-                horizontalLineToRelative(2f)
-                verticalLineToRelative(6f)
-                horizontalLineToRelative(-2f)
-                close()
-                moveToRelative(1f, -9f)
-                curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
-                reflectiveCurveToRelative(4.48f, 10f, 10f, 10f)
-                reflectiveCurveToRelative(10f, -4.48f, 10f, -10f)
-                reflectiveCurveTo(17.52f, 2f, 12f, 2f)
-                close()
-                moveToRelative(0f, 18f)
-                curveToRelative(-4.41f, 0f, -8f, -3.59f, -8f, -8f)
-                reflectiveCurveToRelative(3.59f, -8f, 8f, -8f)
-                reflectiveCurveToRelative(8f, 3.59f, 8f, 8f)
-                reflectiveCurveToRelative(-3.59f, 8f, -8f, 8f)
-                close()
-            }
-        }.build()
+        _MaterialIconsLight_mode =
+            ImageVector
+                .Builder(
+                    name = "light_mode",
+                    defaultWidth = 24.dp,
+                    defaultHeight = 24.dp,
+                    viewportWidth = 24f,
+                    viewportHeight = 24f,
+                ).apply {
+                    path(
+                        fill = SolidColor(Color.Transparent),
+                    ) {
+                        moveTo(0f, 0f)
+                        horizontalLineTo(24f)
+                        verticalLineTo(24f)
+                        horizontalLineTo(0f)
+                        verticalLineTo(0f)
+                        close()
+                    }
+                    path(
+                        fill = SolidColor(Color.Black),
+                    ) {
+                        moveTo(12f, 9f)
+                        curveToRelative(1.65f, 0f, 3f, 1.35f, 3f, 3f)
+                        reflectiveCurveToRelative(-1.35f, 3f, -3f, 3f)
+                        reflectiveCurveToRelative(-3f, -1.35f, -3f, -3f)
+                        reflectiveCurveTo(10.35f, 9f, 12f, 9f)
+                        moveTo(12f, 7f)
+                        curveToRelative(-2.76f, 0f, -5f, 2.24f, -5f, 5f)
+                        reflectiveCurveToRelative(2.24f, 5f, 5f, 5f)
+                        reflectiveCurveToRelative(5f, -2.24f, 5f, -5f)
+                        reflectiveCurveTo(14.76f, 7f, 12f, 7f)
+                        lineTo(12f, 7f)
+                        close()
+                        moveTo(2f, 13f)
+                        lineToRelative(2f, 0f)
+                        curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
+                        reflectiveCurveToRelative(-0.45f, -1f, -1f, -1f)
+                        lineToRelative(-2f, 0f)
+                        curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
+                        reflectiveCurveTo(1.45f, 13f, 2f, 13f)
+                        close()
+                        moveTo(20f, 13f)
+                        lineToRelative(2f, 0f)
+                        curveToRelative(0.55f, 0f, 1f, -0.45f, 1f, -1f)
+                        reflectiveCurveToRelative(-0.45f, -1f, -1f, -1f)
+                        lineToRelative(-2f, 0f)
+                        curveToRelative(-0.55f, 0f, -1f, 0.45f, -1f, 1f)
+                        reflectiveCurveTo(19.45f, 13f, 20f, 13f)
+                        close()
+                        moveTo(11f, 2f)
+                        verticalLineToRelative(2f)
+                        curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
+                        reflectiveCurveToRelative(1f, -0.45f, 1f, -1f)
+                        verticalLineTo(2f)
+                        curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
+                        reflectiveCurveTo(11f, 1.45f, 11f, 2f)
+                        close()
+                        moveTo(11f, 20f)
+                        verticalLineToRelative(2f)
+                        curveToRelative(0f, 0.55f, 0.45f, 1f, 1f, 1f)
+                        reflectiveCurveToRelative(1f, -0.45f, 1f, -1f)
+                        verticalLineToRelative(-2f)
+                        curveToRelative(0f, -0.55f, -0.45f, -1f, -1f, -1f)
+                        curveTo(11.45f, 19f, 11f, 19.45f, 11f, 20f)
+                        close()
+                        moveTo(5.99f, 4.58f)
+                        curveToRelative(-0.39f, -0.39f, -1.03f, -0.39f, -1.41f, 0f)
+                        curveToRelative(-0.39f, 0.39f, -0.39f, 1.03f, 0f, 1.41f)
+                        lineToRelative(1.06f, 1.06f)
+                        curveToRelative(0.39f, 0.39f, 1.03f, 0.39f, 1.41f, 0f)
+                        reflectiveCurveToRelative(0.39f, -1.03f, 0f, -1.41f)
+                        lineTo(5.99f, 4.58f)
+                        close()
+                        moveTo(18.36f, 16.95f)
+                        curveToRelative(-0.39f, -0.39f, -1.03f, -0.39f, -1.41f, 0f)
+                        curveToRelative(-0.39f, 0.39f, -0.39f, 1.03f, 0f, 1.41f)
+                        lineToRelative(1.06f, 1.06f)
+                        curveToRelative(0.39f, 0.39f, 1.03f, 0.39f, 1.41f, 0f)
+                        curveToRelative(0.39f, -0.39f, 0.39f, -1.03f, 0f, -1.41f)
+                        lineTo(18.36f, 16.95f)
+                        close()
+                        moveTo(19.42f, 5.99f)
+                        curveToRelative(0.39f, -0.39f, 0.39f, -1.03f, 0f, -1.41f)
+                        curveToRelative(-0.39f, -0.39f, -1.03f, -0.39f, -1.41f, 0f)
+                        lineToRelative(-1.06f, 1.06f)
+                        curveToRelative(-0.39f, 0.39f, -0.39f, 1.03f, 0f, 1.41f)
+                        reflectiveCurveToRelative(1.03f, 0.39f, 1.41f, 0f)
+                        lineTo(19.42f, 5.99f)
+                        close()
+                        moveTo(7.05f, 18.36f)
+                        curveToRelative(0.39f, -0.39f, 0.39f, -1.03f, 0f, -1.41f)
+                        curveToRelative(-0.39f, -0.39f, -1.03f, -0.39f, -1.41f, 0f)
+                        lineToRelative(-1.06f, 1.06f)
+                        curveToRelative(-0.39f, 0.39f, -0.39f, 1.03f, 0f, 1.41f)
+                        reflectiveCurveToRelative(1.03f, 0.39f, 1.41f, 0f)
+                        lineTo(7.05f, 18.36f)
+                        close()
+                    }
+                }.build()
 
-        return _MaterialIconsInfo!!
+        return _MaterialIconsLight_mode!!
     }
 
-private var _MaterialIconsInfo: ImageVector? = null
-
+private var _MaterialIconsLight_mode: ImageVector? = null

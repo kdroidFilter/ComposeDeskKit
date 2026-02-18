@@ -1,3 +1,5 @@
+@file:Suppress("TooGenericExceptionCaught", "NestedBlockDepth", "LoopWithTooManyJumpStatements")
+
 package io.github.kdroidfilter.nucleus.darkmodedetector.linux
 
 import androidx.compose.runtime.Composable
@@ -15,10 +17,11 @@ private const val TAG = "GnomeThemeDetector"
 
 internal object GnomeThemeDetector {
     private const val MONITORING_CMD = "gsettings monitor org.gnome.desktop.interface"
-    private val GET_CMD = arrayOf(
-        "gsettings get org.gnome.desktop.interface gtk-theme",
-        "gsettings get org.gnome.desktop.interface color-scheme",
-    )
+    private val GET_CMD =
+        arrayOf(
+            "gsettings get org.gnome.desktop.interface gtk-theme",
+            "gsettings get org.gnome.desktop.interface color-scheme",
+        )
 
     val darkThemeRegex = ".*dark.*".toRegex(RegexOption.IGNORE_CASE)
 
@@ -48,49 +51,55 @@ internal object GnomeThemeDetector {
 
     private fun startMonitoring() {
         if (detectorThread?.isAlive == true) return
-        detectorThread = object : Thread("GTK Theme Detector Thread") {
-            private var lastValue: Boolean = isDark()
-            override fun run() {
-                debugln(TAG) { "Starting GTK theme monitoring thread" }
-                val runtime = Runtime.getRuntime()
-                val process = try {
-                    runtime.exec(MONITORING_CMD)
-                } catch (e: Exception) {
-                    errorln(TAG, e) { "Couldn't start monitoring process" }
-                    return
-                }
+        detectorThread =
+            object : Thread("GTK Theme Detector Thread") {
+                private var lastValue: Boolean = isDark()
 
-                BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
-                    while (!isInterrupted) {
-                        val line = reader.readLine() ?: break
-                        if (!line.contains("gtk-theme", ignoreCase = true) &&
-                            !line.contains("color-scheme", ignoreCase = true)
-                        ) {
-                            continue
+                override fun run() {
+                    debugln(TAG) { "Starting GTK theme monitoring thread" }
+                    val runtime = Runtime.getRuntime()
+                    val process =
+                        try {
+                            runtime.exec(MONITORING_CMD)
+                        } catch (e: Exception) {
+                            errorln(TAG, e) { "Couldn't start monitoring process" }
+                            return
                         }
 
-                        debugln(TAG) { "Monitoring output: $line" }
-                        val currentIsDark = isDarkThemeFromLine(line) ?: isDark()
-                        if (currentIsDark != lastValue) {
-                            lastValue = currentIsDark
-                            debugln(TAG) { "Detected theme change => dark: $currentIsDark" }
-                            for (listener in listeners) {
-                                try {
-                                    listener.accept(currentIsDark)
-                                } catch (ex: RuntimeException) {
-                                    errorln(TAG, ex) { "Exception while notifying listener" }
+                    BufferedReader(InputStreamReader(process.inputStream)).use { reader ->
+                        while (!isInterrupted) {
+                            val line = reader.readLine() ?: break
+                            if (!line.contains("gtk-theme", ignoreCase = true) &&
+                                !line.contains("color-scheme", ignoreCase = true)
+                            ) {
+                                continue
+                            }
+
+                            debugln(TAG) { "Monitoring output: $line" }
+                            val currentIsDark = isDarkThemeFromLine(line) ?: isDark()
+                            if (currentIsDark != lastValue) {
+                                lastValue = currentIsDark
+                                debugln(TAG) { "Detected theme change => dark: $currentIsDark" }
+                                for (listener in listeners) {
+                                    try {
+                                        listener.accept(currentIsDark)
+                                    } catch (ex: RuntimeException) {
+                                        errorln(TAG, ex) { "Exception while notifying listener" }
+                                    }
                                 }
                             }
                         }
-                    }
-                    debugln(TAG) { "GTK theme monitoring thread ending" }
-                    if (process.isAlive) {
-                        process.destroy()
-                        debugln(TAG) { "Monitoring process destroyed" }
+                        debugln(TAG) { "GTK theme monitoring thread ending" }
+                        if (process.isAlive) {
+                            process.destroy()
+                            debugln(TAG) { "Monitoring process destroyed" }
+                        }
                     }
                 }
+            }.apply {
+                isDaemon = true
+                start()
             }
-        }.apply { isDaemon = true; start() }
     }
 
     private fun isDarkThemeFromLine(line: String): Boolean? {
@@ -142,10 +151,11 @@ internal fun isGnomeInDarkMode(): Boolean {
 
     DisposableEffect(Unit) {
         debugln(TAG) { "Registering GNOME dark mode listener in Compose" }
-        val listener = Consumer<Boolean> { newValue ->
-            debugln(TAG) { "GNOME dark mode updated: $newValue" }
-            darkModeState.value = newValue
-        }
+        val listener =
+            Consumer<Boolean> { newValue ->
+                debugln(TAG) { "GNOME dark mode updated: $newValue" }
+                darkModeState.value = newValue
+            }
         GnomeThemeDetector.registerListener(listener)
         onDispose {
             debugln(TAG) { "Removing GNOME dark mode listener in Compose" }

@@ -48,7 +48,6 @@ fun NucleusDecoratedWindowTheme(
 
 @Suppress("MagicNumber")
 object DecoratedWindowDefaults {
-
     private val isKde =
         Platform.Current == Platform.Linux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
 

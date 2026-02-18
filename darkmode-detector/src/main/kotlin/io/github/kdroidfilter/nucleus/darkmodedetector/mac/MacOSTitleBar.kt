@@ -1,3 +1,5 @@
+@file:Suppress("MatchingDeclarationName")
+
 package io.github.kdroidfilter.nucleus.darkmodedetector.mac
 
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
@@ -8,8 +10,10 @@ import io.github.kdroidfilter.nucleus.core.runtime.Platform
 enum class MacOSTitleBarMode {
     /** Uses the system setting for appearance */
     AUTO,
+
     /** Forces dark mode using NSAppearanceNameDarkAqua */
     DARK,
+
     /** Forces light mode using NSAppearanceNameAqua */
     LIGHT,
 }
@@ -25,11 +29,12 @@ enum class MacOSTitleBarMode {
 fun setMacOsAdaptiveTitleBar(mode: MacOSTitleBarMode = MacOSTitleBarMode.AUTO) {
     if (Platform.Current != Platform.MacOS) return
 
-    val appearanceValue = when (mode) {
-        MacOSTitleBarMode.DARK -> "NSAppearanceNameDarkAqua"
-        MacOSTitleBarMode.LIGHT -> "NSAppearanceNameAqua"
-        MacOSTitleBarMode.AUTO -> "system"
-    }
+    val appearanceValue =
+        when (mode) {
+            MacOSTitleBarMode.DARK -> "NSAppearanceNameDarkAqua"
+            MacOSTitleBarMode.LIGHT -> "NSAppearanceNameAqua"
+            MacOSTitleBarMode.AUTO -> "system"
+        }
 
     System.setProperty("apple.awt.application.appearance", appearanceValue)
 }

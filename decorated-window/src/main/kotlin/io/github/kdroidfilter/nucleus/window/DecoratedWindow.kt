@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.window
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -11,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
@@ -36,11 +36,11 @@ import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
+import java.awt.Frame
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
-import java.awt.Frame
 import java.awt.geom.Area
 import java.awt.geom.Rectangle2D
 import java.awt.geom.RoundRectangle2D
@@ -51,7 +51,7 @@ internal const val TITLE_BAR_LAYOUT_ID = "__TITLE_BAR_CONTENT__"
 
 internal const val TITLE_BAR_BORDER_LAYOUT_ID = "__TITLE_BAR_BORDER__"
 
-@Suppress("FunctionNaming", "LongParameterList")
+@Suppress("FunctionNaming", "LongParameterList", "MagicNumber")
 @Composable
 fun DecoratedWindow(
     onCloseRequest: () -> Unit,
@@ -107,10 +107,12 @@ fun DecoratedWindow(
                 val hasAnyMaxBit =
                     (trackedExtendedState and (Frame.MAXIMIZED_VERT or Frame.MAXIMIZED_HORIZ)) != 0
                 val gc = window.graphicsConfiguration
-                val fillsScreen = gc != null && (
-                    window.height >= gc.bounds.height * 0.9 ||
-                    window.width >= gc.bounds.width * 0.9
-                )
+                val fillsScreen =
+                    gc != null &&
+                        (
+                            window.height >= gc.bounds.height * 0.9 ||
+                                window.width >= gc.bounds.width * 0.9
+                        )
                 isMaximizedInAnyDirection = ws.isMaximized || hasAnyMaxBit || fillsScreen
                 val isMaxOrFull = ws.isFullscreen || isMaximizedInAnyDirection
                 when (linuxDe) {
@@ -199,16 +201,18 @@ fun DecoratedWindow(
         }
 
         val style = LocalDecoratedWindowStyle.current
-        val borderShape = when (linuxDe) {
-            LinuxDesktopEnvironment.Gnome -> RoundedCornerShape(
-                topStart = (gnomeCornerArc / 2).dp,
-                topEnd = (gnomeCornerArc / 2).dp,
-                bottomStart = 0.dp,
-                bottomEnd = 0.dp,
-            )
-            LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
-            else -> RoundedCornerShape(0.dp)
-        }
+        val borderShape =
+            when (linuxDe) {
+                LinuxDesktopEnvironment.Gnome ->
+                    RoundedCornerShape(
+                        topStart = (gnomeCornerArc / 2).dp,
+                        topEnd = (gnomeCornerArc / 2).dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp,
+                    )
+                LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
+                else -> RoundedCornerShape(0.dp)
+            }
         val undecoratedWindowBorder =
             if (undecorated && !decoratedWindowState.isMaximized && !isMaximizedInAnyDirection) {
                 Modifier.insideBorder(

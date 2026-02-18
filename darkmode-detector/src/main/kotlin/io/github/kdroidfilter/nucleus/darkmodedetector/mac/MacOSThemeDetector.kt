@@ -23,25 +23,27 @@ private const val TAG = "MacOSThemeDetector"
  * to detect theme changes in macOS. It reads the system preference "AppleInterfaceStyle"
  * (which is "Dark" when in dark mode) from NSUserDefaults.
  */
+@Suppress("TooGenericExceptionCaught")
 internal object MacOSThemeDetector {
-
     private val listeners: MutableSet<Consumer<Boolean>> = ConcurrentHashMap.newKeySet()
     private val darkPattern: Pattern = Pattern.compile(".*dark.*", Pattern.CASE_INSENSITIVE)
 
-    private val callbackExecutor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "MacOS Theme Detector Thread").apply { isDaemon = true }
-    }
+    private val callbackExecutor =
+        Executors.newSingleThreadExecutor { r ->
+            Thread(r, "MacOS Theme Detector Thread").apply { isDaemon = true }
+        }
 
     @JvmStatic
-    private val themeChangedCallback = object : com.sun.jna.Callback {
-        fun callback() {
-            callbackExecutor.execute {
-                val isDark = isDark()
-                debugln(TAG) { "Theme change detected. Dark mode: $isDark" }
-                notifyListeners(isDark)
+    private val themeChangedCallback =
+        object : com.sun.jna.Callback {
+            fun callback() {
+                callbackExecutor.execute {
+                    val isDark = isDark()
+                    debugln(TAG) { "Theme change detected. Dark mode: $isDark" }
+                    notifyListeners(isDark)
+                }
             }
         }
-    }
 
     init {
         initObserver()
@@ -51,10 +53,11 @@ internal object MacOSThemeDetector {
         debugln(TAG) { "Initializing macOS theme observer" }
         val pool = Foundation.NSAutoreleasePool()
         try {
-            val delegateClass: ID = Foundation.allocateObjcClassPair(
-                Foundation.getObjcClass("NSObject"),
-                "NSColorChangesObserver",
-            )
+            val delegateClass: ID =
+                Foundation.allocateObjcClassPair(
+                    Foundation.getObjcClass("NSObject"),
+                    "NSColorChangesObserver",
+                )
             if (!ID.NIL.equals(delegateClass)) {
                 val selector = Foundation.createSelector("handleAppleThemeChanged:")
                 val added = Foundation.addMethod(delegateClass, selector, themeChangedCallback, "v@")
@@ -116,10 +119,11 @@ internal fun isMacOsInDarkMode(): Boolean {
     val darkModeState = remember { mutableStateOf(MacOSThemeDetector.isDark()) }
     DisposableEffect(Unit) {
         debugln(TAG) { "Registering macOS dark mode listener in Compose" }
-        val listener = Consumer<Boolean> { newValue ->
-            debugln(TAG) { "Compose macOS dark mode updated: $newValue" }
-            darkModeState.value = newValue
-        }
+        val listener =
+            Consumer<Boolean> { newValue ->
+                debugln(TAG) { "Compose macOS dark mode updated: $newValue" }
+                darkModeState.value = newValue
+            }
         MacOSThemeDetector.registerListener(listener)
         onDispose {
             debugln(TAG) { "Removing macOS dark mode listener in Compose" }

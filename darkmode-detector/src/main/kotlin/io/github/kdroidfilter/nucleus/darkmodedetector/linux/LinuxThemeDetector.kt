@@ -4,8 +4,8 @@ import androidx.compose.runtime.Composable
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 
 @Composable
-fun isLinuxInDarkMode(): Boolean {
-    return when (LinuxDesktopEnvironment.Current) {
+fun isLinuxInDarkMode(): Boolean =
+    when (LinuxDesktopEnvironment.Current) {
         LinuxDesktopEnvironment.KDE -> isKdeInDarkMode()
         LinuxDesktopEnvironment.Gnome -> isGnomeInDarkMode()
         LinuxDesktopEnvironment.XFCE -> detectXfceDarkTheme() ?: false
@@ -13,4 +13,3 @@ fun isLinuxInDarkMode(): Boolean {
         LinuxDesktopEnvironment.Mate -> detectMateDarkTheme() ?: false
         else -> false
     }
-}

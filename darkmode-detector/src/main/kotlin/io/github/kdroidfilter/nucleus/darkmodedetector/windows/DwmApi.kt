@@ -1,3 +1,5 @@
+@file:Suppress("FunctionNaming")
+
 package io.github.kdroidfilter.nucleus.darkmodedetector.windows
 
 import com.sun.jna.Library

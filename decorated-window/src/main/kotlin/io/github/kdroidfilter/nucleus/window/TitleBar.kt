@@ -3,7 +3,6 @@ package io.github.kdroidfilter.nucleus.window
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -36,7 +35,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
@@ -147,7 +145,6 @@ internal fun GenericTitleBarImpl(
             measurePolicy = rememberTitleBarMeasurePolicy(window, state, applyTitleBar),
         )
     }
-
 }
 
 internal class TitleBarMeasurePolicy(

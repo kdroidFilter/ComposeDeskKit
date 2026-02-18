@@ -27,14 +27,17 @@ internal object NativeMacBridge {
         }
 
         // Fallback: extract from JAR resources
+        @Suppress("TooGenericExceptionCaught")
         try {
-            val arch = System.getProperty("os.arch").let {
-                if (it == "aarch64" || it == "arm64") "aarch64" else "x64"
-            }
+            val arch =
+                System.getProperty("os.arch").let {
+                    if (it == "aarch64" || it == "arm64") "aarch64" else "x64"
+                }
             val resourcePath = "/nucleus/native/darwin-$arch/libnucleus_macos.dylib"
-            val stream = NativeMacBridge::class.java
-                .getResourceAsStream(resourcePath)
-                ?: throw UnsatisfiedLinkError("Native library not found in JAR at $resourcePath")
+            val stream =
+                NativeMacBridge::class.java
+                    .getResourceAsStream(resourcePath)
+                    ?: throw UnsatisfiedLinkError("Native library not found in JAR at $resourcePath")
             val tempDir = Files.createTempDirectory("nucleus-native")
             val tempLib = tempDir.resolve("libnucleus_macos.dylib")
             stream.use { Files.copy(it, tempLib) }

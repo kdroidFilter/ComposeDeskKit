@@ -109,7 +109,7 @@ internal fun TitleBarScope.DialogCloseButton(
     )
 }
 
-@Suppress("FunctionNaming")
+@Suppress("FunctionNaming", "LongParameterList")
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TitleBarScope.ControlButton(

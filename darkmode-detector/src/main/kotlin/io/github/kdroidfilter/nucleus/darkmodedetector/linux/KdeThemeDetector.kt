@@ -1,3 +1,12 @@
+@file:Suppress(
+    "MagicNumber",
+    "TooManyFunctions",
+    "SpreadOperator",
+    "LoopWithTooManyJumpStatements",
+    "NestedBlockDepth",
+    "TooGenericExceptionCaught",
+)
+
 package io.github.kdroidfilter.nucleus.darkmodedetector.linux
 
 import androidx.compose.runtime.Composable
@@ -43,7 +52,9 @@ object KdeThemeDetector {
     private val startStopMutex = Mutex()
 
     @Volatile private var dbusProcess: Process? = null
+
     @Volatile private var dbusReaderJob: Job? = null
+
     @Volatile private var pollerJob: Job? = null
 
     fun themeState(): StateFlow<KdeThemeState?> = state.asStateFlow()
@@ -69,7 +80,10 @@ object KdeThemeDetector {
             dbusReaderJob?.cancel()
             dbusReaderJob = null
             dbusProcess?.let { p ->
-                try { p.destroy() } catch (_: Throwable) {}
+                try {
+                    p.destroy()
+                } catch (_: Throwable) {
+                }
                 dbusProcess = null
             }
             pollerJob?.cancel()
@@ -81,76 +95,87 @@ object KdeThemeDetector {
         pollerJob?.cancel()
         pollerJob = null
 
-        dbusReaderJob = scope.launch {
-            while (started.get()) {
-                dbusProcess = try {
-                    ProcessBuilder(
-                        "dbus-monitor",
-                        "--session",
-                        "type='signal',interface='org.kde.KGlobalSettings',member='notifyChange'",
-                        "type='signal',interface='org.kde.PlasmaShell',member='themeChanged'",
-                        "type='signal',interface='org.kde.kdeglobals',member='configChanged'",
-                    )
-                        .redirectErrorStream(true)
-                        .start()
-                } catch (_: Exception) {
-                    startPollingFallback()
-                    return@launch
-                }
-
-                try {
-                    BufferedReader(InputStreamReader(dbusProcess!!.inputStream)).use { reader ->
-                        var debounceJob: Job? = null
-
-                        state.emitSafely(computeSnapshot())
-
-                        while (started.get()) {
-                            val line = reader.readLine() ?: break
-                            if (line.contains("notifyChange") ||
-                                line.contains("themeChanged") ||
-                                line.contains("configChanged")
-                            ) {
-                                debounceJob?.cancel()
-                                debounceJob = launch {
-                                    delay(200)
-                                    state.emitIfChanged(computeSnapshot())
-                                }
-                            }
+        dbusReaderJob =
+            scope.launch {
+                while (started.get()) {
+                    dbusProcess =
+                        try {
+                            ProcessBuilder(
+                                "dbus-monitor",
+                                "--session",
+                                "type='signal',interface='org.kde.KGlobalSettings',member='notifyChange'",
+                                "type='signal',interface='org.kde.PlasmaShell',member='themeChanged'",
+                                "type='signal',interface='org.kde.kdeglobals',member='configChanged'",
+                            ).redirectErrorStream(true)
+                                .start()
+                        } catch (_: Exception) {
+                            startPollingFallback()
+                            return@launch
                         }
 
-                        debounceJob?.join()
-                    }
-                } catch (_: CancellationException) {
-                    // Normal shutdown
-                } catch (_: Exception) {
-                    // Reader crashed; will restart below
-                } finally {
-                    try { dbusProcess?.destroy() } catch (_: Throwable) {}
-                    dbusProcess = null
-                }
+                    try {
+                        BufferedReader(InputStreamReader(dbusProcess!!.inputStream)).use { reader ->
+                            var debounceJob: Job? = null
 
-                if (started.get()) delay(500)
+                            state.emitSafely(computeSnapshot())
+
+                            while (started.get()) {
+                                val line = reader.readLine() ?: break
+                                if (line.contains("notifyChange") ||
+                                    line.contains("themeChanged") ||
+                                    line.contains("configChanged")
+                                ) {
+                                    debounceJob?.cancel()
+                                    debounceJob =
+                                        launch {
+                                            delay(200)
+                                            state.emitIfChanged(computeSnapshot())
+                                        }
+                                }
+                            }
+
+                            debounceJob?.join()
+                        }
+                    } catch (_: CancellationException) {
+                        // Normal shutdown
+                    } catch (_: Exception) {
+                        // Reader crashed; will restart below
+                    } finally {
+                        try {
+                            dbusProcess?.destroy()
+                        } catch (_: Throwable) {
+                        }
+                        dbusProcess = null
+                    }
+
+                    if (started.get()) delay(500)
+                }
             }
-        }
     }
 
     private fun startPollingFallback() {
         dbusReaderJob?.cancel()
         dbusReaderJob = null
-        dbusProcess?.let { try { it.destroy() } catch (_: Throwable) {} }
-        dbusProcess = null
-
-        pollerJob = scope.launch {
-            var last: KdeThemeState? = state.value
-            while (started.get()) {
-                val snap = computeSnapshot()
-                if (snap != last) {
-                    last = snap
-                    state.emitSafely(snap)
-                }
-                delay(750)
+        dbusProcess?.let {
+            try {
+                it.destroy()
+            } catch (_: Throwable) {
             }
         }
+        dbusProcess = null
+
+        pollerJob =
+            scope.launch {
+                var last: KdeThemeState? = state.value
+                while (started.get()) {
+                    val snap = computeSnapshot()
+                    if (snap != last) {
+                        last = snap
+                        state.emitSafely(snap)
+                    }
+                    delay(750)
+                }
+            }
     }
 
     private fun computeSnapshot(): KdeThemeState =
@@ -159,16 +184,16 @@ object KdeThemeDetector {
             panelTheme = detectKdePanelDark(),
         )
 
-    private fun isCommandAvailable(cmd: String): Boolean {
-        return try {
-            val p = ProcessBuilder("which", cmd)
-                .redirectErrorStream(true)
-                .start()
+    private fun isCommandAvailable(cmd: String): Boolean =
+        try {
+            val p =
+                ProcessBuilder("which", cmd)
+                    .redirectErrorStream(true)
+                    .start()
             p.waitFor(300, TimeUnit.MILLISECONDS) && p.exitValue() == 0
         } catch (_: Exception) {
             false
         }
-    }
 
     private suspend fun MutableStateFlow<KdeThemeState?>.emitSafely(v: KdeThemeState?) {
         try {
@@ -228,23 +253,32 @@ private fun isTwilightLaf(lookAndFeel: String?): Boolean {
     return s.contains("breezetwilight") || (s.contains("breeze") && s.contains("twilight"))
 }
 
-private fun runKReadConfig(file: String, group: String, key: String): String? {
-    val cmds = listOf(
-        arrayOf("kreadconfig6", "--file", file, "--group", group, "--key", key),
-        arrayOf("kreadconfig5", "--file", file, "--group", group, "--key", key),
-    )
+private fun runKReadConfig(
+    file: String,
+    group: String,
+    key: String,
+): String? {
+    val cmds =
+        listOf(
+            arrayOf("kreadconfig6", "--file", file, "--group", group, "--key", key),
+            arrayOf("kreadconfig5", "--file", file, "--group", group, "--key", key),
+        )
     for (cmd in cmds) {
         try {
             val p = ProcessBuilder(*cmd).redirectErrorStream(true).start()
             val out = BufferedReader(InputStreamReader(p.inputStream)).use { it.readLine()?.trim() }
             p.waitFor(300, TimeUnit.MILLISECONDS)
             if (!out.isNullOrBlank()) return out
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
     }
     return null
 }
 
-private fun normalizePlasmaThemeName(rawTheme: String?, lookAndFeel: String?): String? {
+private fun normalizePlasmaThemeName(
+    rawTheme: String?,
+    lookAndFeel: String?,
+): String? {
     if (isTwilightLaf(lookAndFeel)) return "breeze-dark"
     if (rawTheme.isNullOrBlank() || rawTheme.equals("default", true)) return "breeze"
     return when (rawTheme.lowercase()) {
@@ -255,23 +289,28 @@ private fun normalizePlasmaThemeName(rawTheme: String?, lookAndFeel: String?): S
 }
 
 private fun firstReadable(vararg paths: String): File? =
-    paths.asSequence().map(::File).firstOrNull { it.isFile && it.canRead() }
+    paths
+        .asSequence()
+        .map(::File)
+        .firstOrNull { it.isFile && it.canRead() }
 
 private fun plasmaThemeDirCandidates(themeName: String): List<File> {
     val home = System.getenv("HOME") ?: System.getProperty("user.home")
-    val variants = listOf(
-        themeName,
-        themeName.replace(' ', '_'),
-        themeName.replace(' ', '-'),
-        themeName.lowercase(),
-        themeName.lowercase().replace(' ', '_'),
-        themeName.lowercase().replace(' ', '-'),
-    ).distinct()
+    val variants =
+        listOf(
+            themeName,
+            themeName.replace(' ', '_'),
+            themeName.replace(' ', '-'),
+            themeName.lowercase(),
+            themeName.lowercase().replace(' ', '_'),
+            themeName.lowercase().replace(' ', '-'),
+        ).distinct()
 
-    val roots = listOf(
-        "$home/.local/share/plasma/desktoptheme",
-        "/usr/share/plasma/desktoptheme",
-    )
+    val roots =
+        listOf(
+            "$home/.local/share/plasma/desktoptheme",
+            "/usr/share/plasma/desktoptheme",
+        )
 
     val dirs = mutableListOf<File>()
     for (v in variants) for (r in roots) dirs += File("$r/$v")
@@ -300,9 +339,11 @@ private fun parseIni(file: File): Map<String, Map<String, String>> {
 }
 
 private fun parseKdeRgb(value: String): Triple<Int, Int, Int>? {
-    val nums = value.split(',', ' ')
-        .mapNotNull { it.trim().toIntOrNull() }
-        .take(3)
+    val nums =
+        value
+            .split(',', ' ')
+            .mapNotNull { it.trim().toIntOrNull() }
+            .take(3)
     return if (nums.size == 3) {
         Triple(nums[0].coerceIn(0, 255), nums[1].coerceIn(0, 255), nums[2].coerceIn(0, 255))
     } else {
@@ -310,7 +351,11 @@ private fun parseKdeRgb(value: String): Triple<Int, Int, Int>? {
     }
 }
 
-private fun isRgbDark(r: Int, g: Int, b: Int): Boolean {
+private fun isRgbDark(
+    r: Int,
+    g: Int,
+    b: Int,
+): Boolean {
     val lum = 0.299 * r + 0.587 * g + 0.114 * b
     return lum < 140.0
 }
@@ -330,7 +375,10 @@ private fun deriveDarkFromColorsMap(colors: Map<String, Map<String, String>>): B
     return null
 }
 
-private fun resolvePlasmaColorsFile(themeName: String, visited: MutableSet<String> = mutableSetOf()): File? {
+private fun resolvePlasmaColorsFile(
+    themeName: String,
+    visited: MutableSet<String> = mutableSetOf(),
+): File? {
     val key = themeName.lowercase()
     if (!visited.add(key)) return null
 
@@ -341,11 +389,13 @@ private fun resolvePlasmaColorsFile(themeName: String, visited: MutableSet<Strin
     val meta = dir?.let { firstReadable("${it.path}/metadata.desktop") }
     if (meta != null) {
         val ini = parseIni(meta)
-        val inherits = ini.values.firstNotNullOfOrNull { map ->
-            map.entries.firstOrNull { (k, _) -> k.equals("Inherits", true) }?.value
-        }
+        val inherits =
+            ini.values.firstNotNullOfOrNull { map ->
+                map.entries.firstOrNull { (k, _) -> k.equals("Inherits", true) }?.value
+            }
         if (!inherits.isNullOrBlank()) {
-            inherits.split(',', ';')
+            inherits
+                .split(',', ';')
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
                 .forEach { parent ->
@@ -361,13 +411,24 @@ private fun detectKdeDarkTheme(): Boolean? {
     return try {
         val scheme = runKReadConfig(file = "kdeglobals", group = "General", key = "ColorScheme") ?: return null
         val home = System.getenv("HOME") ?: System.getProperty("user.home")
-        val variants = listOf(
-            scheme, scheme.replace(' ', '_'), scheme.replace(' ', '-'),
-            scheme.lowercase(), scheme.lowercase().replace(' ', '_'), scheme.lowercase().replace(' ', '-'),
-        ).distinct()
-        val schemeFile = variants
-            .flatMap { v -> listOf("$home/.local/share/color-schemes/$v.colors", "/usr/share/color-schemes/$v.colors") }
-            .map(::File).firstOrNull { it.isFile && it.canRead() } ?: return null
+        val variants =
+            listOf(
+                scheme,
+                scheme.replace(' ', '_'),
+                scheme.replace(' ', '-'),
+                scheme.lowercase(),
+                scheme.lowercase().replace(' ', '_'),
+                scheme.lowercase().replace(' ', '-'),
+            ).distinct()
+        val schemeFile =
+            variants
+                .flatMap { v ->
+                    listOf(
+                        "$home/.local/share/color-schemes/$v.colors",
+                        "/usr/share/color-schemes/$v.colors",
+                    )
+                }.map(::File)
+                .firstOrNull { it.isFile && it.canRead() } ?: return null
         val colors = parseIni(schemeFile)
         deriveDarkFromColorsMap(colors)
     } catch (_: Exception) {
@@ -383,8 +444,9 @@ private fun detectKdeDarkTheme(): Boolean? {
 private fun detectKdePanelDark(): Boolean? {
     if (LinuxDesktopEnvironment.Current != LinuxDesktopEnvironment.KDE) return null
     return try {
-        val rawTheme = runKReadConfig("plasmarc", "Theme", "name")
-            ?: runKReadConfig("plasmashellrc", "Theme", "name")
+        val rawTheme =
+            runKReadConfig("plasmarc", "Theme", "name")
+                ?: runKReadConfig("plasmashellrc", "Theme", "name")
         val lookAndFeel = runKReadConfig("kdeglobals", "KDE", "LookAndFeelPackage")
         val theme = normalizePlasmaThemeName(rawTheme, lookAndFeel) ?: return null
 

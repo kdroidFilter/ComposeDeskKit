@@ -36,6 +36,7 @@ private const val TAG = "WindowsThemeDetector"
  * The detector also monitors the registry for changes in real-time by
  * calling RegNotifyChangeKeyValue on a background thread.
  */
+@Suppress("TooGenericExceptionCaught", "NestedBlockDepth")
 internal object WindowsThemeDetector {
     private const val REGISTRY_PATH = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
     private const val REGISTRY_VALUE = "AppsUseLightTheme"
@@ -49,10 +50,9 @@ internal object WindowsThemeDetector {
      * Returns true if the system is in dark mode (i.e. registry value is 0),
      * or false if the system is in light mode (registry value is 1 or doesn't exist).
      */
-    fun isDark(): Boolean {
-        return Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, REGISTRY_PATH, REGISTRY_VALUE) &&
+    fun isDark(): Boolean =
+        Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, REGISTRY_PATH, REGISTRY_VALUE) &&
             Advapi32Util.registryGetIntValue(WinReg.HKEY_CURRENT_USER, REGISTRY_PATH, REGISTRY_VALUE) == 0
-    }
 
     fun registerListener(listener: Consumer<Boolean>) {
         synchronized(this) {
@@ -74,60 +74,63 @@ internal object WindowsThemeDetector {
     }
 
     private fun startMonitoringThread() {
-        val thread = object : Thread("Windows Theme Detector Thread") {
-            private var lastValue = isDark()
+        val thread =
+            object : Thread("Windows Theme Detector Thread") {
+                private var lastValue = isDark()
 
-            override fun run() {
-                debugln(TAG) { "Windows theme monitor thread started" }
+                override fun run() {
+                    debugln(TAG) { "Windows theme monitor thread started" }
 
-                val hKeyRef = WinReg.HKEYByReference()
-                val openErr = Advapi32.INSTANCE.RegOpenKeyEx(
-                    WinReg.HKEY_CURRENT_USER,
-                    REGISTRY_PATH,
-                    0,
-                    KEY_READ,
-                    hKeyRef,
-                )
-                if (openErr != WinError.ERROR_SUCCESS) {
-                    errorln(TAG) { "RegOpenKeyEx failed with code $openErr" }
-                    return
-                }
-                val hKey: HKEY = hKeyRef.value
-
-                try {
-                    while (!isInterrupted) {
-                        val notifyErr = Advapi32.INSTANCE.RegNotifyChangeKeyValue(
-                            hKey,
-                            false,
-                            WinNT.REG_NOTIFY_CHANGE_LAST_SET,
-                            null,
-                            false,
+                    val hKeyRef = WinReg.HKEYByReference()
+                    val openErr =
+                        Advapi32.INSTANCE.RegOpenKeyEx(
+                            WinReg.HKEY_CURRENT_USER,
+                            REGISTRY_PATH,
+                            0,
+                            KEY_READ,
+                            hKeyRef,
                         )
-                        if (notifyErr != WinError.ERROR_SUCCESS) {
-                            errorln(TAG) { "RegNotifyChangeKeyValue failed with code $notifyErr" }
-                            return
-                        }
+                    if (openErr != WinError.ERROR_SUCCESS) {
+                        errorln(TAG) { "RegOpenKeyEx failed with code $openErr" }
+                        return
+                    }
+                    val hKey: HKEY = hKeyRef.value
 
-                        val currentValue = isDark()
-                        if (currentValue != lastValue) {
-                            lastValue = currentValue
-                            debugln(TAG) { "Windows theme changed => dark: $currentValue" }
-                            val snapshot = listeners.toList()
-                            for (l in snapshot) {
-                                try {
-                                    l.accept(currentValue)
-                                } catch (e: RuntimeException) {
-                                    errorln(TAG, e) { "Error while notifying listener" }
+                    try {
+                        while (!isInterrupted) {
+                            val notifyErr =
+                                Advapi32.INSTANCE.RegNotifyChangeKeyValue(
+                                    hKey,
+                                    false,
+                                    WinNT.REG_NOTIFY_CHANGE_LAST_SET,
+                                    null,
+                                    false,
+                                )
+                            if (notifyErr != WinError.ERROR_SUCCESS) {
+                                errorln(TAG) { "RegNotifyChangeKeyValue failed with code $notifyErr" }
+                                return
+                            }
+
+                            val currentValue = isDark()
+                            if (currentValue != lastValue) {
+                                lastValue = currentValue
+                                debugln(TAG) { "Windows theme changed => dark: $currentValue" }
+                                val snapshot = listeners.toList()
+                                for (l in snapshot) {
+                                    try {
+                                        l.accept(currentValue)
+                                    } catch (e: RuntimeException) {
+                                        errorln(TAG, e) { "Error while notifying listener" }
+                                    }
                                 }
                             }
                         }
+                    } finally {
+                        debugln(TAG) { "Detector thread closing registry key" }
+                        Advapi32Util.registryCloseKey(hKey)
                     }
-                } finally {
-                    debugln(TAG) { "Detector thread closing registry key" }
-                    Advapi32Util.registryCloseKey(hKey)
                 }
             }
-        }
         thread.isDaemon = true
         detectorThread = thread
         thread.start()
@@ -143,10 +146,11 @@ internal fun isWindowsInDarkMode(): Boolean {
 
     DisposableEffect(Unit) {
         debugln(TAG) { "Registering Windows dark mode listener in Compose" }
-        val listener = Consumer<Boolean> { newValue ->
-            debugln(TAG) { "Windows dark mode updated: $newValue" }
-            darkModeState.value = newValue
-        }
+        val listener =
+            Consumer<Boolean> { newValue ->
+                debugln(TAG) { "Windows dark mode updated: $newValue" }
+                darkModeState.value = newValue
+            }
 
         WindowsThemeDetector.registerListener(listener)
 
@@ -165,6 +169,7 @@ internal fun isWindowsInDarkMode(): Boolean {
  * @param dark Boolean value indicating whether the title bar should use dark mode.
  *    Defaults to the result of [isSystemInDarkMode].
  */
+@Suppress("TooGenericExceptionCaught", "MagicNumber")
 @Composable
 fun Window.setWindowsAdaptiveTitleBar(dark: Boolean = isSystemInDarkMode()) {
     try {

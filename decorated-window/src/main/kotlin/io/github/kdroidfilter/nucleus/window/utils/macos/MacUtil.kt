@@ -6,6 +6,7 @@ import java.util.logging.Level
 import java.util.logging.Logger
 import javax.swing.SwingUtilities
 
+@Suppress("TooGenericExceptionCaught")
 internal object MacUtil {
     private val logger = Logger.getLogger(MacUtil::class.java.simpleName)
 

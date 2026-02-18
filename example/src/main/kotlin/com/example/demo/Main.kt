@@ -45,11 +45,11 @@ import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
 import com.example.demo.icons.VscodeCodiconsColorMode
-import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
+import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
@@ -67,6 +67,7 @@ private const val AOT_TRAINING_DURATION_MS = 45_000L
 
 private val deepLinkUri = mutableStateOf<URI?>(null)
 
+@Suppress("LongMethod")
 fun main(args: Array<String>) {
     DeepLinkHandler.register(args) { uri ->
         deepLinkUri.value = uri
@@ -111,11 +112,12 @@ fun main(args: Array<String>) {
         }
 
         if (isWindowVisible) {
-            val isDark = when (themeMode) {
-                ThemeMode.System -> isSystemInDarkMode()
-                ThemeMode.Dark -> true
-                ThemeMode.Light -> false
-            }
+            val isDark =
+                when (themeMode) {
+                    ThemeMode.System -> isSystemInDarkMode()
+                    ThemeMode.Dark -> true
+                    ThemeMode.Light -> false
+                }
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
@@ -125,14 +127,16 @@ fun main(args: Array<String>) {
                     title = "Nucleus Demo",
                 ) {
                     MaterialTitleBar(modifier = Modifier.newFullscreenControls()) { _ ->
-                        val titleBarAlignment = if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
+                        val titleBarAlignment =
+                            if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
                         TitleBarIconButton(
-                            imageVector = when (themeMode) {
-                                ThemeMode.System -> VscodeCodiconsColorMode
-                                ThemeMode.Dark -> MaterialIconsDark_mode
-                                ThemeMode.Light -> MaterialIconsLight_mode
-                            },
+                            imageVector =
+                                when (themeMode) {
+                                    ThemeMode.System -> VscodeCodiconsColorMode
+                                    ThemeMode.Dark -> MaterialIconsDark_mode
+                                    ThemeMode.Light -> MaterialIconsLight_mode
+                                },
                             contentDescription = "Toggle theme",
                             modifier = Modifier.align(titleBarAlignment),
                             onClick = { themeMode = themeMode.next() },
@@ -181,7 +185,10 @@ fun main(args: Array<String>) {
                                     verticalArrangement = Arrangement.Center,
                                 ) {
                                     Text("OS: ${System.getProperty("os.name")} ${System.getProperty("os.arch")}")
-                                    Text("Java: ${System.getProperty("java.version")} (${System.getProperty("java.vendor")})")
+                                    Text(
+                                        "Java: ${System.getProperty("java.version")}" +
+                                            " (${System.getProperty("java.vendor")})",
+                                    )
                                     Text("Runtime: ${System.getProperty("java.runtime.name", "Unknown")}")
                                 }
                             }
@@ -285,13 +292,15 @@ private enum class ThemeMode {
     Light,
     ;
 
-    fun next(): ThemeMode = when (this) {
-        System -> Dark
-        Dark -> Light
-        Light -> System
-    }
+    fun next(): ThemeMode =
+        when (this) {
+            System -> Dark
+            Dark -> Light
+            Light -> System
+        }
 }
 
+@Suppress("FunctionNaming")
 @Composable
 private fun TitleBarScope.TitleBarIconButton(
     imageVector: ImageVector,
@@ -306,19 +315,22 @@ private fun TitleBarScope.TitleBarIconButton(
         imageVector = imageVector,
         contentDescription = contentDescription,
         tint = MaterialTheme.colorScheme.onSurface,
-        modifier = modifier
-            .padding(horizontal = 12.dp)
-            .clip(CircleShape)
-            .hoverable(hoverInteraction)
-            .background(
-                if (isHovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                else Color.Transparent,
-            )
-            .clickable(
-                interactionSource = hoverInteraction,
-                indication = null,
-            ) { onClick() }
-            .padding(4.dp)
-            .size(16.dp),
+        modifier =
+            modifier
+                .padding(horizontal = 12.dp)
+                .clip(CircleShape)
+                .hoverable(hoverInteraction)
+                .background(
+                    if (isHovered) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    } else {
+                        Color.Transparent
+                    },
+                ).clickable(
+                    interactionSource = hoverInteraction,
+                    indication = null,
+                ) { onClick() }
+                .padding(4.dp)
+                .size(16.dp),
     )
 }
