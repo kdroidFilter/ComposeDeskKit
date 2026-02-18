@@ -23,7 +23,8 @@ dependencies {
     implementation(project(":aot-runtime"))
     implementation(project(":updater-runtime"))
     implementation(project(":darkmode-detector"))
-    implementation(project(":decorated-window-material")) }
+    implementation(project(":decorated-window-material"))
+}
 
 val releaseVersion =
     System
