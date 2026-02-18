@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
@@ -180,6 +181,10 @@ fun main(args: Array<String>) {
                             state = DialogState(size = DpSize(400.dp, 250.dp)),
                             title = "System Info",
                         ) {
+                            val background = MaterialTheme.colorScheme.surface
+                            LaunchedEffect(window, background) {
+                                window.background = java.awt.Color(background.toArgb())
+                            }
                             DialogTitleBar { _ ->
                                 Text(
                                     title,
