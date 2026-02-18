@@ -38,6 +38,20 @@ fun main() = application {
 }
 ```
 
+## Screenshots
+
+=== "macOS"
+
+    ![macOS Decorated Window](../assets/MacDecoratedWindow.png)
+
+=== "Windows"
+
+    ![Windows Decorated Window](../assets/WindowsDecoratedWindow.png)
+
+=== "Linux (GNOME)"
+
+    ![GNOME Decorated Window](../assets/GnomeDecoratedWindow.png)
+
 ## Platform Behavior
 
 |  | macOS | Windows | Linux |
@@ -47,7 +61,7 @@ fun main() = application {
 | Drag | JBR hit-test | JBR `forceHitTest` | `JBR.getWindowMove().startMovingTogetherWithMouse()` |
 | Double-click maximize | Native | Native | Manual detection |
 | Border | None | None | `insideBorder` (hidden when maximized) |
-| Window shape | Native | Native | Rounded corners (GNOME top only, KDE all) |
+| Window shape | Native | Native | Rounded top corners (GNOME 12dp, KDE 10dp) |
 
 On **macOS** and **Windows**, the module uses JBR's `CustomTitleBar` API to integrate with the native window chrome. The OS-native window buttons (traffic lights on macOS, min/max/close on Windows) are preserved.
 
@@ -258,8 +272,8 @@ This sets the `apple.awt.newFullScreenControls` system property and uses `fullsc
 
 On Linux, the module detects the current desktop environment and loads the appropriate icon set:
 
-- **GNOME** — Adwaita-style icons, rounded top corners
-- **KDE** — Breeze-style icons, fully rounded corners
+- **GNOME** — Adwaita-style icons, rounded top corners (12dp radius)
+- **KDE** — Breeze-style icons, rounded top corners (10dp radius)
 - **Other** — Falls back to GNOME style
 
 Detection uses `XDG_CURRENT_DESKTOP` and `DESKTOP_SESSION` environment variables.

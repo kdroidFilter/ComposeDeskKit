@@ -51,7 +51,7 @@ internal const val TITLE_BAR_LAYOUT_ID = "__TITLE_BAR_CONTENT__"
 
 internal const val TITLE_BAR_BORDER_LAYOUT_ID = "__TITLE_BAR_BORDER__"
 
-@Suppress("FunctionNaming", "LongParameterList", "MagicNumber")
+@Suppress("FunctionNaming", "LongParameterList", "MagicNumber", "CyclomaticComplexMethod")
 @Composable
 fun DecoratedWindow(
     onCloseRequest: () -> Unit,
@@ -133,14 +133,11 @@ fun DecoratedWindow(
                             if (isMaxOrFull) {
                                 null
                             } else {
-                                RoundRectangle2D.Float(
-                                    0f,
-                                    0f,
-                                    window.width.toFloat(),
-                                    window.height.toFloat(),
-                                    kdeCornerArc,
-                                    kdeCornerArc,
-                                )
+                                val w = window.width.toFloat()
+                                val h = window.height.toFloat()
+                                Area(RoundRectangle2D.Float(0f, 0f, w, h, kdeCornerArc, kdeCornerArc)).apply {
+                                    add(Area(Rectangle2D.Float(0f, h - kdeCornerArc, w, kdeCornerArc)))
+                                }
                             }
                     }
                     else -> {}
@@ -210,7 +207,13 @@ fun DecoratedWindow(
                         bottomStart = 0.dp,
                         bottomEnd = 0.dp,
                     )
-                LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
+                LinuxDesktopEnvironment.KDE ->
+                    RoundedCornerShape(
+                        topStart = (kdeCornerArc / 2).dp,
+                        topEnd = (kdeCornerArc / 2).dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp,
+                    )
                 else -> RoundedCornerShape(0.dp)
             }
         val undecoratedWindowBorder =

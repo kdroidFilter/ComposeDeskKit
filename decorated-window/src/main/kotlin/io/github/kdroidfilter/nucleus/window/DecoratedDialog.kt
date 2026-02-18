@@ -100,15 +100,12 @@ fun DecoratedDialog(
                             }
                     }
                     LinuxDesktopEnvironment.KDE -> {
+                        val w = window.width.toFloat()
+                        val h = window.height.toFloat()
                         window.shape =
-                            RoundRectangle2D.Float(
-                                0f,
-                                0f,
-                                window.width.toFloat(),
-                                window.height.toFloat(),
-                                kdeCornerArc,
-                                kdeCornerArc,
-                            )
+                            Area(RoundRectangle2D.Float(0f, 0f, w, h, kdeCornerArc, kdeCornerArc)).apply {
+                                add(Area(Rectangle2D.Float(0f, h - kdeCornerArc, w, kdeCornerArc)))
+                            }
                     }
                     else -> {}
                 }
@@ -162,7 +159,13 @@ fun DecoratedDialog(
                         bottomStart = 0.dp,
                         bottomEnd = 0.dp,
                     )
-                LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
+                LinuxDesktopEnvironment.KDE ->
+                    RoundedCornerShape(
+                        topStart = (kdeCornerArc / 2).dp,
+                        topEnd = (kdeCornerArc / 2).dp,
+                        bottomStart = 0.dp,
+                        bottomEnd = 0.dp,
+                    )
                 else -> RoundedCornerShape(0.dp)
             }
         val undecoratedWindowBorder =
