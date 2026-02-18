@@ -8,7 +8,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.debugInspectorInfo
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
@@ -83,6 +85,8 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
 
     val titleBar = remember { JBR.getWindowDecorations().createCustomTitleBar() }
 
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
     TitleBarImpl(
         modifier = modifier.customTitleBarMouseEventHandler(titleBar),
         gradientStartColor = gradientStartColor,
@@ -91,11 +95,16 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
             if (state.isFullscreen) {
                 MacUtil.updateFullScreenButtons(window)
             }
+            titleBar.putProperty("controls.rtl", isRtl)
             titleBar.height = height.value
             JBR.getWindowDecorations().setCustomTitleBar(window, titleBar)
 
             if (state.isFullscreen && newFullscreenControls) {
-                PaddingValues(start = 80.dp)
+                if (isRtl) {
+                    PaddingValues(end = 80.dp)
+                } else {
+                    PaddingValues(start = 80.dp)
+                }
             } else {
                 PaddingValues(start = titleBar.leftInset.dp, end = titleBar.rightInset.dp)
             }

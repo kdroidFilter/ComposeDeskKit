@@ -16,11 +16,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -37,6 +42,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
 import androidx.compose.ui.window.WindowPosition
@@ -45,6 +52,8 @@ import androidx.compose.ui.window.rememberWindowState
 import com.example.demo.icons.MaterialIconsDark_mode
 import com.example.demo.icons.MaterialIconsInfo
 import com.example.demo.icons.MaterialIconsLight_mode
+import com.example.demo.icons.TablerTextDirectionLtr
+import com.example.demo.icons.TablerTextDirectionRtl
 import com.example.demo.icons.VscodeCodiconsColorMode
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
@@ -60,6 +69,7 @@ import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialDialogTitleBar
 import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
+import androidx.compose.runtime.CompositionLocalProvider
 import java.io.File
 import java.net.URI
 import kotlin.system.exitProcess
@@ -93,6 +103,7 @@ fun main(args: Array<String>) {
         var isWindowVisible by remember { mutableStateOf(true) }
         var restoreRequestCount by remember { mutableStateOf(0) }
         var themeMode by remember { mutableStateOf(ThemeMode.System) }
+        var layoutDirection by remember { mutableStateOf(LayoutDirection.Ltr) }
         var showInfoDialog by remember { mutableStateOf(false) }
 
         val isFirstInstance =
@@ -121,6 +132,7 @@ fun main(args: Array<String>) {
                 }
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
             MaterialTheme(colorScheme = colorScheme) {
                 MaterialDecoratedWindow(
                     state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
@@ -131,6 +143,24 @@ fun main(args: Array<String>) {
                         val titleBarAlignment =
                             if (Platform.Current == Platform.MacOS) Alignment.End else Alignment.Start
 
+                        TitleBarIconButton(
+                            imageVector =
+                                if (layoutDirection == LayoutDirection.Ltr) {
+                                    TablerTextDirectionLtr
+                                } else {
+                                    TablerTextDirectionRtl
+                                },
+                            contentDescription = "Toggle layout direction",
+                            modifier = Modifier.align(titleBarAlignment),
+                            onClick = {
+                                layoutDirection =
+                                    if (layoutDirection == LayoutDirection.Ltr) {
+                                        LayoutDirection.Rtl
+                                    } else {
+                                        LayoutDirection.Ltr
+                                    }
+                            },
+                        )
                         TitleBarIconButton(
                             imageVector =
                                 when (themeMode) {
@@ -196,6 +226,7 @@ fun main(args: Array<String>) {
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -307,7 +338,8 @@ private enum class ThemeMode {
         }
 }
 
-@Suppress("FunctionNaming")
+@OptIn(ExperimentalMaterial3Api::class)
+@Suppress("FunctionNaming", "DEPRECATION")
 @Composable
 private fun TitleBarScope.TitleBarIconButton(
     imageVector: ImageVector,
@@ -318,26 +350,34 @@ private fun TitleBarScope.TitleBarIconButton(
     val hoverInteraction = remember { MutableInteractionSource() }
     val isHovered by hoverInteraction.collectIsHoveredAsState()
 
-    Icon(
-        imageVector = imageVector,
-        contentDescription = contentDescription,
-        tint = MaterialTheme.colorScheme.onSurface,
-        modifier =
-            modifier
-                .padding(horizontal = 12.dp)
-                .clip(CircleShape)
-                .hoverable(hoverInteraction)
-                .background(
-                    if (isHovered) {
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                    } else {
-                        Color.Transparent
-                    },
-                ).clickable(
-                    interactionSource = hoverInteraction,
-                    indication = null,
-                ) { onClick() }
-                .padding(4.dp)
-                .size(16.dp),
-    )
+    Box(modifier = modifier) {
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+            tooltip = { PlainTooltip { Text(contentDescription) } },
+            state = rememberTooltipState(),
+        ) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier =
+                    Modifier
+                        .padding(horizontal = 4.dp)
+                        .clip(CircleShape)
+                        .hoverable(hoverInteraction)
+                        .background(
+                            if (isHovered) {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                            } else {
+                                Color.Transparent
+                            },
+                        ).clickable(
+                            interactionSource = hoverInteraction,
+                            indication = null,
+                        ) { onClick() }
+                        .padding(4.dp)
+                        .size(16.dp),
+            )
+        }
+    }
 }

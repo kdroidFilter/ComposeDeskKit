@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
@@ -20,11 +22,14 @@ internal fun DecoratedDialogScope.MacOSDialogTitleBar(
 ) {
     val titleBar = remember { JBR.getWindowDecorations().createCustomTitleBar() }
 
+    val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+
     DialogTitleBarImpl(
         modifier = modifier.customTitleBarMouseEventHandler(titleBar),
         gradientStartColor = gradientStartColor,
         style = style,
         applyTitleBar = { height, _ ->
+            titleBar.putProperty("controls.rtl", isRtl)
             titleBar.height = height.value
             JBR.getWindowDecorations().setCustomTitleBar(window, titleBar)
             PaddingValues(start = titleBar.leftInset.dp, end = titleBar.rightInset.dp)
