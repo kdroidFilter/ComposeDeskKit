@@ -13,6 +13,7 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import com.jetbrains.JBR
+import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import java.awt.Frame
 import java.awt.event.MouseEvent
@@ -68,7 +69,13 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
         },
         gradientStartColor,
         linuxStyle,
-        { _, _ -> PaddingValues(0.dp) },
+        { _, _ ->
+            if (LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE) {
+                PaddingValues(end = 4.dp)
+            } else {
+                PaddingValues(0.dp)
+            }
+        },
     ) { currentState ->
         WindowControlArea(window, currentState, linuxStyle)
         content(currentState)
