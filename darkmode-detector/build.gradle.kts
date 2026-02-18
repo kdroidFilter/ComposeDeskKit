@@ -18,8 +18,6 @@ val publishVersion =
 dependencies {
     compileOnly(project(":core-runtime"))
     compileOnly(compose.desktop.common)
-    implementation(libs.jna.jpms)
-    implementation(libs.jna.platform.jpms)
 }
 
 java {
@@ -46,8 +44,27 @@ val buildNativeMacOs by tasks.registering(Exec::class) {
     commandLine("bash", "build.sh")
 }
 
+val buildNativeWindows by tasks.registering(Exec::class) {
+    description = "Compiles the C JNI bridge into Windows DLLs (x64 + ARM64)"
+    group = "build"
+    enabled = Os.isFamily(Os.FAMILY_WINDOWS)
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/windows")
+    val outputDir = layout.projectDirectory.dir("src/main/resources/nucleus/native")
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("cmd", "/c", nativeDir.file("build.bat").asFile.absolutePath)
+}
+
 tasks.processResources {
-    dependsOn(buildNativeMacOs)
+    dependsOn(buildNativeMacOs, buildNativeWindows)
+}
+
+tasks.configureEach {
+    if (name == "sourcesJar") {
+        dependsOn(buildNativeMacOs, buildNativeWindows)
+    }
 }
 
 mavenPublishing {

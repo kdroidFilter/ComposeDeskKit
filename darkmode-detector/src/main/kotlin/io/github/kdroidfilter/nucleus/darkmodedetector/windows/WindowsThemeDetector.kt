@@ -7,16 +7,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import com.sun.jna.Native
-import com.sun.jna.platform.win32.Advapi32
-import com.sun.jna.platform.win32.Advapi32Util
-import com.sun.jna.platform.win32.WinDef
-import com.sun.jna.platform.win32.WinError
-import com.sun.jna.platform.win32.WinNT
-import com.sun.jna.platform.win32.WinNT.KEY_READ
-import com.sun.jna.platform.win32.WinReg
-import com.sun.jna.platform.win32.WinReg.HKEY
-import com.sun.jna.ptr.IntByReference
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.darkmodedetector.debugln
 import io.github.kdroidfilter.nucleus.darkmodedetector.errorln
@@ -28,7 +18,7 @@ import java.util.function.Consumer
 private const val TAG = "WindowsThemeDetector"
 
 /**
- * WindowsThemeDetector uses JNA to read the Windows registry value:
+ * WindowsThemeDetector uses a JNI native library to read the Windows registry value:
  * HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize\AppsUseLightTheme
  *
  * If this value = 0 => Dark mode. If this value = 1 => Light mode.
@@ -38,9 +28,6 @@ private const val TAG = "WindowsThemeDetector"
  */
 @Suppress("TooGenericExceptionCaught", "NestedBlockDepth")
 internal object WindowsThemeDetector {
-    private const val REGISTRY_PATH = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
-    private const val REGISTRY_VALUE = "AppsUseLightTheme"
-
     private val listeners: MutableSet<Consumer<Boolean>> = ConcurrentHashMap.newKeySet()
 
     @Volatile
@@ -50,9 +37,7 @@ internal object WindowsThemeDetector {
      * Returns true if the system is in dark mode (i.e. registry value is 0),
      * or false if the system is in light mode (registry value is 1 or doesn't exist).
      */
-    fun isDark(): Boolean =
-        Advapi32Util.registryValueExists(WinReg.HKEY_CURRENT_USER, REGISTRY_PATH, REGISTRY_VALUE) &&
-            Advapi32Util.registryGetIntValue(WinReg.HKEY_CURRENT_USER, REGISTRY_PATH, REGISTRY_VALUE) == 0
+    fun isDark(): Boolean = NativeWindowsBridge.nativeIsDark()
 
     fun registerListener(listener: Consumer<Boolean>) {
         synchronized(this) {
@@ -81,33 +66,17 @@ internal object WindowsThemeDetector {
                 override fun run() {
                     debugln(TAG) { "Windows theme monitor thread started" }
 
-                    val hKeyRef = WinReg.HKEYByReference()
-                    val openErr =
-                        Advapi32.INSTANCE.RegOpenKeyEx(
-                            WinReg.HKEY_CURRENT_USER,
-                            REGISTRY_PATH,
-                            0,
-                            KEY_READ,
-                            hKeyRef,
-                        )
-                    if (openErr != WinError.ERROR_SUCCESS) {
-                        errorln(TAG) { "RegOpenKeyEx failed with code $openErr" }
+                    val hKey = NativeWindowsBridge.nativeOpenMonitorKey()
+                    if (hKey == 0L) {
+                        errorln(TAG) { "nativeOpenMonitorKey failed" }
                         return
                     }
-                    val hKey: HKEY = hKeyRef.value
 
                     try {
                         while (!isInterrupted) {
-                            val notifyErr =
-                                Advapi32.INSTANCE.RegNotifyChangeKeyValue(
-                                    hKey,
-                                    false,
-                                    WinNT.REG_NOTIFY_CHANGE_LAST_SET,
-                                    null,
-                                    false,
-                                )
-                            if (notifyErr != WinError.ERROR_SUCCESS) {
-                                errorln(TAG) { "RegNotifyChangeKeyValue failed with code $notifyErr" }
+                            val ok = NativeWindowsBridge.nativeWaitForChange(hKey)
+                            if (!ok) {
+                                errorln(TAG) { "nativeWaitForChange failed" }
                                 return
                             }
 
@@ -127,7 +96,7 @@ internal object WindowsThemeDetector {
                         }
                     } finally {
                         debugln(TAG) { "Detector thread closing registry key" }
-                        Advapi32Util.registryCloseKey(hKey)
+                        NativeWindowsBridge.nativeCloseKey(hKey)
                     }
                 }
             }
@@ -169,19 +138,12 @@ internal fun isWindowsInDarkMode(): Boolean {
  * @param dark Boolean value indicating whether the title bar should use dark mode.
  *    Defaults to the result of [isSystemInDarkMode].
  */
-@Suppress("TooGenericExceptionCaught", "MagicNumber")
+@Suppress("TooGenericExceptionCaught")
 @Composable
 fun Window.setWindowsAdaptiveTitleBar(dark: Boolean = isSystemInDarkMode()) {
     try {
         if (Platform.Current == Platform.Windows) {
-            val hwnd = WinDef.HWND(Native.getComponentPointer(this))
-            val darkModeEnabled = IntByReference(if (dark) 1 else 0)
-            DwmApi.INSTANCE.DwmSetWindowAttribute(
-                hwnd,
-                DwmApi.DWMWA_USE_IMMERSIVE_DARK_MODE,
-                darkModeEnabled.pointer,
-                4,
-            )
+            NativeWindowsBridge.nativeSetDarkModeTitleBar(this, dark)
         }
     } catch (e: Exception) {
         debugln(TAG) { "Failed to set dark mode: ${e.message}" }
