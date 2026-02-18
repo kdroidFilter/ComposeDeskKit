@@ -200,7 +200,7 @@ The sandboxed pipeline runs transparently in CI. A single `./gradlew packageRele
 - name: Setup Nucleus
   uses: ./.github/actions/setup-nucleus
   with:
-    jbr-version: '25b176.4'
+    jbr-version: '25.0.2b329.66'
     packaging-tools: 'true'
     flatpak: 'true'     # Flatpak sandbox support
     snap: 'true'

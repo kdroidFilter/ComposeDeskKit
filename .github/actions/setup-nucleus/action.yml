@@ -3,9 +3,9 @@ description: Setup JBR, packaging tools, Gradle, and Node.js for Nucleus builds
 
 inputs:
   jbr-version:
-    description: 'JBR version (e.g. 25.0.2b315.62)'
+    description: 'JBR version (e.g. 25.0.2b329.66)'
     required: false
-    default: '25.0.2b315.62'
+    default: '25.0.2b329.66'
   jbr-variant:
     description: 'JBR variant (jbrsdk, jbrsdk_jcef, etc.)'
     required: false

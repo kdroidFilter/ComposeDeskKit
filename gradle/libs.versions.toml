@@ -10,6 +10,8 @@ downloadTask = "5.6.0"
 kotlinPoet = "2.1.0"
 batik = "1.19"
 vanniktechMavenPublish = "0.36.0"
+jbrApi = "1.10.1"
+jna = "5.17.0"
 
 [plugins]
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt"}
@@ -28,3 +30,6 @@ agp-api = { module = "com.android.tools.build:gradle-api", version.ref = "agp" }
 download-task = { module = "de.undercouch:gradle-download-task", version.ref = "downloadTask" }
 kotlin-poet = { module = "com.squareup:kotlinpoet", version.ref = "kotlinPoet" }
 batik-transcoder = { module = "org.apache.xmlgraphics:batik-transcoder", version.ref = "batik" }
+jbr-api = { module = "org.jetbrains.runtime:jbr-api", version.ref = "jbrApi" }
+jna-jpms = { module = "net.java.dev.jna:jna-jpms", version.ref = "jna" }
+jna-platform-jpms = { module = "net.java.dev.jna:jna-platform-jpms", version.ref = "jna" }

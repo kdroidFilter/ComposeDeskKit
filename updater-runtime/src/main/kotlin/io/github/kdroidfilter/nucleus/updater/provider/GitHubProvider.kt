@@ -1,6 +1,6 @@
 package io.github.kdroidfilter.nucleus.updater.provider
 
-import io.github.kdroidfilter.nucleus.updater.Platform
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 
 class GitHubProvider(
     val owner: String,
@@ -21,12 +21,18 @@ class GitHubProvider(
         version: String,
     ): String = "https://github.com/$owner/$repo/releases/download/v$version/$fileName"
 
-    override fun authHeaders(): Map<String, String> = if (token != null) mapOf("Authorization" to "token $token") else emptyMap()
+    override fun authHeaders(): Map<String, String> =
+        if (token != null) {
+            mapOf("Authorization" to "token $token")
+        } else {
+            emptyMap()
+        }
 
     private fun platformSuffix(platform: Platform): String =
         when (platform) {
-            Platform.WINDOWS -> ""
-            Platform.MACOS -> "mac"
-            Platform.LINUX -> "linux"
+            Platform.Windows -> ""
+            Platform.MacOS -> "mac"
+            Platform.Linux -> "linux"
+            Platform.Unknown -> ""
         }
 }

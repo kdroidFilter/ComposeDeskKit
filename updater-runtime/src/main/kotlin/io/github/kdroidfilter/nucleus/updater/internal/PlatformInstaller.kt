@@ -1,9 +1,10 @@
 package io.github.kdroidfilter.nucleus.updater.internal
 
-import io.github.kdroidfilter.nucleus.updater.Platform
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import java.io.File
 import kotlin.system.exitProcess
 
+@Suppress("TooManyFunctions")
 internal object PlatformInstaller {
     fun install(
         file: File,
@@ -13,10 +14,11 @@ internal object PlatformInstaller {
         val extension = file.name.substringAfterLast('.').lowercase()
 
         when {
-            platform == Platform.MACOS && extension == "zip" -> installMacZip(file, restart)
-            platform == Platform.WINDOWS -> installWindows(file, extension, restart)
-            platform == Platform.LINUX && extension == "appimage" -> installLinuxAppImage(file, restart)
-            platform == Platform.LINUX && (extension == "deb" || extension == "rpm") -> installLinuxPackage(file, extension, restart)
+            platform == Platform.MacOS && extension == "zip" -> installMacZip(file, restart)
+            platform == Platform.Windows -> installWindows(file, extension, restart)
+            platform == Platform.Linux && extension == "appimage" -> installLinuxAppImage(file, restart)
+            platform == Platform.Linux && (extension == "deb" || extension == "rpm") ->
+                installLinuxPackage(file, extension, restart)
             else -> buildProcessForInstaller(file, platform, extension).start()
         }
         exitProcess(0)
@@ -28,9 +30,10 @@ internal object PlatformInstaller {
         extension: String,
     ): ProcessBuilder =
         when (platform) {
-            Platform.LINUX -> buildLinuxInstaller(file, extension)
-            Platform.MACOS -> buildMacInstaller(file)
-            Platform.WINDOWS -> error("Windows uses installWindows()")
+            Platform.Linux -> buildLinuxInstaller(file, extension)
+            Platform.MacOS -> buildMacInstaller(file)
+            Platform.Windows -> error("Windows uses installWindows()")
+            Platform.Unknown -> error("Unsupported platform: ${System.getProperty("os.name")}")
         }
 
     private fun buildLinuxInstaller(
@@ -43,7 +46,10 @@ internal object PlatformInstaller {
             else -> ProcessBuilder("xdg-open", file.absolutePath)
         }
 
-    private fun installLinuxAppImage(newAppImage: File, restart: Boolean) {
+    private fun installLinuxAppImage(
+        newAppImage: File,
+        restart: Boolean,
+    ) {
         val pid = ProcessHandle.current().pid()
         val currentAppImage =
             System.getenv("APPIMAGE")
@@ -172,7 +178,10 @@ internal object PlatformInstaller {
 
     private fun buildMacInstaller(file: File): ProcessBuilder = ProcessBuilder("open", file.absolutePath)
 
-    private fun installMacZip(zipFile: File, restart: Boolean) {
+    private fun installMacZip(
+        zipFile: File,
+        restart: Boolean,
+    ) {
         val appBundle =
             resolveCurrentAppBundle()
                 ?: error("Cannot resolve current .app bundle from java.home")

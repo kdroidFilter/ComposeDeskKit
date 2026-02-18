@@ -77,6 +77,9 @@ tasks.register("preMerge") {
 
     dependsOn(":core-runtime:check")
     dependsOn(":aot-runtime:check")
+    dependsOn(":darkmode-detector:check")
+    dependsOn(":decorated-window:check")
+    dependsOn(":decorated-window-material:check")
     dependsOn(":example:check")
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:validatePlugins"))

@@ -2,6 +2,7 @@ package io.github.kdroidfilter.nucleus.updater
 
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableType
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.updater.exception.ChecksumException
 import io.github.kdroidfilter.nucleus.updater.exception.NetworkException
 import io.github.kdroidfilter.nucleus.updater.exception.NoMatchingFileException
@@ -46,7 +47,9 @@ class NucleusUpdater(
                 doCheckForUpdates()
             } catch (e: UpdateException) {
                 UpdateResult.Error(e)
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 UpdateResult.Error(NetworkException("Failed to check for updates", e))
             }
         }
@@ -68,7 +71,7 @@ class NucleusUpdater(
                 applyAuthHeaders(requestBuilder)
                 val response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofInputStream())
 
-                if (response.statusCode() != 200) {
+                if (response.statusCode() != HTTP_OK) {
                     throw NetworkException("HTTP ${response.statusCode()} downloading ${targetFile.url}")
                 }
 
@@ -108,7 +111,9 @@ class NucleusUpdater(
             } catch (e: UpdateException) {
                 tempFile.delete()
                 throw e
-            } catch (e: Exception) {
+            } catch (
+                @Suppress("TooGenericExceptionCaught") e: Exception,
+            ) {
                 tempFile.delete()
                 throw NetworkException("Download failed", e)
             }
@@ -137,7 +142,7 @@ class NucleusUpdater(
         applyAuthHeaders(requestBuilder)
         val response = httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString())
 
-        if (response.statusCode() != 200) {
+        if (response.statusCode() != HTTP_OK) {
             return UpdateResult.Error(NetworkException("HTTP ${response.statusCode()} for $metadataUrl"))
         }
 
@@ -161,7 +166,7 @@ class NucleusUpdater(
         // can prefer ZIP (silent install). Users can still force DMG via config.executableType.
         val format =
             config.executableType
-                ?: if (platform == Platform.MACOS) {
+                ?: if (platform == Platform.MacOS) {
                     null
                 } else {
                     System.getProperty("nucleus.executable.type")
@@ -221,6 +226,7 @@ class NucleusUpdater(
     }
 
     companion object {
+        private const val HTTP_OK = 200
         private const val PERCENT_MAX = 100.0
 
         private val SELF_UPDATABLE_TYPES =

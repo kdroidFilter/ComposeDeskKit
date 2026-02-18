@@ -11,16 +11,33 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0%2B-7F52FF?logo=kotlin&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Windows%20%7C%20Linux-blue)
 
-Nucleus is a Gradle plugin for building, packaging, and distributing **JVM desktop applications** as native installers on macOS, Windows, and Linux. It is compatible with any JVM application but optimized for **Compose Desktop**. It uses the Compose Desktop API for app-image generation and [electron-builder](https://www.electron.build/) under the hood to produce final installers with code signing, auto-update metadata, and advanced packaging options.
+Nucleus is a toolkit for building production-ready **JVM desktop applications** on macOS, Windows, and Linux. It combines a **Gradle plugin**, **runtime libraries**, and **GitHub Actions** to tackle the three biggest pain points of desktop JVM development: **performance**, **distribution**, and **native look & feel**.
+
+Compatible with any JVM application, optimized for **Compose Desktop**.
 
 ## Why Nucleus?
 
-- **16 target formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archive formats
+### Performance
+
+- **JDK 25+ AOT cache (Project Leyden)** — Dramatically faster cold startup with ahead-of-time class loading cache, enabled as a simple Gradle flag, no GraalVM required
+
+### Distribution
+
+- **16 packaging formats** — DMG, PKG, NSIS, MSI, AppX, Portable, DEB, RPM, AppImage, Snap, Flatpak, and archives
+- **Plug-and-play store distribution** — Store-ready outputs for Microsoft Store (AppX), Snapcraft (Snap), and Flathub (Flatpak)
+- **Code signing & notarization** — Windows (PFX, Azure Trusted Signing) and macOS (Apple Developer ID) with full notarization support
+- **Auto-update built-in** — Integrated update metadata generation and runtime update library; publish directly to GitHub Releases or S3
 - **One DSL** — Configure everything from a single `nucleus.application { }` block
-- **Auto-update built-in** — The CI `generate-update-yml` action scans all build artifacts and produces combined `latest-mac.yml`, `latest.yml`, `latest-linux.yml` files covering all architectures per platform; the `publish` DSL can also configure electron-builder to publish directly to GitHub Releases or S3
-- **Code signing** — Windows (PFX, Azure Trusted Signing) and macOS (Apple Developer ID, notarization)
-- **CI/CD ready** — `setup-nucleus` composite action + GitHub Actions workflows for 6-runner multi-platform builds, universal macOS binaries, and MSIX bundles
-- **Performance** — Native library cleanup, JDK 25+ AOT cache, splash screen support
+
+### Native Look & Feel
+
+- **Decorated windows** — Custom title bar content (icons, text, gradients) while preserving native window controls and behavior on all platforms
+- **Reactive dark mode detection** — OS-level dark mode listener via JNI (no JNA), triggers recomposition instantly when the user changes their theme
+- **Platform-accurate Linux rendering** — GNOME Adwaita and KDE Breeze window controls, proper window shape clipping, and focus-aware button states — all drawn with Compose
+
+### CI/CD
+
+- **Reusable GitHub Actions** — `setup-nucleus` composite action + workflows for multi-platform matrix builds, universal macOS binaries, and MSIX bundles
 - **Deep links & file associations** — Cross-platform protocol handlers and file type registration
 
 ## Quick Example

@@ -6,10 +6,7 @@ Add the Nucleus plugin to your `build.gradle.kts`:
 
 ```kotlin
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
-    id("org.jetbrains.compose") version "1.10.1"
-    id("io.github.kdroidfilter.nucleus") version "1.0.0"
+    id("io.github.kdroidfilter.nucleus") version "<version>"
 }
 ```
 
@@ -24,13 +21,16 @@ dependencies {
     implementation(compose.desktop.currentOs)
 
     // Executable type detection + single instance + deep links
-    implementation("io.github.kdroidfilter:nucleus.core-runtime:1.0.0")
+    implementation("io.github.kdroidfilter:nucleus.core-runtime:<version>")
 
     // AOT cache runtime detection (includes core-runtime)
-    implementation("io.github.kdroidfilter:nucleus.aot-runtime:1.0.0")
+    implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
 
     // Auto-update library (includes core-runtime)
-    implementation("io.github.kdroidfilter:nucleus.updater-runtime:1.0.0")
+    implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
+
+    // Custom decorated window with native title bar
+    implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
 }
 ```
 
