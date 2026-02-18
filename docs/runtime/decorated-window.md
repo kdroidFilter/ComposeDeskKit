@@ -1,12 +1,17 @@
 # Decorated Window
 
-The `decorated-window` module provides custom window decorations (title bar, window controls) with native rendering per platform. It is design-system agnostic (no Material3 dependency) and works best with JetBrains Runtime (JBR).
+The `decorated-window` module provides custom window decorations (title bar, window controls) with native rendering per platform. It is **design-system agnostic** — no Material dependency — so you can map any theme (Material 3, Jewel, your own) to its styling tokens.
+
+It requires [JetBrains Runtime (JBR)](https://github.com/JetBrains/JetBrainsRuntime), which provides the `CustomTitleBar` API used on macOS and Windows.
+
+!!! note
+    If you use Material 3, see the companion module [`decorated-window-material`](decorated-window-material.md) which wires `MaterialTheme.colorScheme` automatically.
 
 ## Installation
 
 ```kotlin
 dependencies {
-    implementation("io.github.kdroidfilter:nucleus.decorated-window:1.0.0")
+    implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
 }
 ```
 
@@ -23,7 +28,7 @@ fun main() = application {
                 Text(
                     title,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    color = Color.White,
+                    color = LocalContentColor.current,
                 )
             }
             // Your app content
@@ -37,35 +42,38 @@ fun main() = application {
 
 |  | macOS | Windows | Linux |
 |---|-------|---------|-------|
-| Decoration | JBR CustomTitleBar | JBR CustomTitleBar | Undecorated |
-| Window controls | Native (traffic lights) | Native (min/max/close) | Compose (`WindowControlArea`) |
-| Drag | JBR hit-test | JBR forceHitTest | `WindowMove.startMovingTogetherWithMouse()` |
+| Decoration | JBR `CustomTitleBar` | JBR `CustomTitleBar` | Fully undecorated |
+| Window controls | Native traffic lights | Native min/max/close | Compose `WindowControlArea` (SVG icons) |
+| Drag | JBR hit-test | JBR `forceHitTest` | `JBR.getWindowMove().startMovingTogetherWithMouse()` |
 | Double-click maximize | Native | Native | Manual detection |
 | Border | None | None | `insideBorder` (hidden when maximized) |
+| Window shape | Native | Native | Rounded corners (GNOME top only, KDE all) |
 
 On **macOS** and **Windows**, the module uses JBR's `CustomTitleBar` API to integrate with the native window chrome. The OS-native window buttons (traffic lights on macOS, min/max/close on Windows) are preserved.
 
-On **Linux**, the window is fully undecorated. The module renders its own close/minimize/maximize buttons using SVG icons adapted to the desktop environment (GNOME or KDE/Breeze).
+On **Linux**, the window is fully undecorated. The module renders its own close/minimize/maximize buttons using SVG icons adapted to the desktop environment (GNOME Adwaita or KDE Breeze). The window shape is also clipped to rounded corners to match the native look.
 
 ## Components
 
 ### `NucleusDecoratedWindowTheme`
 
-Provides styling for all decorated window components. Must wrap `DecoratedWindow` / `DecoratedDialog`.
+Provides styling for all decorated window components via `CompositionLocal`. Must wrap `DecoratedWindow` / `DecoratedDialog`.
 
 ```kotlin
 NucleusDecoratedWindowTheme(
-    isDark = true,  // or false for light theme
-    windowStyle = DecoratedWindowDefaults.darkWindowStyle(),   // optional override
-    titleBarStyle = DecoratedWindowDefaults.darkTitleBarStyle(), // optional override
+    isDark: Boolean = true,
+    windowStyle: DecoratedWindowStyle = DecoratedWindowDefaults.dark/lightWindowStyle(),
+    titleBarStyle: TitleBarStyle = DecoratedWindowDefaults.dark/lightTitleBarStyle(),
 ) {
-    // ...
+    // DecoratedWindow / DecoratedDialog go here
 }
 ```
 
+The `isDark` flag selects the built-in dark or light presets. Pass your own `windowStyle` / `titleBarStyle` to override any or all values.
+
 ### `DecoratedWindow`
 
-Drop-in replacement for Compose `Window()`. Manages window state (active, fullscreen, minimized, maximized) and platform-specific border rendering.
+Drop-in replacement for Compose `Window()`. Manages window state (active, fullscreen, minimized, maximized) and platform-specific decorations.
 
 ```kotlin
 DecoratedWindow(
@@ -80,14 +88,20 @@ DecoratedWindow(
 }
 ```
 
+The `content` lambda receives a `DecoratedWindowScope` which exposes:
+
+- `window: ComposeWindow` — the underlying AWT window
+- `state: DecoratedWindowState` — current window state (`.isActive`, `.isFullscreen`, `.isMinimized`, `.isMaximized`)
+
 ### `DecoratedDialog`
 
-Same concept for dialog windows. Uses `DialogWindow` internally.
+Same concept for dialog windows. Uses `DialogWindow` internally. Dialogs only show a close button on Linux (no minimize/maximize).
 
 ```kotlin
 DecoratedDialog(
     onCloseRequest = { showDialog = false },
     title = "Settings",
+    resizable = false,
 ) {
     DialogTitleBar { state ->
         Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -98,11 +112,15 @@ DecoratedDialog(
 
 ### `TitleBar` / `DialogTitleBar`
 
-Platform-dispatched title bar composable. Provides a `TitleBarScope` with `align()` for positioning content:
+Platform-dispatched title bar composable. Provides a `TitleBarScope` with:
+
+- `title: String` — the window title passed to `DecoratedWindow`
+- `icon: Painter?` — the window icon
+- `Modifier.align(alignment: Alignment.Horizontal)` — positions content within the title bar
 
 ```kotlin
 TitleBar { state ->
-    // Aligned to the start (left on LTR)
+    // Left-aligned icon
     Icon(
         painter = myIcon,
         contentDescription = null,
@@ -113,6 +131,7 @@ TitleBar { state ->
     Text(
         title,
         modifier = Modifier.align(Alignment.CenterHorizontally),
+        color = LocalContentColor.current,
     )
 
     // Right-aligned action
@@ -125,64 +144,122 @@ TitleBar { state ->
 }
 ```
 
+Centered content is automatically shifted to avoid overlapping with start/end content.
+
 ## Styling
+
+### Mapping Your Own Theme
+
+The key idea: `NucleusDecoratedWindowTheme` accepts two style objects. You build them from whatever color system you use:
+
+```kotlin
+// Example: map a custom theme to decorated window styles
+val myWindowStyle = DecoratedWindowStyle(
+    colors = DecoratedWindowColors(
+        border = MyTheme.colors.border,
+        borderInactive = MyTheme.colors.border.copy(alpha = 0.5f),
+    ),
+    metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
+)
+
+val myTitleBarStyle = TitleBarStyle(
+    colors = TitleBarColors(
+        background = MyTheme.colors.surface,
+        inactiveBackground = MyTheme.colors.surfaceDim,
+        content = MyTheme.colors.onSurface,
+        border = MyTheme.colors.outline,
+        titlePaneButtonHoveredBackground = MyTheme.colors.onSurface.copy(alpha = 0.08f),
+        titlePaneButtonPressedBackground = MyTheme.colors.onSurface.copy(alpha = 0.12f),
+        titlePaneCloseButtonHoveredBackground = MyTheme.colors.error,
+        titlePaneCloseButtonPressedBackground = MyTheme.colors.error.copy(alpha = 0.7f),
+    ),
+    metrics = TitleBarMetrics(height = 40.dp),
+    icons = TitleBarIcons(), // null = use platform defaults
+)
+
+NucleusDecoratedWindowTheme(
+    isDark = MyTheme.isDark,
+    windowStyle = myWindowStyle,
+    titleBarStyle = myTitleBarStyle,
+) {
+    DecoratedWindow(...) { ... }
+}
+```
 
 ### `DecoratedWindowStyle`
 
-Controls window border appearance:
+Controls the window border (visible only on Linux):
 
-```kotlin
-data class DecoratedWindowStyle(
-    val colors: DecoratedWindowColors,  // border, borderInactive
-    val metrics: DecoratedWindowMetrics, // borderWidth
-)
-```
+| Property | Description |
+|----------|-------------|
+| `colors.border` | Border color when window is active |
+| `colors.borderInactive` | Border color when window is inactive |
+| `metrics.borderWidth` | Border width (default 1.dp) |
 
 ### `TitleBarStyle`
 
-Controls title bar appearance:
+Controls the title bar appearance:
 
-```kotlin
-data class TitleBarStyle(
-    val colors: TitleBarColors,   // background, content, border, hover/press states
-    val metrics: TitleBarMetrics, // height
-    val icons: TitleBarIcons,     // optional custom Painters for window buttons
-)
+| Property | Description |
+|----------|-------------|
+| `colors.background` | Title bar background when active |
+| `colors.inactiveBackground` | Title bar background when inactive |
+| `colors.content` | Default content color (exposed via `LocalContentColor`) |
+| `colors.border` | Bottom border of the title bar |
+| `colors.fullscreenControlButtonsBackground` | Background for macOS fullscreen traffic lights |
+| `colors.titlePaneButtonHoveredBackground` | Hover background for min/max buttons |
+| `colors.titlePaneButtonPressedBackground` | Press background for min/max buttons |
+| `colors.titlePaneCloseButtonHoveredBackground` | Hover background for close button |
+| `colors.titlePaneCloseButtonPressedBackground` | Press background for close button |
+| `metrics.height` | Title bar height (default 40.dp) |
+| `metrics.gradientStartX` / `gradientEndX` | Gradient range (see below) |
+| `icons` | Custom `Painter` for close/minimize/maximize/restore buttons (null = platform default) |
+
+## Gradient
+
+The `TitleBar` composable accepts a `gradientStartColor` parameter. When set, the title bar background becomes a horizontal gradient that transitions from the `background` color through `gradientStartColor` and back to `background`:
+
+```
+[background] → [gradientStartColor] → [background]
 ```
 
-### Custom Colors
+The gradient range is controlled by `TitleBarMetrics.gradientStartX` and `gradientEndX`.
 
 ```kotlin
-NucleusDecoratedWindowTheme(
-    isDark = true,
-    titleBarStyle = DecoratedWindowDefaults.darkTitleBarStyle().copy(
-        colors = DecoratedWindowDefaults.darkTitleBarStyle().colors.copy(
-            background = Color(0xFF1A1A2E),
-        ),
-    ),
-) {
+TitleBar(
+    gradientStartColor = Color(0xFF6200EE),
+) { state ->
+    Text(title, modifier = Modifier.align(Alignment.CenterHorizontally))
+}
+```
+
+When `gradientStartColor` is `Color.Unspecified` (the default), the background is a solid color.
+
+## macOS Fullscreen Controls
+
+On macOS, use the `newFullscreenControls()` modifier on `TitleBar` to enable the new-style fullscreen controls (traffic lights stay visible in fullscreen mode with a colored background):
+
+```kotlin
+TitleBar(modifier = Modifier.newFullscreenControls()) { state ->
     // ...
 }
 ```
 
+This sets the `apple.awt.newFullScreenControls` system property and uses `fullscreenControlButtonsBackground` from your `TitleBarStyle`.
+
 ## JBR Requirement
 
-For the best experience on **macOS** and **Windows**, run on [JetBrains Runtime (JBR)](https://github.com/JetBrains/JetBrainsRuntime). JBR provides the `CustomTitleBar` API for native window decoration integration.
-
-Without JBR:
-
-- macOS/Windows title bars will use fallback padding values
-- Linux is unaffected (always uses its own Compose-based decorations)
+`DecoratedWindow` and `DecoratedDialog` **require** JetBrains Runtime (JBR). The module throws an `IllegalStateException` at startup if JBR is not detected.
 
 !!! tip
-    When packaging with Nucleus, the bundled JDK is typically a standard JDK. If you need JBR features, configure your build to bundle JBR instead.
+    When running via `./gradlew run`, Gradle uses the JDK configured in your toolchain. Make sure it is a JBR distribution. When packaging with Nucleus (`packageDmg`, `packageMsi`, etc.), you can bundle JBR by configuring the `javaHome` or `jdkVersionProbe` in your build.
 
 ## Linux Desktop Environment Detection
 
-On Linux, the module detects the current desktop environment and loads appropriate icons:
+On Linux, the module detects the current desktop environment and loads the appropriate icon set:
 
-- **GNOME** — Adwaita-style icons
-- **KDE** — Breeze-style icons
+- **GNOME** — Adwaita-style icons, rounded top corners
+- **KDE** — Breeze-style icons, fully rounded corners
 - **Other** — Falls back to GNOME style
 
 Detection uses `XDG_CURRENT_DESKTOP` and `DESKTOP_SESSION` environment variables.
