@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.awt.ComposeWindow
 import androidx.compose.ui.graphics.painter.Painter
@@ -23,6 +24,7 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.Window
@@ -197,11 +199,22 @@ fun DecoratedWindow(
         }
 
         val style = LocalDecoratedWindowStyle.current
+        val borderShape = when (linuxDe) {
+            LinuxDesktopEnvironment.Gnome -> RoundedCornerShape(
+                topStart = (gnomeCornerArc / 2).dp,
+                topEnd = (gnomeCornerArc / 2).dp,
+                bottomStart = 0.dp,
+                bottomEnd = 0.dp,
+            )
+            LinuxDesktopEnvironment.KDE -> RoundedCornerShape((kdeCornerArc / 2).dp)
+            else -> RoundedCornerShape(0.dp)
+        }
         val undecoratedWindowBorder =
             if (undecorated && !decoratedWindowState.isMaximized && !isMaximizedInAnyDirection) {
                 Modifier.insideBorder(
-                    style.metrics.borderWidth,
-                    style.colors.borderFor(decoratedWindowState).value,
+                    width = style.metrics.borderWidth,
+                    color = style.colors.borderFor(decoratedWindowState).value,
+                    shape = borderShape,
                 )
             } else {
                 Modifier

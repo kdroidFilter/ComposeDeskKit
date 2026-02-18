@@ -58,6 +58,9 @@ import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.kdroidfilter.nucleus.window.TitleBar
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
 import io.github.kdroidfilter.nucleus.window.newFullscreenControls
+import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowColors
+import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowMetrics
+import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowStyle
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarColors
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarIcons
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarMetrics
@@ -117,6 +120,14 @@ fun main(args: Array<String>) {
             val colorScheme = if (isDark) darkColorScheme() else lightColorScheme()
 
             MaterialTheme(colorScheme = colorScheme) {
+                val windowStyle = DecoratedWindowStyle(
+                    colors = DecoratedWindowColors(
+                        border = colorScheme.outlineVariant,
+                        borderInactive = colorScheme.outlineVariant.copy(alpha = 0.5f),
+                    ),
+                    metrics = DecoratedWindowMetrics(borderWidth = 1.dp),
+                )
+
                 val titleBarStyle = TitleBarStyle(
                     colors = TitleBarColors(
                         background = colorScheme.surface,
@@ -138,6 +149,7 @@ fun main(args: Array<String>) {
 
                 NucleusDecoratedWindowTheme(
                     isDark = isDark,
+                    windowStyle = windowStyle,
                     titleBarStyle = titleBarStyle,
                 ) {
                     DecoratedWindow(
