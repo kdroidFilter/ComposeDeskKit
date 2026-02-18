@@ -53,42 +53,77 @@ nativeDistributions {
 
 ## DMG Customization
 
-Customize the DMG window appearance:
+### Window Appearance
+
+Control the DMG window title, icon sizes, position, and dimensions:
 
 ```kotlin
 macOS {
     dmg {
-        // Window title
         title = "${productName} ${version}"
 
-        // Icon size in the DMG window
         iconSize = 128
         iconTextSize = 12
 
-        // Window position and size
         window {
             x = 400
             y = 100
             width = 540
             height = 380
         }
-
-        // Background image or color
-        background.set(project.file("packaging/dmg-background.png"))
-        // backgroundColor = "#FFFFFF"
-
-        // DMG format
-        format = DmgFormat.UDZO // UDRW, UDRO, UDCO, UDZO, UDBZ, ULFO
-
-        // Badge icon (overlays on the DMG volume icon)
-        badgeIcon.set(project.file("icons/badge.icns"))
-
-        // Custom content positioning
-        content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")
-        content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")
     }
 }
 ```
+
+### Background
+
+Set a background image or a solid color for the DMG window:
+
+```kotlin
+dmg {
+    background.set(project.file("packaging/dmg-background.png"))
+    // or use a solid color instead:
+    // backgroundColor = "#FFFFFF"
+}
+```
+
+### Format and Badge Icon
+
+Choose a DMG format and optionally overlay a badge icon on the volume icon:
+
+```kotlin
+dmg {
+    format = DmgFormat.UDZO // UDRW, UDRO, UDCO, UDZO, UDBZ, ULFO
+    badgeIcon.set(project.file("icons/badge.icns"))
+}
+```
+
+### Content Positioning
+
+Use `content()` to place icons at specific coordinates inside the DMG window. The typical pattern is one entry for the app and one entry for an Applications symlink so the user can drag-and-drop to install:
+
+```kotlin
+dmg {
+    content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")
+    content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")
+}
+```
+
+Each `content()` call adds an entry with an `(x, y)` position and a `DmgContentType`:
+
+| Type | Description |
+|------|-------------|
+| `DmgContentType.File` | An existing file in the DMG (e.g. the `.app` bundle). Set `name` to match the file. |
+| `DmgContentType.Link` | A symlink. Set `path` to the link target (usually `/Applications`). |
+| `DmgContentType.Dir` | A directory inside the DMG. |
+
+!!! tip "Mapping from `create-dmg`"
+    If you are migrating from a `create-dmg` shell script, the `content()` DSL maps directly to the `--icon` and `--app-drop-link` flags:
+
+    | `create-dmg` flag | Nucleus equivalent |
+    |---|---|
+    | `--icon "MyApp.app" 130 220` | `content(x = 130, y = 220, type = DmgContentType.File, name = "MyApp.app")` |
+    | `--app-drop-link 410 220` | `content(x = 410, y = 220, type = DmgContentType.Link, path = "/Applications")` |
 
 ## Layered Icons (macOS 26+)
 
@@ -266,9 +301,39 @@ macOS {
 
 #### `dmg { window { } }`
 
-| Property | Type | Default |
-|----------|------|---------|
-| `x` | `Int?` | `null` |
-| `y` | `Int?` | `null` |
-| `width` | `Int?` | `null` |
-| `height` | `Int?` | `null` |
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `x` | `Int?` | `null` | Window x position on screen |
+| `y` | `Int?` | `null` | Window y position on screen |
+| `width` | `Int?` | `null` | Window width |
+| `height` | `Int?` | `null` | Window height |
+
+#### `dmg { content() }`
+
+Adds an icon entry to the DMG window layout. Call multiple times to position several items.
+
+```kotlin
+fun content(
+    x: Int,
+    y: Int,
+    type: DmgContentType? = null,
+    name: String? = null,
+    path: String? = null,
+)
+```
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `x` | `Int` | Yes | Horizontal position inside the DMG window |
+| `y` | `Int` | Yes | Vertical position inside the DMG window |
+| `type` | `DmgContentType?` | No | Kind of content entry (`File`, `Link`, or `Dir`) |
+| `name` | `String?` | No | File name to match (used with `File` / `Dir`) |
+| `path` | `String?` | No | Target path (used with `Link`, e.g. `/Applications`) |
+
+#### `DmgContentType` Enum
+
+| Value | Serialized ID | Description |
+|-------|---------------|-------------|
+| `Link` | `link` | A symlink to a target path |
+| `File` | `file` | An existing file in the DMG |
+| `Dir` | `dir` | A directory in the DMG |
