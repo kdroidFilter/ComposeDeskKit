@@ -2,6 +2,14 @@
 
 Detect at runtime which installer format was used to package your application.
 
+## Installation
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.core-runtime:<version>")
+}
+```
+
 ```kotlin
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableRuntime
 import io.github.kdroidfilter.nucleus.core.runtime.ExecutableType

@@ -2,6 +2,14 @@
 
 Handle custom URL protocol links (`myapp://action?param=value`).
 
+## Installation
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.core-runtime:<version>")
+}
+```
+
 ```kotlin
 import io.github.kdroidfilter.nucleus.core.runtime.DeepLinkHandler
 ```

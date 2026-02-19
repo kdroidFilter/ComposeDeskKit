@@ -2,6 +2,15 @@
 
 Detect whether the application is running in AOT training mode or with an AOT cache.
 
+## Installation
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.aot-runtime:<version>")
+    // Transitive: nucleus.core-runtime is pulled in via `api`
+}
+```
+
 ```kotlin
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntime
 import io.github.kdroidfilter.nucleus.aot.runtime.AotRuntimeMode

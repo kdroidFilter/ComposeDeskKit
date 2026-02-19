@@ -2,6 +2,14 @@
 
 Enforce that only one instance of your application runs at a time.
 
+## Installation
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.core-runtime:<version>")
+}
+```
+
 ```kotlin
 import io.github.kdroidfilter.nucleus.core.runtime.SingleInstanceManager
 ```
