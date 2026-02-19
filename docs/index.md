@@ -44,10 +44,7 @@ Compatible with any JVM application, optimized for **Compose Desktop**.
 
 ```kotlin
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.10"
-    id("org.jetbrains.compose") version "1.10.1"
-    id("io.github.kdroidfilter.nucleus") version "1.0.0"
+    id("io.github.kdroidfilter.nucleus") version "<version>"
 }
 
 nucleus.application {
@@ -90,7 +87,6 @@ The demo source code is in the [`example/`](https://github.com/kdroidFilter/Nucl
 | JDK | 17+ (25+ for AOT cache) | JBR 25 recommended |
 | Gradle | 8.0+ | |
 | Kotlin | 2.0+ | |
-| Compose Multiplatform | 1.7+ | Optional — required only for Compose Desktop apps |
 
 ## License
 
