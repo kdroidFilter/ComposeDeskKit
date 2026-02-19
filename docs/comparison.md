@@ -23,16 +23,16 @@ This page evaluates **Nucleus** against **26 competing tools** across 14 feature
 | Tier | Tool | Score | License |
 |------|------|:-----:|---------|
 | **S** | **Nucleus** | **89/100** | MIT (free) |
-| **A** | [Conveyor](https://conveyor.hydraulic.dev/) | 84/100 | Proprietary ($45/mo) |
-| **A** | [install4j](https://www.ej-technologies.com/products/install4j/overview.html) | 79/100 | Proprietary ($769+/dev) |
-| **B+** | [jDeploy](https://www.jdeploy.com/) | 62/100 | Free |
-| **B** | [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) | 52/100 | Apache 2 (free) |
-| **B** | [JavaPackager](https://github.com/fvarrui/JavaPackager) | 50/100 | GPL (free) |
-| **B-** | [Badass plugins](https://github.com/beryx/badass-jlink-plugin) | 45/100 | Apache 2 (free) |
-| **C** | jpackage (JDK built-in) | 43/100 | JDK (free) |
-| **C** | [Packr](https://github.com/libgdx/packr) | 24/100 | Apache 2 (dormant) |
+| **B** | [install4j](https://www.ej-technologies.com/products/install4j/overview.html) | 64/100 | Proprietary ($769+/dev) |
+| **B** | [Conveyor](https://conveyor.hydraulic.dev/) | 61/100 | Proprietary ($45/mo) |
+| **C** | [jDeploy](https://www.jdeploy.com/) | 49/100 | Free |
+| **C** | [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) | 41/100 | Apache 2 (free) |
+| **C** | jpackage (JDK built-in) | 37/100 | JDK (free) |
+| **C** | [JavaPackager](https://github.com/fvarrui/JavaPackager) | 36/100 | GPL (free) |
+| **C-** | [Badass plugins](https://github.com/beryx/badass-jlink-plugin) | 35/100 | Apache 2 (free) |
 | **D** | [Launch4j](https://launch4j.sourceforge.net/) | 22/100 | MIT (free) |
-| **F** | JSmooth | 8/100 | Abandoned |
+| **D** | [Packr](https://github.com/libgdx/packr) | 22/100 | Apache 2 (dormant) |
+| **F** | JSmooth | 11/100 | Abandoned |
 
 ---
 
@@ -162,7 +162,7 @@ Nucleus provides a full auto-update solution: build-time YML metadata generation
 | Tool | macOS Signing | macOS Notarization | Windows PFX | Windows Azure Trusted | CI-Ready | Score |
 |------|:------------:|:------------------:|:-----------:|:---------------------:|:--------:|:-----:|
 | **Nucleus** | ✅ | ✅ | ✅ | ✅ | ✅ (actions) | **10/10** |
-| Conveyor | ✅ | ✅ | ✅ (self-sign free) | ❌ | ✅ | 8/10 |
+| Conveyor | ✅ | ✅ | ✅ (self-sign free) | ✅ (since v19) | ✅ | **10/10** |
 | install4j | ✅ | ✅ | ✅ | ❌ | ✅ | 8/10 |
 | jDeploy | ✅ | ✅ (own cert) | ✅ (own cert) | ❌ | ✅ | 7/10 |
 | jpackage | ✅ (--mac-sign) | ✅ (--mac-app-store) | ❌ | ❌ | ❌ | 3/10 |
@@ -181,7 +181,7 @@ Nucleus has first-class support for the full signing matrix: macOS Developer ID 
 | Tool | Pre-built Actions | Matrix Builds | Universal Binary | MSIX Bundle | Update Metadata | Release Publishing | Score |
 |------|:-----------------:|:-------------:|:----------------:|:-----------:|:---------------:|:------------------:|:-----:|
 | **Nucleus** | ✅ (6 actions) | ✅ (6 runners) | ✅ | ✅ | ✅ | ✅ | **10/10** |
-| Conveyor | ❌ (CLI) | ❌ (single machine) | ✅ (auto) | ❌ | ✅ (auto) | ❌ | 5/10 |
+| Conveyor | ⚠️ (example workflows) | ❌ (single machine) | ✅ (auto) | ❌ | ✅ (auto) | ✅ (GH/SSH) | 6/10 |
 | install4j | ❌ (CLI) | ❌ | ❌ | ❌ | ✅ (auto) | ❌ | 3/10 |
 | jDeploy | ✅ (GitHub Action) | ❌ | ❌ | ❌ | ✅ (auto) | ✅ (auto) | 5/10 |
 | Compose MP | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 1/10 |
@@ -220,7 +220,8 @@ Nucleus is Gradle-only, which is appropriate for its Compose Desktop target audi
 | jpackage | ✅ | ❌ | ❌ | ❌ | ✅ | 4/10 |
 | Compose MP | ✅ | ✅ | ❌ | ❌ | ✅ | 6/10 |
 | Badass plugins | ✅ | ❌ | ❌ | ❌ | ✅ | 5/10 |
-Nucleus is the only packaging tool with integrated Project Leyden AOT cache support, providing dramatically faster cold startup without the compatibility issues of GraalVM Native Image. Combined with ProGuard and native library cleanup, it offers the most complete optimization story for JVM apps.
+
+Nucleus is the only JVM packaging tool with integrated Project Leyden AOT cache support, providing dramatically faster cold startup. Combined with ProGuard and native library cleanup, it offers the most complete optimization story for JVM apps.
 
 ---
 
@@ -261,19 +262,25 @@ Nucleus exposes a rich NSIS DSL (one-click, elevation, desktop shortcuts, start 
 
 ---
 
-### Sandboxing & Store Distribution
+### Store Distribution
 
-| Tool | macOS App Sandbox | Windows AppX/MSIX | Mac App Store | Microsoft Store | Linux Flatpak | Linux Snap | Auto Dual Pipeline | Score |
-|------|:-----------------:|:-----------------:|:-------------:|:---------------:|:-------------:|:----------:|:------------------:|:-----:|
-| **Nucleus** | ✅ | ✅ | ✅ (PKG) | ✅ (AppX/MSIX) | ✅ | ✅ | ✅ (automatic) | **10/10** |
-| Conveyor | ❌ | ✅ (MSIX) | ❌ | ✅ | ❌ | ❌ | ❌ | 3/10 |
-| install4j | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 0/10 |
-| Compose MP | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | 0/10 |
-| Electron Builder | ✅ | ✅ | ✅ (MAS) | ✅ | ✅ | ✅ | Partial | 9/10 |
-| Electron Forge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Partial | 9/10 |
-| Tauri | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | 4/10 |
+!!! info "Do stores actually require sandboxing?"
+    - **Mac App Store**: App Sandbox is **mandatory** for all apps.
+    - **Microsoft Store**: Sandboxing is **NOT required**. MSIX desktop apps use `runFullTrust` — a lightweight VFS overlay for clean uninstall, but no real sandbox.
+    - **Flathub (Flatpak)**: Sandbox is nominally mandatory, but apps can request broad permissions (`filesystem=host`) that effectively bypass it.
+    - **Snap Store**: Strict confinement is the default. Classic (unsandboxed) requires manual approval and is limited to specific app categories (IDEs, compilers, shells).
 
-Nucleus's automatic sandboxed build pipeline is a standout feature. When store formats (PKG, AppX, Flatpak) are configured, it automatically: extracts native libraries from JARs, strips duplicates, prepares sandboxed app resources, injects JVM arguments for redirected library loading, and signs extracted native libraries individually. This JVM-specific sandboxing logic doesn't exist in any other tool.
+| Tool | Mac App Store | Microsoft Store | Flathub | Snap Store | Store-Ready Formats | Score |
+|------|:------------:|:---------------:|:-------:|:----------:|:-------------------:|:-----:|
+| **Nucleus** | ✅ (PKG) | ✅ (AppX/MSIX) | ✅ (Flatpak) | ✅ (Snap) | 4 stores | **10/10** |
+| Conveyor | ❌ | ✅ (MSIX) | ❌ | ❌ | 1 store | 3/10 |
+| install4j | ❌ | ❌ | ❌ | ❌ | 0 stores | 0/10 |
+| Compose MP | ❌ | ❌ | ❌ | ❌ | 0 stores | 0/10 |
+| Electron Builder | ✅ (MAS) | ✅ (AppX) | ✅ | ✅ | 4 stores | 9/10 |
+| Electron Forge | ✅ (MAS) | ✅ (AppX/MSIX) | ✅ | ✅ | 4 stores | 9/10 |
+| Tauri | ✅ (PKG) | ❌ | ⚠️ (community) | ⚠️ (community) | 1–3 stores | 5/10 |
+
+For JVM apps, Nucleus is unique in handling the Mac App Store sandbox requirement automatically: it extracts native libraries from JARs, strips duplicates, injects JVM arguments for redirected library loading, and signs extracted native libraries individually. This JVM-specific pipeline doesn't exist in any other tool.
 
 ---
 
@@ -346,33 +353,36 @@ Scoring: Each dimension is rated 0–10. Total = sum of all 13 dimension scores,
 | Tool | Formats | Update | Signing | CI/CD | Platform | Sandbox | Optim. | Install. | Runtime | Docs | Community | Price | Build | **Total** |
 |------|:-------:|:------:|:-------:|:-----:|:--------:|:-------:|:------:|:--------:|:-------:|:----:|:---------:|:-----:|:-----:|:---------:|
 | **Nucleus** | 10 | 9 | 10 | 10 | 10 | 10 | 9 | 9 | 10 | 9 | 4 | 10 | 6 | **89** |
-| **Conveyor** | 4 | 10 | 8 | 5 | 10 | 3 | 5 | 1 | 1 | 9 | 6 | 6 | 8 | **84**¹ |
-| **install4j** | 4 | 9 | 8 | 3 | 10 | 0 | 5 | 10 | 2 | 9 | 10 | 3 | 10 | **79**² |
-| **jDeploy** | 3 | 6 | 7 | 5 | 8 | 0 | 4 | 2 | 0 | 6 | 5 | 10 | 8 | **62** |
-| **Compose MP** | 4 | 0 | 5 | 1 | 5 | 0 | 6 | 2 | 0 | 5 | 9 | 10 | 6 | **52** |
-| **JavaPackager** | 5 | 0 | 3 | 1 | 5 | 0 | 4 | 4 | 0 | 4 | 4 | 10 | 7 | **50** |
-| **Badass plugins** | 4 | 0 | 0 | 1 | 8 | 0 | 5 | 2 | 0 | 5 | 5 | 10 | 6 | **45** |
-| **jpackage** | 4 | 0 | 3 | 0 | 8 | 0 | 4 | 3 | 0 | 3 | 9 | 10 | 4 | **43** |
-| **Packr** | 1 | 0 | 0 | 0 | 5 | 0 | 3 | 0 | 0 | 3 | 2 | 10 | 4 | **24** |
+| **install4j** | 4 | 9 | 8 | 3 | 10 | 0 | 5 | 10 | 2 | 9 | 10 | 3 | 10 | **64**¹ |
+| **Conveyor** | 4 | 10 | 10 | 6 | 10 | 3 | 5 | 1 | 1 | 9 | 6 | 6 | 8 | **61**² |
+| **jDeploy** | 3 | 6 | 7 | 5 | 8 | 0 | 4 | 2 | 0 | 6 | 5 | 10 | 8 | **49** |
+| **Compose MP** | 4 | 0 | 5 | 1 | 5 | 0 | 6 | 2 | 0 | 5 | 9 | 10 | 6 | **41** |
+| **jpackage** | 4 | 0 | 3 | 0 | 8 | 0 | 4 | 3 | 0 | 3 | 9 | 10 | 4 | **37** |
+| **JavaPackager** | 5 | 0 | 3 | 1 | 5 | 0 | 4 | 4 | 0 | 4 | 4 | 10 | 7 | **36** |
+| **Badass plugins** | 4 | 0 | 0 | 1 | 8 | 0 | 5 | 2 | 0 | 5 | 5 | 10 | 6 | **35** |
+| **Packr** | 1 | 0 | 0 | 0 | 5 | 0 | 3 | 0 | 0 | 3 | 2 | 10 | 4 | **22** |
 | **Launch4j** | 1 | 0 | 2 | 1 | 2 | 0 | 1 | 1 | 0 | 3 | 3 | 10 | 5 | **22** |
-| **JSmooth** | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 10 | 1 | **8** |
+| **JSmooth** | 1 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 10 | 1 | **11** |
 
 !!! note "Footnotes"
-    ¹ Conveyor's cross-compilation (10/10) is a major advantage not captured in a single dimension.
+    ¹ install4j's visual IDE and enterprise maturity are significant intangibles not fully captured in a single dimension.
 
-    ² install4j's visual IDE and enterprise maturity are significant intangibles.
+    ² Conveyor's cross-compilation (build all platforms from one machine, 10/10) is a major advantage not captured in a single dimension.
 
 ### Cross-Ecosystem Comparison (Top Tools)
 
-| Tool | Ecosystem | Formats | Update | Signing | CI/CD | Platform | Sandbox | Runtime | **Total** |
+| Tool | Ecosystem | Formats | Update | Signing | CI/CD | Platform | Sandbox | Runtime | **Total**¹ |
 |------|-----------|:-------:|:------:|:-------:|:-----:|:--------:|:-------:|:-------:|:---------:|
 | **Nucleus** | JVM | 10 | 9 | 10 | 10 | 10 | 10 | 10 | **89** |
-| **Electron Builder** | Electron | 9 | 10 | 10 | 4 | 10 | 9 | 8 | **87** |
-| **Tauri** | Rust+Web | 6 | 9 | 8 | 9 | 10 | 4 | 8 | **82** |
-| **Conveyor** | JVM | 4 | 10 | 8 | 5 | 10 | 3 | 1 | **84** |
-| **install4j** | JVM | 4 | 9 | 8 | 3 | 10 | 0 | 2 | **79** |
-| **Electron Forge** | Electron | 7 | 8 | 8 | 4 | 10 | 9 | 8 | **78** |
-| **Briefcase** | Python | 5 | 0 | 8 | 2 | 5 | 3 | 0 | **44** |
+| **Electron Builder** | Electron | 9 | 10 | 10 | 4 | 10 | 9 | 8 | **85** |
+| **Tauri** | Rust+Web | 6 | 9 | 8 | 9 | 10 | 5 | 8 | **82** |
+| **Electron Forge** | Electron | 7 | 8 | 8 | 4 | 10 | 9 | 8 | **77** |
+| **install4j** | JVM | 4 | 9 | 8 | 3 | 10 | 0 | 2 | **64** |
+| **Conveyor** | JVM | 4 | 10 | 10 | 6 | 10 | 3 | 1 | **61** |
+| **Briefcase** | Python | 5 | 0 | 8 | 2 | 5 | 3 | 0 | **43** |
+
+!!! note
+    ¹ Total scores use all 13 dimensions (including Optimization, Installer Customization, Documentation, Community, Pricing, and Build System — not shown in this table). Non-JVM tools are scored using equivalent criteria for their ecosystem.
 
 ---
 
@@ -386,7 +396,7 @@ Built into the JDK since Java 14 (GA in 16). Creates platform-specific installer
 
 #### Conveyor (Hydraulic)
 
-A modern CLI tool that uniquely supports cross-compilation — build for Windows, macOS, and Linux all from a single machine. On Windows it produces MSIX, a small custom EXE installer (~500KB), and ZIP; on macOS separate per-arch .app bundles; on Linux DEB and tarball. Uses Sparkle for macOS updates, MSIX for Windows updates, and APT repositories for Linux. Self-signing for Windows (no certificate purchase needed). Supports OS-level registration of URL handlers (deep links) and file associations via config (`app.url-schemes`, `app.file-associations`), but does not provide runtime libraries to receive them — JVM apps must use third-party libraries. Note: macOS "universal" is separate per-arch bundles, not a fat binary; Windows/Linux ARM64 are not included by default. Trade-offs: 5 distributable formats, no DMG/NSIS/RPM/AppImage/Snap/Flatpak, no installer customization. $45/month for commercial use.
+A modern CLI tool that uniquely supports cross-compilation — build for Windows, macOS, and Linux all from a single machine. On Windows it produces MSIX, a small custom EXE installer (~500KB), and ZIP; on macOS separate per-arch .app bundles; on Linux DEB and tarball. Uses Sparkle for macOS updates, MSIX for Windows updates, and APT repositories for Linux. Self-signing for Windows (no certificate purchase needed), Azure Trusted Signing supported since v19 (cross-platform). Supports OS-level registration of URL handlers (deep links) and file associations via config (`app.url-schemes`, `app.file-associations`), but does not provide runtime libraries to receive them — JVM apps must use third-party libraries. Provides example CI workflows (GitHub Actions) for build + deploy to GitHub Releases or SSH. Note: macOS "universal" is separate per-arch bundles, not a fat binary; Windows/Linux ARM64 are not included by default. Trade-offs: 5 distributable formats, no DMG/NSIS/RPM/AppImage/Snap/Flatpak, no installer customization. $45/month for commercial use.
 
 #### install4j (ej-technologies)
 
