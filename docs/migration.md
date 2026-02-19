@@ -15,7 +15,18 @@ Nucleus is a drop-in extension of the official JetBrains Compose Desktop plugin.
 
 > The official `org.jetbrains.compose` plugin remains — Nucleus extends it, not replaces it.
 
-## Step 2: Use the Nucleus DSL
+## Step 2: Update Imports
+
+Replace the JetBrains Compose DSL imports with the Nucleus equivalents:
+
+```diff
+-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
++import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+```
+
+This applies to all DSL types used in your `build.gradle.kts` (e.g. `TargetFormat`, `CompressionLevel`, `SigningAlgorithm`, etc.).
+
+## Step 3: Use the Nucleus DSL
 
 Replace the `compose.desktop.application` block with `nucleus.application`:
 
@@ -45,7 +56,7 @@ Replace the `compose.desktop.application` block with `nucleus.application`:
  }
 ```
 
-## Step 3: Add Nucleus Features (Optional)
+## Step 4: Add Nucleus Features (Optional)
 
 Enable the features you need. All are opt-in:
 
@@ -102,7 +113,7 @@ nucleus.application {
 }
 ```
 
-## Step 4: Add Runtime Libraries (Optional)
+## Step 5: Add Runtime Libraries (Optional)
 
 ```kotlin
 dependencies {
@@ -124,6 +135,7 @@ dependencies {
 | Feature | Before (compose) | After (nucleus) |
 |---------|-------------------|-----------------|
 | DSL entry point | `compose.desktop.application` | `nucleus.application` |
+| DSL imports | `org.jetbrains.compose.desktop.application.dsl.*` | `io.github.kdroidfilter.nucleus.desktop.application.dsl.*` |
 | Target formats | DMG, PKG, MSI, EXE, DEB, RPM | + NSIS, AppX, Portable, AppImage, Snap, Flatpak, archives |
 | Native lib cleanup | Manual | `cleanupNativeLibs = true` |
 | AOT cache | Not available | `enableAotCache = true` |

@@ -88,13 +88,16 @@ dependencies {
 
 ## Migration from org.jetbrains.compose
 
-Nucleus extends the official JetBrains Compose Desktop plugin. Add the plugin and replace `compose.desktop.application { }` with `nucleus.application { }`. All existing configuration is preserved.
+Nucleus extends the official JetBrains Compose Desktop plugin. Add the plugin, update DSL imports, and replace `compose.desktop.application { }` with `nucleus.application { }`. All existing configuration is preserved.
 
 ```diff
  plugins {
      id("org.jetbrains.compose") version "1.10.1"
 +    id("io.github.kdroidfilter.nucleus") version "<version>"
  }
+
+-import org.jetbrains.compose.desktop.application.dsl.TargetFormat
++import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 
 -compose.desktop.application {
 +nucleus.application {
