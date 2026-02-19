@@ -559,12 +559,25 @@ private fun JvmApplicationContext.configurePackageTask(
     when {
         stripNativeLibs != null -> {
             packageTask.dependsOn(stripNativeLibs)
+            // Wire through declared output properties only (outputDir, mainJarName)
+            // to avoid serializing task references in the configuration cache.
+            val strippedOutputDir = stripNativeLibs.flatMap { it.outputDir }
             packageTask.files.from(
-                project.fileTree(stripNativeLibs.flatMap { it.outputDir }).apply {
-                    exclude(".main-jar-name")
+                strippedOutputDir.map { dir ->
+                    dir.asFileTree.matching { it.exclude(".main-jar-name") }
                 },
             )
-            packageTask.launcherMainJar.set(stripNativeLibs.flatMap { it.mainJarInOutputDir })
+            val strippedMainJarName = stripNativeLibs.flatMap { it.mainJarName }
+            packageTask.launcherMainJar.fileProvider(
+                strippedOutputDir.zip(strippedMainJarName) { dir, mainJarName ->
+                    val metaFile = dir.asFile.resolve(".main-jar-name")
+                    if (metaFile.exists()) {
+                        dir.asFile.resolve(metaFile.readText().trim())
+                    } else {
+                        dir.asFile.resolve(mainJarName)
+                    }
+                },
+            )
             // Strip task already mangles filenames for deduplication
             packageTask.mangleJarFilesNames.set(false)
             if (runProguard != null) {
