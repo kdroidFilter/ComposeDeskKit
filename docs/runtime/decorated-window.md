@@ -279,6 +279,18 @@ This sets the `apple.awt.newFullScreenControls` system property and uses `fullsc
 !!! tip
     When running via `./gradlew run`, Gradle uses the JDK configured in your toolchain. Make sure it is a JBR distribution. When packaging with Nucleus (`packageDmg`, `packageMsi`, etc.), you can bundle JBR by configuring the `javaHome` or `jdkVersionProbe` in your build.
 
+## ProGuard
+
+The `decorated-window` module uses JNI on macOS. When ProGuard is enabled, the native bridge classes must be preserved. The Nucleus Gradle plugin includes these rules automatically, but if you need to add them manually:
+
+```proguard
+# Nucleus decorated-window JNI
+-keep class io.github.kdroidfilter.nucleus.window.utils.macos.NativeMacBridge {
+    native <methods>;
+}
+-keep class io.github.kdroidfilter.nucleus.window.** { *; }
+```
+
 ## Linux Desktop Environment Detection
 
 On Linux, the module detects the current desktop environment and loads the appropriate icon set:

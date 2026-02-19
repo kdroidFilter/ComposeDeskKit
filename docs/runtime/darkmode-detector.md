@@ -53,6 +53,31 @@ The module ships pre-built native binaries for:
 
 No external dependencies are needed at runtime.
 
+## ProGuard
+
+The `darkmode-detector` module uses JNI native libraries on all platforms. When ProGuard is enabled, the native bridge classes must be preserved so that JNI callbacks from native code work correctly. The Nucleus Gradle plugin includes these rules automatically, but if you need to add them manually:
+
+```proguard
+# macOS — NativeDarkModeBridge is looked up by name from native code
+-keep class io.github.kdroidfilter.nucleus.darkmodedetector.mac.NativeDarkModeBridge {
+    native <methods>;
+    static void onThemeChanged(boolean);
+}
+
+# Linux — NativeLinuxBridge is looked up by name from native code
+-keep class io.github.kdroidfilter.nucleus.darkmodedetector.linux.NativeLinuxBridge {
+    native <methods>;
+    static void onThemeChanged(boolean);
+}
+
+# Windows
+-keep class io.github.kdroidfilter.nucleus.darkmodedetector.windows.NativeWindowsBridge {
+    native <methods>;
+}
+
+-keep class io.github.kdroidfilter.nucleus.darkmodedetector.** { *; }
+```
+
 ## Compose Preview
 
 In Compose preview mode (`LocalInspectionMode`), the function falls back to the standard `isSystemInDarkTheme()` from Compose Foundation, which reads the JVM look-and-feel setting.

@@ -24,3 +24,25 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
 }
 ```
+
+## ProGuard
+
+When ProGuard is enabled in a release build, the Nucleus Gradle plugin **automatically includes** the required rules for all Nucleus runtime libraries (`default-compose-desktop-rules.pro`). No manual configuration is needed.
+
+Libraries that use JNI (`decorated-window`, `darkmode-detector`) require `-keep` rules for their native bridge classes — these are handled by the plugin. See each library's documentation for the exact rules if you need to add them manually.
+
+You can add extra project-specific rules in your `proguard-rules.pro` file:
+
+```kotlin
+nucleus.application {
+    buildTypes {
+        release {
+            proguard {
+                isEnabled = true
+                // Your custom rules file:
+                configurationFiles.from(project.file("proguard-rules.pro"))
+            }
+        }
+    }
+}
+```
