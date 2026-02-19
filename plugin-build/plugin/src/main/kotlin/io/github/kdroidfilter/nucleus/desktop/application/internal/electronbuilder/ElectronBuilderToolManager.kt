@@ -55,6 +55,12 @@ internal class ElectronBuilderToolManager(
 
         invocation.outputDir.mkdirs()
 
+        // Workaround: Windows ARM runners can have a corrupted npm cache that causes
+        // ECOMPROMISED errors when npx installs electron-builder. Clean it before invoking.
+        if (isWindows()) {
+            cleanNpmCache(invocation.npx)
+        }
+
         val args =
             buildList {
                 add("--yes")
@@ -110,6 +116,29 @@ internal class ElectronBuilderToolManager(
                     }
                 }
             error(errMsg)
+        }
+    }
+
+    private fun isWindows(): Boolean =
+        System.getProperty("os.name").lowercase().contains("windows")
+
+    /**
+     * Cleans the npm cache to work around ECOMPROMISED lock errors
+     * that occur on Windows ARM runners with a corrupted cache.
+     */
+    private fun cleanNpmCache(npx: File) {
+        try {
+            val npm = File(npx.parentFile, if (npx.name.endsWith(".cmd")) "npm.cmd" else "npm")
+            execOperations.exec { spec ->
+                spec.executable = npm.absolutePath
+                spec.args = listOf("cache", "clean", "--force")
+                spec.isIgnoreExitValue = true
+                spec.standardOutput = ByteArrayOutputStream()
+                spec.errorOutput = ByteArrayOutputStream()
+            }
+            logger.info("Cleaned npm cache before electron-builder invocation")
+        } catch (e: IOException) {
+            logger.warn("Failed to clean npm cache: ${e.message}")
         }
     }
 
