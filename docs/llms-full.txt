@@ -23,6 +23,7 @@ License: MIT
 ### Native Look & Feel
 - **Decorated windows** — Custom title bar content (icons, text, gradients) while preserving native window controls and behavior on all platforms
 - **Reactive dark mode detection** — OS-level dark mode listener via JNI (no JNA), triggers recomposition instantly when the user changes their theme
+- **Trusted CA certificates** — Import custom CA certs into the bundled JVM at build time; no SSL errors behind corporate proxies or ISP filters
 - **Platform-accurate Linux rendering** — GNOME Adwaita and KDE Breeze window controls, proper window shape clipping, border styling, and full behavior emulation
 
 ### CI/CD
@@ -421,6 +422,29 @@ nativeDistributions {
 ```
 
 Multiple associations are supported by calling `fileAssociation()` multiple times.
+
+### Trusted CA Certificates
+
+Import custom CA certificates (PEM or DER format) into the bundled JVM's `cacerts` keystore at build time. Useful when your app must connect to HTTPS servers behind a corporate proxy, VPN gateway, or internal PKI that uses a private root CA not present in the default JDK trust store.
+
+```kotlin
+nativeDistributions {
+    trustedCertificates.from(files(
+        "certs/corp-root-ca.crt",
+        "certs/proxy-ca.pem",
+    ))
+}
+```
+
+**How it works:**
+
+1. After `createRuntimeImage` (jlink), Nucleus copies the runtime to `build/compose/tmp/<appName>/runtime-patched/`.
+2. For each certificate, it runs `keytool -import -trustcacerts` against `lib/security/cacerts` in the copy.
+3. Both `createDistributable` and `createSandboxedDistributable` use the patched runtime, so all packaging formats embed the trusted certificate.
+
+**Alias generation:** Each certificate is imported under `<filename>-<sha256-8chars>` (e.g. `corp-root-ca-3a1f8b2c`), guaranteeing uniqueness even when multiple files share the same name.
+
+**Gradle task:** `patchCaCertificates` — only registered when `trustedCertificates` is non-empty. Runs automatically as a dependency of `createDistributable`.
 
 ## ProGuard (Release Builds)
 

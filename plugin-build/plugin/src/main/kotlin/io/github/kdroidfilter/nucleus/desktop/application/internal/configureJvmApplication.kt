@@ -15,6 +15,7 @@ import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractGenerate
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJLinkTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractJPackageTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractNotarizationTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractPatchCaCertificatesTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractProguardTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractRunDistributableTask
 import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractStripNativeLibsFromJarsTask
@@ -76,6 +77,7 @@ internal fun JvmApplicationContext.configureJvmApplication() {
     copy(buildType = app.buildTypes.release).configurePackagingTasks(commonTasks)
 }
 
+@Suppress("LongParameterList")
 internal class CommonJvmDesktopTasks(
     val unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
     val checkRuntime: TaskProvider<AbstractCheckNativeDistributionRuntime>,
@@ -83,6 +85,7 @@ internal class CommonJvmDesktopTasks(
     val prepareAppResources: TaskProvider<Sync>,
     val prepareSandboxedAppResources: TaskProvider<Sync>?,
     val createRuntimeImage: TaskProvider<AbstractJLinkTask>,
+    val patchCaCertificates: TaskProvider<AbstractPatchCaCertificatesTask>?,
 )
 
 private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDesktopTasks {
@@ -205,6 +208,22 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
             destinationDir.set(appTmpDir.dir("runtime"))
         }
 
+    val patchCaCertificates =
+        if (!app.nativeDistributions.trustedCertificates.isEmpty) {
+            tasks.register<AbstractPatchCaCertificatesTask>(
+                taskNameAction = "patch",
+                taskNameObject = "CaCertificates",
+            ) {
+                dependsOn(createRuntimeImage)
+                runtimeImageDir.set(createRuntimeImage.flatMap { it.destinationDir })
+                javaHome.set(app.javaHomeProvider)
+                certificates.from(app.nativeDistributions.trustedCertificates)
+                destinationDir.set(appTmpDir.dir("runtime-patched"))
+            }
+        } else {
+            null
+        }
+
     return CommonJvmDesktopTasks(
         unpackDefaultResources,
         checkRuntime,
@@ -212,6 +231,7 @@ private fun JvmApplicationContext.configureCommonJvmDesktopTasks(): CommonJvmDes
         prepareAppResources,
         prepareSandboxedAppResources,
         createRuntimeImage,
+        patchCaCertificates,
     )
 }
 
@@ -273,6 +293,7 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                 checkRuntime = commonTasks.checkRuntime,
                 unpackDefaultResources = commonTasks.unpackDefaultResources,
                 runProguard = runProguard,
+                patchCaCertificates = commonTasks.patchCaCertificates,
                 sandboxed = false,
             )
         }
@@ -350,6 +371,7 @@ private fun JvmApplicationContext.configurePackagingTasks(commonTasks: CommonJvm
                         unpackDefaultResources = commonTasks.unpackDefaultResources,
                         runProguard = runProguard,
                         stripNativeLibs = stripNativeLibsFromJars,
+                        patchCaCertificates = commonTasks.patchCaCertificates,
                         sandboxed = true,
                     )
                 }
@@ -518,13 +540,19 @@ private fun JvmApplicationContext.configurePackageTask(
     unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
     runProguard: Provider<AbstractProguardTask>? = null,
     stripNativeLibs: TaskProvider<AbstractStripNativeLibsFromJarsTask>? = null,
+    patchCaCertificates: TaskProvider<AbstractPatchCaCertificatesTask>? = null,
     sandboxed: Boolean = false,
 ) {
     packageTask.enabled = packageTask.targetFormat.isCompatibleWithCurrentOS
 
     createRuntimeImage?.let { createRuntimeImage ->
         packageTask.dependsOn(createRuntimeImage)
-        packageTask.runtimeImage.set(createRuntimeImage.flatMap { it.destinationDir })
+        if (patchCaCertificates != null) {
+            packageTask.dependsOn(patchCaCertificates)
+            packageTask.runtimeImage.set(patchCaCertificates.flatMap { it.destinationDir })
+        } else {
+            packageTask.runtimeImage.set(createRuntimeImage.flatMap { it.destinationDir })
+        }
     }
 
     prepareAppResources?.let { prepareResources ->

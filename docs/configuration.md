@@ -185,6 +185,21 @@ nativeDistributions {
 | `CompressionLevel.Normal` | Balanced (default) |
 | `CompressionLevel.Maximum` | Best compression |
 
+### Trusted CA Certificates
+
+Import custom CA certificates into the bundled JVM's `cacerts` keystore at build time.
+Useful for corporate proxies, VPN gateways, or filtering services that use a private root CA.
+
+```kotlin
+nativeDistributions {
+    trustedCertificates.from(files(
+        "certs/company-proxy-ca.pem",
+    ))
+}
+```
+
+Both PEM and DER formats are accepted. See [Trusted CA Certificates](trusted-certificates.md) for full details.
+
 ### Deep Links (Protocol Handler)
 
 Register a custom URL protocol across all platforms:

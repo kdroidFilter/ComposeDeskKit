@@ -40,6 +40,7 @@ nucleus.application {
 - **Auto-update**: Integrated update engine with SHA-512 verification, GitHub Releases or S3
 - **Decorated windows**: Custom title bar content with native controls on all platforms (JBR required)
 - **Reactive dark mode detection**: OS-level listener via JNI, triggers recomposition instantly
+- **Trusted CA certificates**: Import custom CA certs into the bundled JVM at build time — no SSL errors behind corporate proxies or ISP filters
 - **CI/CD**: Reusable GitHub Actions for multi-platform matrix builds, universal macOS binaries, MSIX bundles
 
 ## Requirements
@@ -61,6 +62,7 @@ nucleus.application {
 - [Publishing](https://nucleus.kdroidfilter.com/publishing/): GitHub Releases and S3
 - [CI/CD](https://nucleus.kdroidfilter.com/ci-cd/): GitHub Actions workflows and composite actions
 - [Runtime APIs](https://nucleus.kdroidfilter.com/runtime/): Executable type, AOT cache, single instance, deep links, decorated window, dark mode, native SSL, native HTTP
+- [Trusted CA Certificates](https://nucleus.kdroidfilter.com/trusted-certificates/): Import custom CA certs into the bundled JVM at build time
 - [Migration](https://nucleus.kdroidfilter.com/migration/): Migrate from org.jetbrains.compose
 - [Full LLM Documentation](https://nucleus.kdroidfilter.com/llms-full.txt): Complete documentation in a single file
 

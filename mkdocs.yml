@@ -57,6 +57,7 @@ nav:
       - Code Signing: code-signing.md
       - Auto Update: auto-update.md
       - Publishing: publishing.md
+      - Trusted CA Certificates: trusted-certificates.md
       - CI/CD: ci-cd.md
       - Runtime APIs:
           - Overview: runtime/index.md
