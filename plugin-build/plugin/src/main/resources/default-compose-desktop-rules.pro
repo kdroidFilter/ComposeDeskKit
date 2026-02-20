@@ -165,5 +165,15 @@
     native <methods>;
 }
 -keep class io.github.kdroidfilter.nucleus.darkmodedetector.** { *; }
+
+# Nucleus native-ssl JNI (macOS)
+-keep class io.github.kdroidfilter.nucleus.nativessl.mac.NativeSslBridge {
+    native <methods>;
+}
+
+# Nucleus native-ssl JNI (Windows)
+-keep class io.github.kdroidfilter.nucleus.nativessl.windows.WindowsSslBridge {
+    native <methods>;
+}
 -dontwarn sun.misc.Unsafe
 -dontwarn sun.awt.**
