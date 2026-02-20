@@ -2,53 +2,170 @@
 #import <Security/Security.h>
 #import <CoreFoundation/CoreFoundation.h>
 
+// Not exposed as a C constant in the public Security headers, but present as a
+// dictionary key in trust settings. JetBrains defines it the same way (as a string literal).
+#define kSecTrustSettingsPolicyName CFSTR("kSecTrustSettingsPolicyName")
+
 /**
- * Collects DER-encoded certificates from a SecTrustSettings domain
- * (user, admin) into a CFMutableArray, skipping certs marked as Deny.
+ * Returns true if the certificate is self-signed (subject == issuer).
+ * Apple requires this for kSecTrustSettingsResultTrustRoot constraints.
  */
-static void collectTrustSettingsCerts(SecTrustSettingsDomain domain,
-                                      CFMutableArrayRef outCerts) {
-    CFArrayRef certs = NULL;
-    OSStatus status = SecTrustSettingsCopyCertificates(domain, &certs);
-    if (status != errSecSuccess || certs == NULL) return;
+static BOOL isSelfSigned(SecCertificateRef cert) {
+    CFDataRef subject = SecCertificateCopyNormalizedSubjectSequence(cert);
+    CFDataRef issuer  = SecCertificateCopyNormalizedIssuerSequence(cert);
+    BOOL result = NO;
+    if (subject && issuer) {
+        result = CFEqual(subject, issuer);
+    }
+    if (subject) CFRelease(subject);
+    if (issuer)  CFRelease(issuer);
+    return result;
+}
 
-    CFIndex count = CFArrayGetCount(certs);
-    for (CFIndex i = 0; i < count; i++) {
-        SecCertificateRef cert =
-            (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+/**
+ * Validates a certificate against the system trust store via SecTrustEvaluateWithError.
+ *
+ * server=false avoids Apple's strict server-side policies (e.g. max 2-year validity for
+ * user-added CAs) which would incorrectly reject legitimate root CAs.
+ * See:
+ *   https://developer.apple.com/documentation/security/2980705-sectrustevaluatewitherror
+ *   https://discussions.apple.com/thread/254684451
+ */
+static BOOL validateCertificate(SecCertificateRef cert) {
+    const void *certValues[] = { cert };
+    CFArrayRef certArray = CFArrayCreate(kCFAllocatorDefault, certValues, 1, &kCFTypeArrayCallBacks);
+    if (!certArray) return NO;
 
-        // Check trust settings – skip if explicitly denied
-        CFArrayRef trustSettings = NULL;
-        OSStatus tsStatus =
-            SecTrustSettingsCopyTrustSettings(cert, domain, &trustSettings);
-        if (tsStatus == errSecSuccess && trustSettings != NULL) {
-            BOOL denied = NO;
-            CFIndex tsCount = CFArrayGetCount(trustSettings);
-            for (CFIndex j = 0; j < tsCount; j++) {
-                CFDictionaryRef entry =
-                    (CFDictionaryRef)CFArrayGetValueAtIndex(trustSettings, j);
-                CFNumberRef resultNum = (CFNumberRef)CFDictionaryGetValue(
-                    entry, kSecTrustSettingsResult);
-                if (resultNum != NULL) {
-                    SInt32 result = 0;
-                    CFNumberGetValue(resultNum, kCFNumberSInt32Type, &result);
-                    if (result == kSecTrustSettingsResultDeny) {
-                        denied = YES;
-                        break;
-                    }
-                }
-            }
-            CFRelease(trustSettings);
-            if (denied) continue;
-        }
+    SecPolicyRef policy = SecPolicyCreateSSL(false, NULL);
+    if (!policy) { CFRelease(certArray); return NO; }
 
-        CFDataRef derData = SecCertificateCopyData(cert);
-        if (derData != NULL) {
-            CFArrayAppendValue(outCerts, derData);
-            CFRelease(derData);
+    SecTrustRef trust = NULL;
+    OSStatus status = SecTrustCreateWithCertificates(certArray, policy, &trust);
+    CFRelease(certArray);
+    CFRelease(policy);
+
+    if (status != errSecSuccess || !trust) {
+        if (trust) CFRelease(trust);
+        return NO;
+    }
+
+    BOOL trusted = NO;
+    if (@available(macOS 10.14, *)) {
+        CFErrorRef error = NULL;
+        trusted = SecTrustEvaluateWithError(trust, &error);
+        if (error) CFRelease(error);
+    } else {
+        // Fallback for macOS 10.13: SecTrustEvaluate is deprecated but functional.
+        SecTrustResultType result = kSecTrustResultInvalid;
+        if (SecTrustEvaluate(trust, &result) == errSecSuccess) {
+            trusted = (result == kSecTrustResultUnspecified ||
+                       result == kSecTrustResultProceed);
         }
     }
-    CFRelease(certs);
+    CFRelease(trust);
+    return trusted;
+}
+
+/**
+ * Determines if a certificate in the user/admin domain is a trusted root.
+ *
+ * Mirrors JetBrains jvm-native-trusted-roots SecurityFrameworkUtil.isTrustedRoot logic:
+ *
+ *  1. Try user-domain trust settings first, then admin-domain.
+ *  2. No settings found in either domain → fall back to SecTrustEvaluateWithError.
+ *  3. Empty trust settings array → always trusted (per Apple docs).
+ *  4. For each usage constraints dictionary:
+ *     - kSecTrustSettingsResult must be TrustRoot (default if key absent).
+ *       Only self-signed certificates may carry TrustRoot.
+ *     - kSecTrustSettingsAllowedError: acknowledged, not evaluated.
+ *     - kSecTrustSettingsPolicyName: acknowledged, not evaluated.
+ *     - kSecTrustSettingsPolicy: if present, OID must be kSecPolicyAppleSSL.
+ *     - Accept only when every key in the dictionary is accounted for.
+ *       Unknown constraints might express stricter rules we cannot evaluate.
+ *
+ * References:
+ *   https://developer.apple.com/documentation/security/1400261-sectrustsettingscopytrustsetting
+ *   https://chromium.googlesource.com/chromium/src/+/main/net/cert/internal/trust_store_mac.cc
+ */
+static BOOL isTrustedRoot(SecCertificateRef cert) {
+    // Try user domain first; fall back to admin if no settings exist in user domain.
+    CFArrayRef trustSettings = NULL;
+    OSStatus status = SecTrustSettingsCopyTrustSettings(
+        cert, kSecTrustSettingsDomainUser, &trustSettings);
+
+    if (status == errSecItemNotFound || status == errSecNoTrustSettings) {
+        if (trustSettings) { CFRelease(trustSettings); trustSettings = NULL; }
+        status = SecTrustSettingsCopyTrustSettings(
+            cert, kSecTrustSettingsDomainAdmin, &trustSettings);
+    }
+
+    // No trust settings in any user/admin domain → live evaluation fallback.
+    if (status == errSecItemNotFound || status == errSecNoTrustSettings) {
+        if (trustSettings) CFRelease(trustSettings);
+        return validateCertificate(cert);
+    }
+
+    if (status != errSecSuccess || trustSettings == NULL) {
+        if (trustSettings) CFRelease(trustSettings);
+        return NO;
+    }
+
+    // Empty trust settings array → "always trust this certificate" (Apple docs).
+    CFIndex constraintCount = CFArrayGetCount(trustSettings);
+    if (constraintCount == 0) {
+        CFRelease(trustSettings);
+        return YES;
+    }
+
+    BOOL selfSigned = isSelfSigned(cert);
+    BOOL trusted = NO;
+
+    for (CFIndex i = 0; i < constraintCount && !trusted; i++) {
+        CFDictionaryRef constraint =
+            (CFDictionaryRef)CFArrayGetValueAtIndex(trustSettings, i);
+        CFIndex totalKeys = CFDictionaryGetCount(constraint);
+        CFIndex processed = 0;
+
+        // kSecTrustSettingsResult
+        // Default is kSecTrustSettingsResultTrustRoot when the key is absent.
+        SInt32 tsResult = kSecTrustSettingsResultTrustRoot;
+        CFNumberRef resultNum =
+            (CFNumberRef)CFDictionaryGetValue(constraint, kSecTrustSettingsResult);
+        if (resultNum) {
+            CFNumberGetValue(resultNum, kCFNumberSInt32Type, &tsResult);
+            processed++;
+        }
+        // Only TrustRoot is accepted; TrustAsRoot, Deny, and Unspecified are skipped.
+        if (tsResult != kSecTrustSettingsResultTrustRoot) continue;
+        // Apple: TrustRoot is only valid for self-signed certificates.
+        if (!selfSigned) continue;
+
+        // kSecTrustSettingsAllowedError: acknowledged, not evaluated (matches JetBrains).
+        if (CFDictionaryGetValue(constraint, kSecTrustSettingsAllowedError) != NULL) processed++;
+
+        // kSecTrustSettingsPolicyName: acknowledged, not evaluated (matches JetBrains).
+        if (CFDictionaryGetValue(constraint, kSecTrustSettingsPolicyName) != NULL) processed++;
+
+        // kSecTrustSettingsPolicy: if present, the policy OID must be kSecPolicyAppleSSL.
+        CFTypeRef policyRef = CFDictionaryGetValue(constraint, kSecTrustSettingsPolicy);
+        if (policyRef) {
+            processed++;
+            CFDictionaryRef props = SecPolicyCopyProperties((SecPolicyRef)policyRef);
+            if (!props) continue;
+            CFTypeRef oidRef = CFDictionaryGetValue(props, kSecPolicyOid);
+            BOOL isSSL = (oidRef != NULL && CFEqual(oidRef, kSecPolicyAppleSSL));
+            CFRelease(props);
+            if (!isSSL) continue;
+        }
+
+        // Return true only when every constraint key is accounted for.
+        if (totalKeys == processed) {
+            trusted = YES;
+        }
+    }
+
+    CFRelease(trustSettings);
+    return trusted;
 }
 
 JNIEXPORT jobjectArray JNICALL
@@ -57,8 +174,9 @@ Java_io_github_kdroidfilter_nucleus_nativessl_mac_NativeSslBridge_nativeGetSyste
 
     CFMutableArrayRef allDer =
         CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+    if (!allDer) return NULL;
 
-    // 1. System root CAs (anchors shipped with macOS)
+    // 1. System root CAs shipped with macOS – implicitly trusted.
     CFArrayRef anchors = NULL;
     OSStatus status = SecTrustCopyAnchorCertificates(&anchors);
     if (status == errSecSuccess && anchors != NULL) {
@@ -75,16 +193,37 @@ Java_io_github_kdroidfilter_nucleus_nativessl_mac_NativeSslBridge_nativeGetSyste
         CFRelease(anchors);
     }
 
-    // 2. User-added certificates
-    collectTrustSettingsCerts(kSecTrustSettingsDomainUser, allDer);
+    // 2. User and admin domain: enumerate certs with trust settings and evaluate.
+    SecTrustSettingsDomain domains[] = {
+        kSecTrustSettingsDomainUser,
+        kSecTrustSettingsDomainAdmin,
+    };
+    for (int d = 0; d < 2; d++) {
+        CFArrayRef certs = NULL;
+        status = SecTrustSettingsCopyCertificates(domains[d], &certs);
+        if (status != errSecSuccess || certs == NULL) {
+            if (certs) CFRelease(certs);
+            continue;
+        }
+        CFIndex count = CFArrayGetCount(certs);
+        for (CFIndex i = 0; i < count; i++) {
+            SecCertificateRef cert =
+                (SecCertificateRef)CFArrayGetValueAtIndex(certs, i);
+            if (!isTrustedRoot(cert)) continue;
+            CFDataRef derData = SecCertificateCopyData(cert);
+            if (derData != NULL) {
+                CFArrayAppendValue(allDer, derData);
+                CFRelease(derData);
+            }
+        }
+        CFRelease(certs);
+    }
 
-    // 3. Admin / MDM-deployed certificates
-    collectTrustSettingsCerts(kSecTrustSettingsDomainAdmin, allDer);
-
-    // Build Java byte[][] from the collected DER blobs
+    // Build Java byte[][] from the collected DER blobs.
     CFIndex total = CFArrayGetCount(allDer);
     jclass byteArrayClass = (*env)->FindClass(env, "[B");
-    jobjectArray result = (*env)->NewObjectArray(env, (jsize)total, byteArrayClass, NULL);
+    jobjectArray result =
+        (*env)->NewObjectArray(env, (jsize)total, byteArrayClass, NULL);
     if (result == NULL) {
         CFRelease(allDer);
         return NULL; // OOM – JVM will throw
