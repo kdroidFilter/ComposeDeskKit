@@ -3,6 +3,7 @@ package io.github.kdroidfilter.nucleus.nativessl
 import io.github.kdroidfilter.nucleus.nativessl.linux.LinuxCertificateProvider
 import io.github.kdroidfilter.nucleus.nativessl.mac.NativeSslBridge
 import io.github.kdroidfilter.nucleus.nativessl.windows.WindowsCertificateProvider
+import io.github.kdroidfilter.nucleus.nativessl.windows.WindowsSslBridge
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -212,6 +213,12 @@ class NativeSslTest {
     }
 
     // ── Windows tests ──
+
+    @Test
+    fun `native library loads on Windows`() {
+        assumeTrue("Test requires Windows", isWindows)
+        assertTrue("Native SSL bridge should be loaded on Windows", WindowsSslBridge.isLoaded)
+    }
 
     @Test
     fun `WindowsCertificateProvider returns DER certificates`() {
