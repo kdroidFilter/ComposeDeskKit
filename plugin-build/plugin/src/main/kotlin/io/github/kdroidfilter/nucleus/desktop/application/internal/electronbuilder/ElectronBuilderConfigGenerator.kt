@@ -608,7 +608,13 @@ internal class ElectronBuilderConfigGenerator {
         val github = publish.github
         val s3 = publish.s3
 
-        if (!github.enabled && !s3.enabled) return
+        if (!github.enabled && !s3.enabled) {
+            // Explicitly disable publish to prevent electron-builder from auto-detecting
+            // a publish provider via GH_TOKEN/GITHUB_TOKEN env vars and .git/config,
+            // which causes a crash in computeChannelNames when resolution fails.
+            yaml.appendLine("publish: null")
+            return
+        }
 
         yaml.appendLine("publish:")
         if (github.enabled) {
