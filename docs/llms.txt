@@ -60,7 +60,7 @@ nucleus.application {
 - [Auto Update](https://nucleus.kdroidfilter.com/auto-update/): Updater runtime, YML metadata, release channels
 - [Publishing](https://nucleus.kdroidfilter.com/publishing/): GitHub Releases and S3
 - [CI/CD](https://nucleus.kdroidfilter.com/ci-cd/): GitHub Actions workflows and composite actions
-- [Runtime APIs](https://nucleus.kdroidfilter.com/runtime/): Executable type, AOT cache, single instance, deep links, decorated window, dark mode
+- [Runtime APIs](https://nucleus.kdroidfilter.com/runtime/): Executable type, AOT cache, single instance, deep links, decorated window, dark mode, native SSL, native HTTP
 - [Migration](https://nucleus.kdroidfilter.com/migration/): Migrate from org.jetbrains.compose
 - [Full LLM Documentation](https://nucleus.kdroidfilter.com/llms-full.txt): Complete documentation in a single file
 
@@ -74,6 +74,10 @@ dependencies {
     implementation("io.github.kdroidfilter:nucleus.decorated-window:<version>")
     implementation("io.github.kdroidfilter:nucleus.decorated-window-material:<version>")
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-http:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-http-okhttp:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-http-ktor:<version>")
 }
 ```
 
@@ -85,6 +89,10 @@ dependencies {
 | `nucleus.decorated-window` | Custom title bar with native window controls (requires JBR) |
 | `nucleus.decorated-window-material` | Material 3 integration for decorated windows |
 | `nucleus.darkmode-detector` | Reactive OS dark mode detection via JNI |
+| `nucleus.native-ssl` | OS trust store integration — merges native certs with JVM defaults |
+| `nucleus.native-http` | `java.net.http.HttpClient` pre-configured with native OS trust |
+| `nucleus.native-http-okhttp` | OkHttp client pre-configured with native OS trust |
+| `nucleus.native-http-ktor` | Ktor `HttpClient` extension for native OS trust (CIO, Java, OkHttp, Apache5) |
 
 ## Migration from org.jetbrains.compose
 
