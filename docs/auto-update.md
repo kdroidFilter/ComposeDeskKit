@@ -295,6 +295,53 @@ updater.downloadUpdate(result.info).collect { progress ->
 | Linux | DEB | No | Always requires elevation (`pkexec`) |
 | Linux | RPM | No | Always requires elevation (`pkexec`) |
 
+### Using a Native HTTP Client
+
+By default, the updater uses a plain `java.net.http.HttpClient` backed by the JDK trust store. On machines with **enterprise proxies**, **corporate CAs**, or **user-installed certificates**, HTTPS requests may fail with `SSLHandshakeException`.
+
+To fix this, pass a client built with [`NativeHttpClient`](runtime/native-http.md) — it is pre-configured with the OS trust store via `NativeTrustManager`:
+
+**1. Add the dependency**
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-http:<version>")
+}
+```
+
+**2. Inject the client in the updater config**
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
+import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
+import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+
+val updater = NucleusUpdater {
+    provider = GitHubProvider(owner = "myorg", repo = "myapp")
+    httpClient = NativeHttpClient.create()
+}
+```
+
+The injected client is used for **both** the metadata check and the file download.
+
+You can also compose additional options via the builder extension:
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient.withNativeSsl
+import java.net.http.HttpClient
+import java.time.Duration
+
+val updater = NucleusUpdater {
+    provider = GitHubProvider(owner = "myorg", repo = "myapp")
+    httpClient = HttpClient.newBuilder()
+        .withNativeSsl()
+        .connectTimeout(Duration.ofSeconds(30))
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build()
+}
+```
+
 ### Security
 
 - All downloads are verified with **SHA-512** checksums (base64-encoded)
