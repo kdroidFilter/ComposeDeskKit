@@ -35,28 +35,7 @@ internal object WindowsCertificateProvider {
         val allCerts = mutableListOf<ByteArray>()
 
         for (storeName in WINDOWS_STORES) {
-            @Suppress("TooGenericExceptionCaught")
-            try {
-                val keyStore = KeyStore.getInstance(storeName)
-                keyStore.load(null, null)
-
-                var count = 0
-                for (alias in keyStore.aliases()) {
-                    val cert = keyStore.getCertificate(alias) ?: continue
-                    val der = cert.encoded
-                    val fingerprint =
-                        java.util.Base64
-                            .getEncoder()
-                            .encodeToString(der)
-                    if (seen.add(fingerprint)) {
-                        allCerts.add(der)
-                        count++
-                    }
-                }
-                debugln(TAG) { "Fallback: loaded $count certificates from $storeName" }
-            } catch (e: Exception) {
-                debugln(TAG) { "Fallback: could not read store $storeName: ${e.message}" }
-            }
+            loadFromStore(storeName, seen, allCerts)
         }
 
         if (allCerts.isEmpty()) {
@@ -65,5 +44,41 @@ internal object WindowsCertificateProvider {
             debugln(TAG) { "Fallback total: ${allCerts.size} unique certificates" }
         }
         return allCerts
+    }
+
+    private fun loadFromStore(
+        storeName: String,
+        seen: MutableSet<String>,
+        allCerts: MutableList<ByteArray>,
+    ) {
+        @Suppress("TooGenericExceptionCaught")
+        try {
+            val keyStore = KeyStore.getInstance(storeName)
+            keyStore.load(null, null)
+            val count = collectStoreCerts(keyStore, seen, allCerts)
+            debugln(TAG) { "Fallback: loaded $count certificates from $storeName" }
+        } catch (e: Exception) {
+            debugln(TAG) { "Fallback: could not read store $storeName: ${e.message}" }
+        }
+    }
+
+    private fun collectStoreCerts(
+        keyStore: KeyStore,
+        seen: MutableSet<String>,
+        allCerts: MutableList<ByteArray>,
+    ): Int {
+        var count = 0
+        for (alias in keyStore.aliases()) {
+            val der = keyStore.getCertificate(alias)?.encoded ?: continue
+            val fingerprint =
+                java.util.Base64
+                    .getEncoder()
+                    .encodeToString(der)
+            if (seen.add(fingerprint)) {
+                allCerts.add(der)
+                count++
+            }
+        }
+        return count
     }
 }

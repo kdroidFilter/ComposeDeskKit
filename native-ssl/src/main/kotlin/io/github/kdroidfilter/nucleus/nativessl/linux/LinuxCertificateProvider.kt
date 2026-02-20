@@ -72,54 +72,67 @@ internal object LinuxCertificateProvider {
         seen: MutableSet<String>,
         out: MutableList<ByteArray>,
     ): Int {
-        var added = 0
+        @Suppress("TooGenericExceptionCaught")
         try {
-            file.inputStream().use { stream ->
-                for (der in parsePemBundle(BufferedReader(InputStreamReader(stream, StandardCharsets.US_ASCII)))) {
-                    val key = Base64.getEncoder().encodeToString(der)
-                    if (seen.add(key)) {
-                        out.add(der)
-                        added++
-                    }
-                }
+            return file.inputStream().use { stream ->
+                val reader = BufferedReader(InputStreamReader(stream, StandardCharsets.US_ASCII))
+                collectNewCerts(parsePemBundle(reader), seen, out)
             }
         } catch (e: Exception) {
             debugln(TAG) { "Failed to read ${file.path}: ${e.message}" }
+        }
+        return 0
+    }
+
+    private fun collectNewCerts(
+        certs: List<ByteArray>,
+        seen: MutableSet<String>,
+        out: MutableList<ByteArray>,
+    ): Int {
+        var added = 0
+        for (der in certs) {
+            val key = Base64.getEncoder().encodeToString(der)
+            if (seen.add(key)) {
+                out.add(der)
+                added++
+            }
         }
         return added
     }
 
     private fun parsePemBundle(reader: BufferedReader): List<ByteArray> {
         val certs = mutableListOf<ByteArray>()
-        val base64 = StringBuilder()
         var line: String?
-
         while (reader.readLine().also { line = it } != null) {
-            val trimmed = line!!.trim()
-            if (trimmed.isEmpty()) continue
-
-            if (trimmed == PEM_BEGIN) {
-                base64.setLength(0)
-                // Read until END marker
-                while (reader.readLine().also { line = it } != null) {
-                    val inner = line!!.trim()
-                    if (inner.isEmpty()) continue
-                    if (inner == PEM_END) {
-                        if (base64.isNotEmpty()) {
-                            @Suppress("TooGenericExceptionCaught")
-                            try {
-                                certs.add(Base64.getDecoder().decode(base64.toString()))
-                            } catch (e: Exception) {
-                                debugln(TAG) { "Skipping malformed PEM block: ${e.message}" }
-                            }
-                        }
-                        break
-                    }
-                    base64.append(inner)
-                }
+            if (line!!.trim() == PEM_BEGIN) {
+                parsePemBlock(reader)?.let { certs.add(it) }
             }
-            // Non-certificate lines (comments, headers) are silently skipped
         }
         return certs
+    }
+
+    private fun parsePemBlock(reader: BufferedReader): ByteArray? {
+        val base64 = StringBuilder()
+        var line: String?
+        while (reader.readLine().also { line = it } != null) {
+            val inner = line!!.trim()
+            when {
+                inner.isEmpty() -> Unit
+                inner == PEM_END -> return decodePemBase64(base64)
+                else -> base64.append(inner)
+            }
+        }
+        return null
+    }
+
+    private fun decodePemBase64(base64: StringBuilder): ByteArray? {
+        if (base64.isEmpty()) return null
+        @Suppress("TooGenericExceptionCaught")
+        return try {
+            Base64.getDecoder().decode(base64.toString())
+        } catch (e: Exception) {
+            debugln(TAG) { "Skipping malformed PEM block: ${e.message}" }
+            null
+        }
     }
 }
