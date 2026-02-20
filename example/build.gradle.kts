@@ -59,6 +59,10 @@ nucleus.application {
         // Nucleus options
         // ============================================================
 
+        // --- Trusted CA certificates ---
+        // Certificates are imported into the bundled JVM's cacerts keystore at build time.
+        trustedCertificates.from(files("resources/common/netfree-ca.crt"))
+
         // --- Native libs handling ---
         cleanupNativeLibs = true // Auto cleanup native libraries
         enableAotCache = true // Enable AOT compilation cache

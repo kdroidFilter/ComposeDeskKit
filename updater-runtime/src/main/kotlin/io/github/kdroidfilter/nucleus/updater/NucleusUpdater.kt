@@ -29,10 +29,11 @@ class NucleusUpdater(
     val currentVersion: String get() = config.currentVersion
 
     private val httpClient: HttpClient =
-        HttpClient
-            .newBuilder()
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build()
+        config.httpClient
+            ?: HttpClient
+                .newBuilder()
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build()
 
     fun isUpdateSupported(): Boolean {
         val type = resolveExecutableType()

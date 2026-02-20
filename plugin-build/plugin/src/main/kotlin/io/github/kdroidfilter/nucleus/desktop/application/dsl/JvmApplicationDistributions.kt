@@ -6,6 +6,7 @@
 package io.github.kdroidfilter.nucleus.desktop.application.dsl
 
 import org.gradle.api.Action
+import org.gradle.api.file.ConfigurableFileCollection
 import java.io.File
 import java.io.Serializable
 
@@ -89,6 +90,24 @@ abstract class JvmApplicationDistributions : AbstractDistributions() {
     // --- Artifact name template (e.g., "\${name}-\${version}-\${arch}.\${ext}") ---
 
     var artifactName: String = "\${name}-\${version}-\${os}-\${arch}.\${ext}"
+
+    // --- Trusted CA certificates for the bundled JVM ---
+
+    /**
+     * CA certificate files (PEM/DER) to import into the bundled JDK's `cacerts` keystore.
+     *
+     * Example:
+     * ```kotlin
+     * nativeDistributions {
+     *     trustedCertificates.from(files("certs/my-ca.crt", "certs/company-ca.pem"))
+     * }
+     * ```
+     *
+     * Each certificate is imported using `keytool -import -trustcacerts`. The alias is
+     * derived from the filename (lowercased, non-alphanumeric characters replaced with `-`).
+     * Import is idempotent: if an alias already exists it is silently skipped.
+     */
+    val trustedCertificates: ConfigurableFileCollection = objects.fileCollection()
 
     // --- URL protocol handlers (deep linking) ---
 

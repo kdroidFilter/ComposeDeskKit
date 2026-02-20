@@ -1,6 +1,7 @@
 package io.github.kdroidfilter.nucleus.updater
 
 import io.github.kdroidfilter.nucleus.updater.provider.UpdateProvider
+import java.net.http.HttpClient
 
 class UpdaterConfig {
     var currentVersion: String = System.getProperty("jpackage.app-version") ?: DEV_VERSION
@@ -9,6 +10,14 @@ class UpdaterConfig {
     var allowDowngrade: Boolean = false
     var allowPrerelease: Boolean = false
     var executableType: String? = null
+
+    /**
+     * Custom HTTP client used for all update checks and downloads.
+     * Defaults to a standard client with redirect following enabled.
+     * Override with [io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient.create] to
+     * trust enterprise or user-installed certificates.
+     */
+    var httpClient: HttpClient? = null
 
     internal fun resolvedAllowPrerelease(): Boolean = allowPrerelease || currentVersion.contains("-")
 

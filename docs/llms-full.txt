@@ -23,6 +23,7 @@ License: MIT
 ### Native Look & Feel
 - **Decorated windows** — Custom title bar content (icons, text, gradients) while preserving native window controls and behavior on all platforms
 - **Reactive dark mode detection** — OS-level dark mode listener via JNI (no JNA), triggers recomposition instantly when the user changes their theme
+- **Trusted CA certificates** — Import custom CA certs into the bundled JVM at build time; no SSL errors behind corporate proxies or ISP filters
 - **Platform-accurate Linux rendering** — GNOME Adwaita and KDE Breeze window controls, proper window shape clipping, border styling, and full behavior emulation
 
 ### CI/CD
@@ -78,6 +79,18 @@ dependencies {
 
     // Reactive dark mode detection
     implementation("io.github.kdroidfilter:nucleus.darkmode-detector:<version>")
+
+    // OS trust store integration — merges native certs with JVM defaults
+    implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
+
+    // java.net.http.HttpClient pre-configured with native OS trust
+    implementation("io.github.kdroidfilter:nucleus.native-http:<version>")
+
+    // OkHttp client pre-configured with native OS trust
+    implementation("io.github.kdroidfilter:nucleus.native-http-okhttp:<version>")
+
+    // Ktor HttpClient extension for native OS trust (CIO, Java, OkHttp, Apache5)
+    implementation("io.github.kdroidfilter:nucleus.native-http-ktor:<version>")
 }
 ```
 
@@ -409,6 +422,29 @@ nativeDistributions {
 ```
 
 Multiple associations are supported by calling `fileAssociation()` multiple times.
+
+### Trusted CA Certificates
+
+Import custom CA certificates (PEM or DER format) into the bundled JVM's `cacerts` keystore at build time. Useful when your app must connect to HTTPS servers behind a corporate proxy, VPN gateway, or internal PKI that uses a private root CA not present in the default JDK trust store.
+
+```kotlin
+nativeDistributions {
+    trustedCertificates.from(files(
+        "certs/corp-root-ca.crt",
+        "certs/proxy-ca.pem",
+    ))
+}
+```
+
+**How it works:**
+
+1. After `createRuntimeImage` (jlink), Nucleus copies the runtime to `build/compose/tmp/<appName>/runtime-patched/`.
+2. For each certificate, it runs `keytool -import -trustcacerts` against `lib/security/cacerts` in the copy.
+3. Both `createDistributable` and `createSandboxedDistributable` use the patched runtime, so all packaging formats embed the trusted certificate.
+
+**Alias generation:** Each certificate is imported under `<filename>-<sha256-8chars>` (e.g. `corp-root-ca-3a1f8b2c`), guaranteeing uniqueness even when multiple files share the same name.
+
+**Gradle task:** `patchCaCertificates` — only registered when `trustedCertificates` is non-empty. Runs automatically as a dependency of `createDistributable`.
 
 ## ProGuard (Release Builds)
 
@@ -1095,6 +1131,47 @@ fun UpdateBanner() {
 | Windows | EXE/NSIS | `<file> /S` (silent) |
 | Windows | MSI | `msiexec /i <file> /passive` |
 
+### Using a Native HTTP Client
+
+By default, the updater uses a plain `java.net.http.HttpClient` backed by the JDK trust store. On machines with enterprise proxies, corporate CAs, or user-installed certificates, HTTPS requests may fail with `SSLHandshakeException`.
+
+Inject a client built with `NativeHttpClient` to trust OS-level certificates:
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.updater-runtime:<version>")
+    implementation("io.github.kdroidfilter:nucleus.native-http:<version>")
+}
+```
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
+import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
+import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+
+val updater = NucleusUpdater {
+    provider = GitHubProvider(owner = "myorg", repo = "myapp")
+    httpClient = NativeHttpClient.create()
+}
+```
+
+The injected client is used for both the metadata check and the file download. You can also compose additional options via the builder extension:
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient.withNativeSsl
+import java.net.http.HttpClient
+import java.time.Duration
+
+val updater = NucleusUpdater {
+    provider = GitHubProvider(owner = "myorg", repo = "myapp")
+    httpClient = HttpClient.newBuilder()
+        .withNativeSsl()
+        .connectTimeout(Duration.ofSeconds(30))
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .build()
+}
+```
+
 ### Security
 
 - All downloads verified with SHA-512 checksums (base64-encoded)
@@ -1469,6 +1546,104 @@ fun App() {
 | Linux | D-Bus `org.freedesktop.portal.Settings` | Yes — `SettingChanged` signal |
 
 Native libraries shipped: macOS `libnucleus_darkmode.dylib`, Windows `nucleus_windows_theme.dll`, Linux `libnucleus_linux_theme.so` (all architectures).
+
+## Native SSL
+
+JVM applications shipped with a bundled JRE use only the certificates baked into that JRE. Certificates added by the user, an enterprise IT policy, or a corporate proxy are invisible to the JVM, causing `SSLHandshakeException`. The `native-ssl` module reads trusted certificates from the OS trust store and merges them with the JVM defaults.
+
+```kotlin
+dependencies {
+    implementation("io.github.kdroidfilter:nucleus.native-ssl:<version>")
+}
+```
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativessl.NativeTrustManager
+
+val trustManager: X509TrustManager = NativeTrustManager.trustManager
+val sslContext: SSLContext = NativeTrustManager.sslContext
+val sslSocketFactory: SSLSocketFactory = NativeTrustManager.sslSocketFactory
+```
+
+### Platform Details
+
+**macOS** — Security framework via JNI (`libnucleus_ssl.dylib`, `arm64` + `x86_64`). Two passes:
+1. `SecTrustCopyAnchorCertificates()` — Apple-shipped system root CAs.
+2. `SecTrustSettingsCopyCertificates()` — user/admin domain certs with explicit trust settings. Each cert is evaluated via `isTrustedRoot()`: checks trust settings domain, verifies `kSecTrustSettingsResult = TrustRoot`, requires self-signed (DN equality + cryptographic signature verification via `SecTrustSetAnchorCertificates`), and validates `kSecPolicyAppleSSL` OID if present.
+
+**Windows** — Crypt32 via JNI (`nucleus_ssl.dll`, `x64` + `ARM64`). Scans `ROOT` (all certs trusted) and `CA` stores (validated via `CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_BASE)`) across five locations: `CURRENT_USER`, `LOCAL_MACHINE`, `CURRENT_USER_GROUP_POLICY`, `LOCAL_MACHINE_GROUP_POLICY`, `LOCAL_MACHINE_ENTERPRISE`. Falls back to `SunMSCAPI` if JNI fails.
+
+**Linux** — Pure JVM, no native library. Reads PEM bundles and per-cert directories using the same paths as Go's `crypto/x509` (Debian, Fedora, RHEL, openSUSE, Alpine, etc.).
+
+### ProGuard
+
+The Nucleus plugin includes these rules automatically:
+
+```proguard
+-keep class io.github.kdroidfilter.nucleus.nativessl.mac.NativeSslBridge { native <methods>; }
+-keep class io.github.kdroidfilter.nucleus.nativessl.windows.WindowsSslBridge { native <methods>; }
+```
+
+## Native HTTP
+
+Three integration modules provide HTTP clients pre-wired with `NativeTrustManager`. All pull in `native-ssl` transitively.
+
+| Module | Artifact | Client |
+|--------|----------|--------|
+| `native-http` | `io.github.kdroidfilter:nucleus.native-http` | `java.net.http.HttpClient` (JDK 11+) |
+| `native-http-okhttp` | `io.github.kdroidfilter:nucleus.native-http-okhttp` | OkHttp 4 |
+| `native-http-ktor` | `io.github.kdroidfilter:nucleus.native-http-ktor` | Ktor Client (CIO, Java, OkHttp, Apache5) |
+
+### java.net.http.HttpClient
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.NativeHttpClient
+
+val client = NativeHttpClient.create()
+
+// or compose into an existing builder:
+val client = HttpClient.newBuilder()
+    .withNativeSsl()
+    .connectTimeout(Duration.ofSeconds(30))
+    .build()
+```
+
+### OkHttp
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.okhttp.NativeOkHttpClient
+
+val client = NativeOkHttpClient.create()
+
+// or compose into an existing builder:
+val client = OkHttpClient.Builder()
+    .withNativeSsl()
+    .callTimeout(30, TimeUnit.SECONDS)
+    .build()
+```
+
+### Ktor
+
+```kotlin
+import io.github.kdroidfilter.nucleus.nativehttp.ktor.installNativeSsl
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+
+val client = HttpClient(CIO) {
+    installNativeSsl()
+}
+```
+
+`installNativeSsl()` probes the active engine at runtime and applies the correct SSL config:
+
+| Engine | Configuration applied |
+|--------|-----------------------|
+| CIO | `https { trustManager = NativeTrustManager.trustManager }` |
+| Java | `config { sslContext(NativeTrustManager.sslContext) }` |
+| OkHttp | `config { sslSocketFactory(..., NativeTrustManager.trustManager) }` |
+| Apache5 | `sslContext = NativeTrustManager.sslContext` |
+
+Engine JARs are `compileOnly` — only the one declared at runtime is required.
 
 ---
 
