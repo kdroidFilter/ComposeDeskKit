@@ -1,5 +1,6 @@
 package io.github.kdroidfilter.nucleus.nativessl
 
+import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.nativessl.linux.LinuxCertificateProvider
 import io.github.kdroidfilter.nucleus.nativessl.mac.NativeSslBridge
 import io.github.kdroidfilter.nucleus.nativessl.windows.WindowsCertificateProvider
@@ -9,8 +10,6 @@ import java.security.cert.X509Certificate
 private const val TAG = "NativeCertificateProvider"
 
 internal object NativeCertificateProvider {
-    private val os: String = System.getProperty("os.name", "").lowercase()
-
     fun getSystemCertificates(): List<X509Certificate> {
         val derCerts = getRawCertificates()
         if (derCerts.isEmpty()) return emptyList()
@@ -28,10 +27,10 @@ internal object NativeCertificateProvider {
     }
 
     private fun getRawCertificates(): List<ByteArray> =
-        when {
-            os.contains("mac") || os.contains("darwin") -> NativeSslBridge.getSystemCertificates()
-            os.contains("linux") -> LinuxCertificateProvider.getSystemCertificates()
-            os.contains("win") -> WindowsCertificateProvider.getSystemCertificates()
-            else -> emptyList()
+        when (Platform.Current) {
+            Platform.MacOS -> NativeSslBridge.getSystemCertificates()
+            Platform.Linux -> LinuxCertificateProvider.getSystemCertificates()
+            Platform.Windows -> WindowsCertificateProvider.getSystemCertificates()
+            Platform.Unknown -> emptyList()
         }
 }
