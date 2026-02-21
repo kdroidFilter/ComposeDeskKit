@@ -123,9 +123,7 @@ fun DecoratedWindow(
                             } else {
                                 val w = window.width.toFloat()
                                 val h = window.height.toFloat()
-                                Area(RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)).apply {
-                                    add(Area(Rectangle2D.Float(0f, h - gnomeCornerArc, w, gnomeCornerArc)))
-                                }
+                                RoundRectangle2D.Float(0f, 0f, w, h, gnomeCornerArc, gnomeCornerArc)
                             }
                     }
                     LinuxDesktopEnvironment.KDE -> {
@@ -201,12 +199,7 @@ fun DecoratedWindow(
         val borderShape =
             when (linuxDe) {
                 LinuxDesktopEnvironment.Gnome ->
-                    RoundedCornerShape(
-                        topStart = (gnomeCornerArc / 2).dp,
-                        topEnd = (gnomeCornerArc / 2).dp,
-                        bottomStart = 0.dp,
-                        bottomEnd = 0.dp,
-                    )
+                    RoundedCornerShape((gnomeCornerArc / 2).dp)
                 LinuxDesktopEnvironment.KDE ->
                     RoundedCornerShape(
                         topStart = (kdeCornerArc / 2).dp,
