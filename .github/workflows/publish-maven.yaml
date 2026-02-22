@@ -31,6 +31,13 @@ jobs:
           pattern: 'ssl-*'
           merge-multiple: true
 
+      - name: Download decorated-window artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: decorated-window/src/main/resources/nucleus/native/
+          pattern: 'decorated-window-*'
+          merge-multiple: true
+
       - name: Verify all natives present
         run: |
           EXPECTED=(
@@ -44,6 +51,8 @@ jobs:
             "native-ssl/src/main/resources/nucleus/native/darwin-x64/libnucleus_ssl.dylib"
             "native-ssl/src/main/resources/nucleus/native/win32-x64/nucleus_ssl.dll"
             "native-ssl/src/main/resources/nucleus/native/win32-aarch64/nucleus_ssl.dll"
+            "decorated-window/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_macos.dylib"
+            "decorated-window/src/main/resources/nucleus/native/darwin-x64/libnucleus_macos.dylib"
           )
           MISSING=0
           for f in "${EXPECTED[@]}"; do

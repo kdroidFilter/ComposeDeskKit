@@ -108,6 +108,25 @@ jobs:
           path: native-ssl/src/main/resources/nucleus/native/darwin-*/
           retention-days: 1
 
+      - name: Build decorated-window macOS dylibs
+        run: bash decorated-window/src/main/native/macos/build.sh
+
+      - name: Verify decorated-window macOS natives
+        run: |
+          for f in \
+            decorated-window/src/main/resources/nucleus/native/darwin-aarch64/libnucleus_macos.dylib \
+            decorated-window/src/main/resources/nucleus/native/darwin-x64/libnucleus_macos.dylib; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload decorated-window macOS dylibs
+        uses: actions/upload-artifact@v4
+        with:
+          name: decorated-window-macos
+          path: decorated-window/src/main/resources/nucleus/native/darwin-*/
+          retention-days: 1
+
   linux:
     runs-on: ${{ matrix.os }}
     strategy:
