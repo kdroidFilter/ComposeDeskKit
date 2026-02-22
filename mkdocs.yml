@@ -98,7 +98,7 @@ markdown_extensions:
 extra_css:
   - stylesheets/extra.css
 
-copyright: Made with ❤️ by Elie Gambache - KdroidFilter
+copyright: Made with ❤️ by <a href="https://eliegambache.kdroidfilter.com/" target="_blank">Elie Gambache</a> - KdroidFilter
 
 extra:
   social:
