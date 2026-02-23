@@ -66,15 +66,14 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_NativeWinBridge_nativeS
     if (!hwnd || !IsWindow(hwnd)) return JNI_FALSE;
 
     /* 
-     * First set WS_MAXIMIZE style, then show maximized.
-     * This ensures Windows knows the window is maximized before showing.
-     * DWM transitions are enabled for smooth animation effect.
+     * Show window already maximized using SetWindowPos with SWP_SHOWWINDOW.
+     * First set the WS_MAXIMIZE style bit, then show the window.
+     * This should make it appear maximized immediately without transition.
      */
     SetWindowLongPtr(hwnd, GWL_STYLE, 
                      GetWindowLongPtr(hwnd, GWL_STYLE) | WS_MAXIMIZE);
     SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
-                 SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED);
-    ShowWindow(hwnd, SW_SHOWMAXIMIZED);
+                 SWP_NOSIZE | SWP_NOMOVE | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
 
     return JNI_TRUE;
 }
