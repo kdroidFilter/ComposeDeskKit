@@ -35,8 +35,10 @@ import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
+import io.github.kdroidfilter.nucleus.window.utils.NativeWindowHelper
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
 import java.awt.Frame
+import java.awt.GraphicsEnvironment
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
@@ -74,7 +76,19 @@ fun DecoratedWindow(
         }
     }
 
+    val initialPlacement = remember { state.placement }
     val undecorated = Platform.Linux == Platform.Current
+
+    // Set initial size to screen bounds for maximize on Windows
+    remember(initialPlacement) {
+        if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
+            val screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+            state.size = androidx.compose.ui.unit.DpSize(
+                screenBounds.width.toFloat().dp,
+                screenBounds.height.toFloat().dp
+            )
+        }
+    }
 
     Window(
         onCloseRequest,
@@ -99,6 +113,12 @@ fun DecoratedWindow(
         val kdeCornerArc = 10f
 
         DisposableEffect(window) {
+            // Apply native maximize on Windows after window is ready
+            if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
+                NativeWindowHelper.showMaximized(window, state)
+                NativeWindowHelper.bringToForeground(window)
+            }
+
             var trackedExtendedState = window.extendedState
 
             fun updateWindowShape() {
