@@ -5,9 +5,9 @@ import androidx.compose.ui.window.WindowState
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.utils.windows.NativeWinBridge
 import java.awt.Frame
-import javax.swing.SwingUtilities
 import java.util.logging.Level
 import java.util.logging.Logger
+import javax.swing.SwingUtilities
 
 @Suppress("TooGenericExceptionCaught")
 internal object NativeWindowHelper {
@@ -21,15 +21,19 @@ internal object NativeWindowHelper {
      * Ensures the native peer is created (via addNotify) before attempting
      * the native call, and syncs both AWT and Compose state afterwards.
      */
-    fun showMaximized(window: java.awt.Window, state: WindowState) {
+    fun showMaximized(
+        window: java.awt.Window,
+        state: WindowState,
+    ) {
         try {
             // Note: Don't force addNotify() here - let AWT/Compose create the peer naturally.
             // Forcing it causes issues because it triggers layout before Compose measures components.
 
-            val success = when (Platform.Current) {
-                Platform.Windows -> showMaximizedWindows(window)
-                else -> false
-            }
+            val success =
+                when (Platform.Current) {
+                    Platform.Windows -> showMaximizedWindows(window)
+                    else -> false
+                }
 
             if (success) {
                 // Sync Java and Compose state

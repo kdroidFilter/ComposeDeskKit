@@ -34,10 +34,11 @@ internal object NativeWinBridge {
             try {
                 // Detect architecture for JAR resource path
                 val arch = System.getProperty("os.arch")
-                val archFolder = when (arch) {
-                    "aarch64" -> "win32-aarch64"
-                    else -> "win32-x64"
-                }
+                val archFolder =
+                    when (arch) {
+                        "aarch64" -> "win32-aarch64"
+                        else -> "win32-x64"
+                    }
                 val resourcePath = "/nucleus/native/$archFolder/nucleus_windows.dll"
                 val stream =
                     NativeWinBridge::class.java
@@ -60,7 +61,7 @@ internal object NativeWinBridge {
 
     /**
      * Uses JAWT to obtain the native HWND from the given AWT Component,
-     * then uses SetWindowPos with SWP_SHOWWINDOW | SWP_MAXIMIZE 
+     * then uses SetWindowPos with SWP_SHOWWINDOW | SWP_MAXIMIZE
      * to show the window already maximized - no animation, instant maximize.
      *
      * @return true if the window was successfully shown maximized

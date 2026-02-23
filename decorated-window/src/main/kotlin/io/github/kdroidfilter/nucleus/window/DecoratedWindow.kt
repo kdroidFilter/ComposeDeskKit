@@ -35,10 +35,9 @@ import com.jetbrains.JBR
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
-import io.github.kdroidfilter.nucleus.window.utils.NativeWindowHelper
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
+import io.github.kdroidfilter.nucleus.window.utils.NativeWindowHelper
 import java.awt.Frame
-import java.awt.GraphicsEnvironment
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.WindowAdapter
