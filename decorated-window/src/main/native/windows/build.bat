@@ -1,87 +1,90 @@
 @echo off
-setlocal
+REM Compiles NucleusWinBridge.c into per-architecture DLLs (x64 + ARM64).
+REM The outputs are placed in the JAR resources so they ship with the library.
+REM
+REM Prerequisites: Visual Studio Build Tools (MSVC) with ARM64 support.
+REM Usage: build.bat [x64|arm64]
 
-rem Compiles NucleusWinBridge.c into 64-bit DLLs (x64 and ARM64).
-rem Prerequisites: Visual Studio 2022 (Community or Build Tools) with ARM64 support.
-rem Usage: build.bat [x64|arm64]
+setlocal enabledelayedexpansion
 
 set "ARCH=%~1"
 if "%ARCH%"=="" set "ARCH=x64"
 
-rem --- Locate vcvarsall.bat and initialize MSVC environment ---
-set "VCVARSALL="
-for /f "tokens=*" %%i in ('where vcvarsall.bat 2^>nul') do set "VCVARSALL=%%i"
-if "%VCVARSALL%"=="" (
-    if exist "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" (
-        set "VCVARSALL=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat"
-    )
-)
-if "%VCVARSALL%"=="" (
-    if exist "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" (
-        set "VCVARSALL=C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat"
-    )
-)
-if "%VCVARSALL%"=="" (
-    echo ERROR: Could not find vcvarsall.bat. Install Visual Studio 2022 or Build Tools.
-    exit /b 1
-)
+set "SCRIPT_DIR=%~dp0"
+set "SRC=%SCRIPT_DIR%NucleusWinBridge.c"
+set "RESOURCE_DIR=%SCRIPT_DIR%..\..\resources\nucleus\native"
 
-rem --- Locate JAVA_HOME for JNI/JAWT headers and libraries ---
+REM Check JAVA_HOME
 if "%JAVA_HOME%"=="" (
-    echo ERROR: JAVA_HOME is not set.
+    echo ERROR: JAVA_HOME is not set. >&2
+    exit /b 1
+)
+if not exist "%JAVA_HOME%\include\jni.h" (
+    echo ERROR: JNI headers not found at %JAVA_HOME%\include >&2
     exit /b 1
 )
 
-set JNI_INCLUDE=%JAVA_HOME%\include
-set JNI_INCLUDE_WIN32=%JAVA_HOME%\include\win32
-set JNI_LIB=%JAVA_HOME%\lib
+set "JNI_INCLUDE=%JAVA_HOME%\include"
+set "JNI_INCLUDE_WIN32=%JAVA_HOME%\include\win32"
 
-if not exist "%JNI_INCLUDE%\jni.h" (
-    echo ERROR: JNI headers not found at %JNI_INCLUDE%
+REM Locate vcvarsall.bat
+set "VCVARSALL="
+for %%v in (2022 2019 2017) do (
+    for %%e in (Enterprise Professional Community BuildTools) do (
+        if exist "C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" (
+            set "VCVARSALL=C:\Program Files\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
+            goto :found_vc
+        )
+        if exist "C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat" (
+            set "VCVARSALL=C:\Program Files (x86)\Microsoft Visual Studio\%%v\%%e\VC\Auxiliary\Build\vcvarsall.bat"
+            goto :found_vc
+        )
+    )
+)
+:found_vc
+if "%VCVARSALL%"=="" (
+    echo ERROR: Could not locate vcvarsall.bat. Install Visual Studio Build Tools. >&2
     exit /b 1
 )
 
-if not exist "%JNI_LIB%\jawt.lib" (
-    echo ERROR: jawt.lib not found at %JNI_LIB%
-    exit /b 1
-)
-
-set SCRIPT_DIR=%~dp0
-set RESOURCE_DIR=%SCRIPT_DIR%..\..\resources\nucleus\native
+echo Using vcvarsall.bat: %VCVARSALL%
 
 if "%ARCH%"=="x64" (
-    echo Building x64 version...
-    call "%VCVARSALL%" x64 >nul 2>&1
-    set OUT_DIR=%RESOURCE_DIR%\win32-x64
+    set "OUT_DIR=%RESOURCE_DIR%\win32-x64"
 ) else if "%ARCH%"=="arm64" (
-    echo Building ARM64 version...
-    call "%VCVARSALL%" x64_arm64 >nul 2>&1
-    set OUT_DIR=%RESOURCE_DIR%\win32-aarch64
+    set "OUT_DIR=%RESOURCE_DIR%\win32-aarch64"
 ) else (
-    echo ERROR: Invalid architecture. Use x64 or arm64.
+    echo ERROR: Invalid architecture. Use x64 or arm64. >&2
     exit /b 1
 )
 
+REM Create output directory
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 
-cl /nologo /LD /O2 ^
-   /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
-   "%SCRIPT_DIR%NucleusWinBridge.c" ^
-   user32.lib dwmapi.lib "%JNI_LIB%\jawt.lib" ^
-   /Fe:"%OUT_DIR%\nucleus_windows.dll" ^
-   /link /OPT:REF /OPT:ICF
-
+REM Build selected architecture
+echo.
+echo === Building %ARCH% DLL ===
+call "%VCVARSALL%" %ARCH%
 if errorlevel 1 (
-    echo Build failed for %ARCH%.
+    echo ERROR: vcvarsall %ARCH% failed >&2
     exit /b 1
 )
 
-rem Clean up intermediate files
-del /q "%SCRIPT_DIR%NucleusWinBridge.obj" 2>nul
-del /q "%SCRIPT_DIR%NucleusWinBridge.exp" 2>nul
-del /q "%SCRIPT_DIR%NucleusWinBridge.lib" 2>nul
+cl /LD /O1 /GS- /nologo ^
+    /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
+    "%SRC%" ^
+    /Fe:"%OUT_DIR%\nucleus_windows.dll" ^
+    /link /NODEFAULTLIB /ENTRY:DllMain user32.lib dwmapi.lib advapi32.lib kernel32.lib
+if errorlevel 1 (
+    echo ERROR: %ARCH% compilation failed >&2
+    exit /b 1
+)
 
+REM Clean up intermediate files
+del /q "%OUT_DIR%\*.obj" "%OUT_DIR%\*.lib" "%OUT_DIR%\*.exp" 2>nul
+
+echo.
 echo Built: %OUT_DIR%\nucleus_windows.dll
-dir "%OUT_DIR%\nucleus_windows.dll"
+if exist "%OUT_DIR%\nucleus_windows.dll" dir "%OUT_DIR%\nucleus_windows.dll"
 
-echo Build completed successfully!
+endlocal
