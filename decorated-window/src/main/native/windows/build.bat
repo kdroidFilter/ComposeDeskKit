@@ -62,19 +62,24 @@ REM Create output directory
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 
 REM Build selected architecture
+if "%ARCH%"=="arm64" (
+    set "VCVARS_ARG=x64_arm64"
+) else (
+    set "VCVARS_ARG=%ARCH%"
+)
 echo.
 echo === Building %ARCH% DLL ===
-call "%VCVARSALL%" %ARCH%
+call "%VCVARSALL%" %VCVARS_ARG%
 if errorlevel 1 (
-    echo ERROR: vcvarsall %ARCH% failed >&2
+    echo ERROR: vcvarsall %VCVARS_ARG% failed >&2
     exit /b 1
 )
 
-cl /LD /O1 /GS- /nologo ^
+cl /LD /O2 /nologo ^
     /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
     "%SRC%" ^
     /Fe:"%OUT_DIR%\nucleus_windows.dll" ^
-    /link /NODEFAULTLIB /ENTRY:DllMain user32.lib dwmapi.lib advapi32.lib kernel32.lib
+    /link user32.lib dwmapi.lib advapi32.lib kernel32.lib "%JAVA_HOME%\lib\jawt.lib"
 if errorlevel 1 (
     echo ERROR: %ARCH% compilation failed >&2
     exit /b 1
