@@ -79,6 +79,12 @@ fun DecoratedWindow(
     val initialPlacement = remember { state.placement }
     val undecorated = Platform.Linux == Platform.Current
 
+    // Force maximized placement on Windows before Window is created
+    // This ensures Compose/JBR creates the window in maximized state directly
+    if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
+        state.placement = WindowPlacement.Maximized
+    }
+
     Window(
         onCloseRequest,
         state,
