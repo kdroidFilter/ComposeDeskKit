@@ -65,24 +65,14 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_NativeWinBridge_nativeS
     HWND hwnd = getHWND(env, component, &awt);
     if (!hwnd || !IsWindow(hwnd)) return JNI_FALSE;
 
-    /* Disable DWM transition animation so the maximize is instant */
-    BOOL disable = TRUE;
-    DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-                          &disable, sizeof(disable));
-
     /* 
      * Use SetWindowPos with SWP_SHOWWINDOW to show the window,
      * then ShowWindow(SW_MAXIMIZE) to maximize.
-     * This is more reliable than trying to combine them.
+     * DWM transitions are enabled by default for smooth animation.
      */
     SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, 
                  SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW);
     ShowWindow(hwnd, SW_MAXIMIZE);
-
-    /* Re-enable transitions for normal user interaction */
-    disable = FALSE;
-    DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-                          &disable, sizeof(disable));
 
     return JNI_TRUE;
 }
