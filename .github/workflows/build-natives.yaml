@@ -58,6 +58,27 @@ jobs:
           path: native-ssl/src/main/resources/nucleus/native/win32-*/
           retention-days: 1
 
+      - name: Build decorated-window Windows DLLs
+        shell: cmd
+        run: call decorated-window\src\main\native\windows\build.bat
+
+      - name: Verify decorated-window Windows natives
+        shell: bash
+        run: |
+          for f in \
+            decorated-window/src/main/resources/nucleus/native/win32-x64/nucleus_windows.dll \
+            decorated-window/src/main/resources/nucleus/native/win32-aarch64/nucleus_windows.dll; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f" >&2; exit 1; fi
+            echo "OK: $f ($(wc -c < "$f") bytes)"
+          done
+
+      - name: Upload decorated-window Windows DLLs
+        uses: actions/upload-artifact@v4
+        with:
+          name: decorated-window-windows
+          path: decorated-window/src/main/resources/nucleus/native/win32-*/
+          retention-days: 1
+
   macos:
     runs-on: macos-latest
     steps:
