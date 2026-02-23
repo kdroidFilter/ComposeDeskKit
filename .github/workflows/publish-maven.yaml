@@ -31,12 +31,17 @@ jobs:
           pattern: 'ssl-*'
           merge-multiple: true
 
-      - name: Download decorated-window artifacts
+      - name: Download decorated-window Windows x64 artifact
         uses: actions/download-artifact@v4
         with:
-          path: decorated-window/src/main/resources/nucleus/native/
-          pattern: 'decorated-window-*'
-          merge-multiple: true
+          name: decorated-window-windows
+          path: decorated-window/src/main/resources/nucleus/native/win32-x64/
+
+      - name: Download decorated-window Windows ARM64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: decorated-window-windows-arm64
+          path: decorated-window/src/main/resources/nucleus/native/win32-aarch64/
 
       - name: Verify all natives present
         run: |

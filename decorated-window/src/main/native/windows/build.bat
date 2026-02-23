@@ -3,7 +3,10 @@ setlocal
 
 rem Compiles NucleusWinBridge.c into 64-bit DLLs (x64 and ARM64).
 rem Prerequisites: Visual Studio 2022 (Community or Build Tools) with ARM64 support.
-rem Usage: build.bat
+rem Usage: build.bat [x64|arm64]
+
+set "ARCH=%~1"
+if "%ARCH%"=="" set "ARCH=x64"
 
 rem --- Locate vcvarsall.bat and initialize MSVC environment ---
 set "VCVARSALL="
@@ -35,7 +38,8 @@ set JNI_LIB=%JAVA_HOME%\lib
 
 if not exist "%JNI_INCLUDE%\jni.h" (
     echo ERROR: JNI headers not found at %JNI_INCLUDE%
-    exit /)
+    exit /b 1
+)
 
 if not exist "%JNI_LIB%\jawt.lib" (
     echo ERROR: jawt.lib not found at %JNI_LIB%
@@ -45,11 +49,19 @@ if not exist "%JNI_LIB%\jawt.lib" (
 set SCRIPT_DIR=%~dp0
 set RESOURCE_DIR=%SCRIPT_DIR%..\..\resources\nucleus\native
 
-rem --- Build x64 version ---
-echo Building x64 version...
-call "%VCVARSALL%" x64 >nul 2>&1
+if "%ARCH%"=="x64" (
+    echo Building x64 version...
+    call "%VCVARSALL%" x64 >nul 2>&1
+    set OUT_DIR=%RESOURCE_DIR%\win32-x64
+) else if "%ARCH%"=="arm64" (
+    echo Building ARM64 version...
+    call "%VCVARSALL%" x64_arm64 >nul 2>&1
+    set OUT_DIR=%RESOURCE_DIR%\win32-aarch64
+) else (
+    echo ERROR: Invalid architecture. Use x64 or arm64.
+    exit /b 1
+)
 
-set OUT_DIR=%RESOURCE_DIR%\win32-x64
 if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
 
 cl /nologo /LD /O2 ^
@@ -60,38 +72,11 @@ cl /nologo /LD /O2 ^
    /link /OPT:REF /OPT:ICF
 
 if errorlevel 1 (
-    echo Build failed for x64.
+    echo Build failed for %ARCH%.
     exit /b 1
 )
 
-rem Clean up intermediate files for x64
-del /q "%SCRIPT_DIR%NucleusWinBridge.obj" 2>nul
-del /q "%SCRIPT_DIR%NucleusWinBridge.exp" 2>nul
-del /q "%SCRIPT_DIR%NucleusWinBridge.lib" 2>nul
-
-echo Built: %OUT_DIR%\nucleus_windows.dll
-dir "%OUT_DIR%\nucleus_windows.dll"
-
-rem --- Build ARM64 version ---
-echo Building ARM64 version...
-call "%VCVARSALL%" x64_arm64 >nul 2>&1
-
-set OUT_DIR=%RESOURCE_DIR%\win32-aarch64
-if not exist "%OUT_DIR%" mkdir "%OUT_DIR%"
-
-cl /nologo /LD /O2 ^
-   /I"%JNI_INCLUDE%" /I"%JNI_INCLUDE_WIN32%" ^
-   "%SCRIPT_DIR%NucleusWinBridge.c" ^
-   user32.lib dwmapi.lib "%JNI_LIB%\jawt.lib" ^
-   /Fe:"%OUT_DIR%\nucleus_windows.dll" ^
-   /link /OPT:REF /OPT:ICF
-
-if errorlevel 1 (
-    echo Build failed for ARM64.
-    exit /b 1
-)
-
-rem Clean up intermediate files for ARM64
+rem Clean up intermediate files
 del /q "%SCRIPT_DIR%NucleusWinBridge.obj" 2>nul
 del /q "%SCRIPT_DIR%NucleusWinBridge.exp" 2>nul
 del /q "%SCRIPT_DIR%NucleusWinBridge.lib" 2>nul
