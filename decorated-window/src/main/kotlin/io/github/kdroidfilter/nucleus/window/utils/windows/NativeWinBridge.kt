@@ -17,33 +17,42 @@ internal object NativeWinBridge {
 
     private fun loadNativeLibrary() {
         if (loaded) return
+        synchronized(this) {
+            if (loaded) return
 
-        // Try system library path first (packaged app)
-        try {
-            System.loadLibrary("nucleus_windows")
-            loaded = true
-            return
-        } catch (_: UnsatisfiedLinkError) {
-            // Fall through to JAR extraction
-        }
+            // Try system library path first (packaged app)
+            try {
+                System.loadLibrary("nucleus_windows")
+                loaded = true
+                return
+            } catch (_: UnsatisfiedLinkError) {
+                // Fall through to JAR extraction
+            }
 
-        // Fallback: extract from JAR resources
-        @Suppress("TooGenericExceptionCaught")
-        try {
-            val resourcePath = "/nucleus/native/win32-x64/nucleus_windows.dll"
-            val stream =
-                NativeWinBridge::class.java
-                    .getResourceAsStream(resourcePath)
-                    ?: throw UnsatisfiedLinkError("Native library not found in JAR at $resourcePath")
-            val tempDir = Files.createTempDirectory("nucleus-native")
-            val tempLib = tempDir.resolve("nucleus_windows.dll")
-            stream.use { Files.copy(it, tempLib) }
-            tempLib.toFile().deleteOnExit()
-            tempDir.toFile().deleteOnExit()
-            System.load(tempLib.toAbsolutePath().toString())
-            loaded = true
-        } catch (e: Exception) {
-            logger.log(Level.WARNING, "Failed to load nucleus_windows native library", e)
+            // Fallback: extract from JAR resources
+            @Suppress("TooGenericExceptionCaught")
+            try {
+                // Detect architecture for JAR resource path
+                val arch = System.getProperty("os.arch")
+                val archFolder = when (arch) {
+                    "aarch64" -> "win32-aarch64"
+                    else -> "win32-x64"
+                }
+                val resourcePath = "/nucleus/native/$archFolder/nucleus_windows.dll"
+                val stream =
+                    NativeWinBridge::class.java
+                        .getResourceAsStream(resourcePath)
+                        ?: throw UnsatisfiedLinkError("Native library not found in JAR at $resourcePath")
+                val tempDir = Files.createTempDirectory("nucleus-native")
+                val tempLib = tempDir.resolve("nucleus_windows.dll")
+                stream.use { Files.copy(it, tempLib) }
+                tempLib.toFile().deleteOnExit()
+                tempDir.toFile().deleteOnExit()
+                System.load(tempLib.toAbsolutePath().toString())
+                loaded = true
+            } catch (e: Exception) {
+                logger.log(Level.WARNING, "Failed to load nucleus_windows native library", e)
+            }
         }
     }
 

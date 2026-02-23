@@ -23,8 +23,8 @@ internal object NativeWindowHelper {
      */
     fun showMaximized(window: java.awt.Window, state: WindowState) {
         try {
-            // Ensure the native peer exists so JAWT can obtain the handle
-            ensureNativePeer(window)
+            // Note: Don't force addNotify() here - let AWT/Compose create the peer naturally.
+            // Forcing it causes issues because it triggers layout before Compose measures components.
 
             val success = when (Platform.Current) {
                 Platform.Windows -> showMaximizedWindows(window)
@@ -53,14 +53,6 @@ internal object NativeWindowHelper {
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Failed to apply native maximized placement", e)
         }
-    }
-
-    /**
-     * Ensures the native peer is created for the window.
-     */
-    private fun ensureNativePeer(window: java.awt.Window) {
-        // Don't force addNotify() here - let AWT/Compose create the peer naturally.
-        // Forcing it causes issues because it triggers layout before Compose measures components.
     }
 
     private fun showMaximizedWindows(window: java.awt.Window): Boolean {
