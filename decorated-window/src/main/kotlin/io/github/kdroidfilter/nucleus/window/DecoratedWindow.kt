@@ -79,17 +79,6 @@ fun DecoratedWindow(
     val initialPlacement = remember { state.placement }
     val undecorated = Platform.Linux == Platform.Current
 
-    // Set initial size to screen bounds for maximize on Windows
-    remember(initialPlacement) {
-        if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
-            val screenBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
-            state.size = androidx.compose.ui.unit.DpSize(
-                screenBounds.width.toFloat().dp,
-                screenBounds.height.toFloat().dp
-            )
-        }
-    }
-
     Window(
         onCloseRequest,
         state,
