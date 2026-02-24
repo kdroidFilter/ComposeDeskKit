@@ -36,6 +36,7 @@ import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
+import io.github.kdroidfilter.nucleus.window.utils.NativeWindowHelper
 import java.awt.Frame
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
@@ -74,7 +75,14 @@ fun DecoratedWindow(
         }
     }
 
+    val initialPlacement = remember { state.placement }
     val undecorated = Platform.Linux == Platform.Current
+
+    // Force maximized placement on Windows before Window is created
+    // This ensures Compose/JBR creates the window in maximized state directly
+    if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
+        state.placement = WindowPlacement.Maximized
+    }
 
     Window(
         onCloseRequest,
@@ -99,6 +107,12 @@ fun DecoratedWindow(
         val kdeCornerArc = 10f
 
         DisposableEffect(window) {
+            // Apply native maximize on Windows after window is ready
+            if (Platform.Current == Platform.Windows && initialPlacement == WindowPlacement.Maximized) {
+                NativeWindowHelper.showMaximized(window, state)
+                NativeWindowHelper.bringToForeground(window)
+            }
+
             var trackedExtendedState = window.extendedState
 
             fun updateWindowShape() {
