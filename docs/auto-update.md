@@ -247,7 +247,7 @@ fun UpdateBanner() {
     Column {
         Text(status)
         if (progress in 0.0..99.9) {
-            LinearProgressIndicator(progress = { (progress / 100.0).toFloat() })
+            LinearProgressIndicator(progress = (progress / 100.0).toFloat())
         }
         downloadedFile?.let { file ->
             Button(onClick = { updater.installAndRestart(file) }) {
