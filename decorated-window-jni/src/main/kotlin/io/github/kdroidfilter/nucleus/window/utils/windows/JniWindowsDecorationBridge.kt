@@ -80,6 +80,11 @@ internal object JniWindowsDecorationBridge {
     @JvmStatic
     external fun nativeGetHwnd(awtWindow: java.awt.Window): Long
 
+    // Applies rounded corners and DWM shadow to an undecorated dialog window (WS_POPUP).
+    // Uses DWMWA_WINDOW_CORNER_PREFERENCE = DWMWCP_ROUND (Windows 11+, no-op on older).
+    @JvmStatic
+    external fun nativeApplyDialogStyle(hwnd: Long)
+
     // Returns debug counters as a string (temporary).
     @JvmStatic
     external fun nativeGetDebugInfo(hwnd: Long): String

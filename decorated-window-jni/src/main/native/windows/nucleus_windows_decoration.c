@@ -692,6 +692,30 @@ Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBri
 }
 
 /* -------------------------------------------------------------- */
+/*  nativeApplyDialogStyle(long hwnd)                              */
+/*  Applies rounded corners + DWM shadow to an undecorated popup   */
+/*  dialog window (WS_POPUP without WS_CAPTION).                   */
+/*  DWMWA_WINDOW_CORNER_PREFERENCE (33) + DWMWCP_ROUND (2) are    */
+/*  Windows 11 22000+ only; silently ignored on older Windows.     */
+/* -------------------------------------------------------------- */
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_windows_JniWindowsDecorationBridge_nativeApplyDialogStyle(
+    JNIEnv *env, jclass clazz, jlong hwndLong)
+{
+    HWND hwnd = (HWND)(uintptr_t)hwndLong;
+    if (!hwnd || !IsWindow(hwnd)) return;
+
+    /* Request rounded corners (Windows 11+, silently ignored on older) */
+    DWORD preference = 2; /* DWMWCP_ROUND */
+    DwmSetWindowAttribute(hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */,
+                          &preference, sizeof(preference));
+
+    /* DWM drop shadow for popup window */
+    MARGINS margins = {0, 0, 0, 1};
+    DwmExtendFrameIntoClientArea(hwnd, &margins);
+}
+
+/* -------------------------------------------------------------- */
 /*  nativeGetDebugInfo(long hwnd) → String                         */
 /*  Returns debug counters as a string for diagnostics.            */
 /* -------------------------------------------------------------- */
