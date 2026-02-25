@@ -280,6 +280,19 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
                 }
 
+                // Pass the native-image configuration directory so reflection/JNI/resource
+                // metadata is picked up even when it is not bundled inside the uber JAR.
+                val configDir = if (nativeImageConfigDir.isPresent) {
+                    nativeImageConfigDir.get().asFile
+                } else {
+                    project.layout.projectDirectory
+                        .dir("src/main/resources/META-INF/native-image")
+                        .asFile
+                }
+                if (configDir.exists()) {
+                    add("-H:ConfigurationFileDirectories=$configDir")
+                }
+
                 addAll(graalvm.buildArgs.get())
             }
         }
@@ -567,6 +580,7 @@ private fun JvmApplicationContext.configureWindowsGraalvmPackaging(
                 include(
                     "awt.dll", "java.dll", "javajpeg.dll", "fontmanager.dll",
                     "freetype.dll", "lcms.dll", "mlib_image.dll", "splashscreen.dll",
+                    "javaaccessbridge.dll",
                 )
             }
             into(outputDir)
