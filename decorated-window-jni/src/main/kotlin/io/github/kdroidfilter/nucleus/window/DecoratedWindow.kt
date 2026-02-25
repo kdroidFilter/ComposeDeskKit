@@ -7,6 +7,7 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import io.github.kdroidfilter.nucleus.core.runtime.Platform
+import io.github.kdroidfilter.nucleus.window.utils.windows.JniWindowsDecorationBridge
 
 @Suppress("FunctionNaming", "LongParameterList")
 @Composable
@@ -24,10 +25,18 @@ fun DecoratedWindow(
     onKeyEvent: (KeyEvent) -> Boolean = { false },
     content: @Composable DecoratedWindowScope.() -> Unit,
 ) {
-    // On Windows and Linux the window is undecorated so the Compose title bar
-    // fills the entire frame. On macOS the native frame is kept and the content
-    // is extended into the transparent title bar area via AWT client properties.
-    val undecorated = Platform.Current == Platform.Linux || Platform.Current == Platform.Windows
+    // On macOS the native frame is kept and the content is extended into the
+    // transparent title bar area via AWT client properties.
+    // On Windows, when the native decoration DLL is loaded, we keep the native
+    // frame (undecorated = false) and use JNI to subclass WndProc removing just
+    // the title bar. This gives us native drag, snap/tile, and maximize animations.
+    // Fallback: when the DLL is not loaded, the window is fully undecorated.
+    // On Linux the window is always undecorated.
+    val undecorated = when (Platform.Current) {
+        Platform.Windows -> !JniWindowsDecorationBridge.isLoaded
+        Platform.Linux -> true
+        else -> false
+    }
 
     Window(
         onCloseRequest,

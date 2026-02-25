@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -128,7 +129,7 @@ fun main(args: Array<String>) {
 
             MaterialTheme(colorScheme = colorScheme) {
                 MaterialDecoratedWindow(
-                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center), placement = WindowPlacement.Maximized),
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
                 ) {

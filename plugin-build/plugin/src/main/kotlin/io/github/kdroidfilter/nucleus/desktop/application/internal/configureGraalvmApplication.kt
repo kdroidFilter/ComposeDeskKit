@@ -241,7 +241,16 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             outputs.dir(outputDir)
 
             val nativeImageExe = graalvmHome.map { home ->
-                File(home).resolve("bin/${executableName("native-image")}").absolutePath
+                val binDir = File(home).resolve("bin")
+                // BellSoft Liberica NIK ships native-image.cmd on Windows;
+                // Oracle GraalVM ships native-image.exe. Prefer .cmd if present.
+                if (currentOS == OS.Windows) {
+                    val cmd = binDir.resolve("native-image.cmd")
+                    if (cmd.exists()) cmd.absolutePath
+                    else binDir.resolve("native-image.exe").absolutePath
+                } else {
+                    binDir.resolve("native-image").absolutePath
+                }
             }
 
             executable = nativeImageExe.get()
@@ -299,7 +308,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
     // ── Electron-builder integration ──
 
-    configureGraalvmElectronBuilderPackaging(packageGraalvmNative, unpackDefaultResources)
+    configureGraalvmElectronBuilderPackaging(packageGraalvmNative, unpackDefaultResources, imageName)
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -702,6 +711,7 @@ private fun JvmApplicationContext.configureLinuxGraalvmPackaging(
 private fun JvmApplicationContext.configureGraalvmElectronBuilderPackaging(
     packageGraalvmNative: TaskProvider<out DefaultTask>,
     unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
+    imageName: org.gradle.api.provider.Provider<String>,
 ) {
     val ebFormats = app.nativeDistributions.targetFormats
         .filter { it.backend == PackagingBackend.ELECTRON_BUILDER && !it.isStoreFormat }
@@ -770,6 +780,7 @@ private fun JvmApplicationContext.configureGraalvmElectronBuilderPackaging(
                     }
                 }
 
+                executableName.set(imageName)
                 customNodePath.set(NucleusProperties.electronBuilderNodePath(project.providers))
                 publishMode.set(NucleusProperties.electronBuilderPublishMode(project.providers))
                 distributions = app.nativeDistributions

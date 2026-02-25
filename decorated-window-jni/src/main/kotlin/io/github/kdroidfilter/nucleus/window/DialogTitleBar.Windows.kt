@@ -26,6 +26,8 @@ internal fun DecoratedDialogScope.WindowsDialogTitleBar(
         backgroundContent = {
             Spacer(modifier = Modifier.fillMaxSize().windowDragHandler(window))
         },
-        content = content,
-    )
+    ) { dialogState ->
+        WindowsDialogCloseButton(window, dialogState, style)
+        content(dialogState)
+    }
 }

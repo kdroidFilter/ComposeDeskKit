@@ -40,6 +40,11 @@ fun main() {
         // Set java.home to the executable's dir so Skiko can find jawt (lib/ on macOS/Linux, bin/ on Windows)
         val execDir = File(ProcessHandle.current().info().command().orElse("")).parentFile?.absolutePath ?: "."
         System.setProperty("java.home", execDir)
+        // Ensure the native libraries next to the executable (fontmanager, freetype, awt, etc.) are
+        // discoverable. After overriding java.home, the default java.library.path may only include
+        // <java.home>/bin, missing the DLLs in the executable's root directory.
+        val sep = File.pathSeparator
+        System.setProperty("java.library.path", "$execDir$sep$execDir${File.separator}bin")
     }
 
     JewelLogger.getInstance("StandaloneSample").info("Starting Jewel Standalone sample")
