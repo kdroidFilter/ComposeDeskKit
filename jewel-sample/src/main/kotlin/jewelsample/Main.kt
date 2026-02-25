@@ -3,6 +3,7 @@ package jewelsample
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
+import java.io.File
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -29,8 +30,18 @@ import org.jetbrains.jewel.intui.markdown.standalone.ProvideMarkdownStyling
 import org.jetbrains.jewel.intui.standalone.theme.lightThemeDefinition
 import org.jetbrains.jewel.ui.ComponentStyling
 
+private val isNativeImage = System.getProperty("org.graalvm.nativeimage.imagecode") != null
+
 @ExperimentalLayoutApi
 fun main() {
+    if (isNativeImage) {
+        // Metal L&F avoids loading platform-specific modules unsupported in native image
+        System.setProperty("swing.defaultlaf", "javax.swing.plaf.metal.MetalLookAndFeel")
+        // Set java.home to the executable's dir so Skiko can find jawt (lib/ on macOS/Linux, bin/ on Windows)
+        val execDir = File(ProcessHandle.current().info().command().orElse("")).parentFile?.absolutePath ?: "."
+        System.setProperty("java.home", execDir)
+    }
+
     JewelLogger.getInstance("StandaloneSample").info("Starting Jewel Standalone sample")
     val icon = svgResource("icons/jewel-logo.svg")
 

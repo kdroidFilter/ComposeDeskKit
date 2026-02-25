@@ -12,6 +12,7 @@ batik = "1.19"
 vanniktechMavenPublish = "0.36.0"
 jbrApi = "1.10.1"
 jna = "5.17.0"
+graalvmNative = "0.11.4"
 okhttp = "4.12.0"
 ktor = "3.4.0"
 
@@ -24,6 +25,7 @@ versionCheck = { id = "com.github.ben-manes.versions", version.ref = "versionChe
 vanniktechMavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktechMavenPublish"}
 kotlinComposePlugin = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin"}
 jetbrainsCompose = { id = "org.jetbrains.compose", version.ref = "compose"}
+graalvmNative = { id = "org.graalvm.buildtools.native", version.ref = "graalvmNative" }
 
 [libraries]
 junit = "junit:junit:4.13.2"

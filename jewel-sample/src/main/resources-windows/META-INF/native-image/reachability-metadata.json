@@ -1,0 +1,20 @@
+{
+  "reflection": [],
+  "jni": [],
+  "resources": {
+    "includes": [
+      {"pattern": "\\QMETA-INF/services/java.awt.im.spi.InputMethodDescriptor\\E"},
+      {"pattern": "\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"},
+      {"pattern": "\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"},
+      {"pattern": "\\QMETA-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory\\E"},
+      {"pattern": "\\Qlibskiko-windows-x64.dll.sha256\\E"},
+      {"pattern": "icons/.*\\.svg"}
+    ],
+    "bundles": [
+      {"name": "com.sun.swing.internal.plaf.basic.resources.basic"},
+      {"name": "sun.awt.resources.awt"}
+    ]
+  },
+  "proxies": [],
+  "serialization": []
+}
