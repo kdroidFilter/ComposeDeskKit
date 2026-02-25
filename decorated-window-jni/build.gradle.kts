@@ -1,3 +1,4 @@
+import org.apache.tools.ant.taskdefs.condition.Os
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -15,13 +16,8 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
-    // Compile against decorated-window API but let the consumer choose the runtime
-    // implementation: either :decorated-window (JBR) or :decorated-window-jni.
-    compileOnly(project(":decorated-window"))
     compileOnly(project(":core-runtime"))
     compileOnly(compose.desktop.common)
-    compileOnly(compose.material3)
-    compileOnly(libs.jbr.api)
 }
 
 java {
@@ -35,12 +31,29 @@ kotlin {
     }
 }
 
+val buildNativeMacOs by tasks.registering(Exec::class) {
+    description = "Compiles the Objective-C JNI bridge into macOS dylibs (arm64 + x64)"
+    group = "build"
+    enabled = Os.isFamily(Os.FAMILY_MAC)
+
+    val nativeDir = layout.projectDirectory.dir("src/main/native/macos")
+    val outputDir = layout.projectDirectory.dir("src/main/resources/nucleus/native")
+    inputs.dir(nativeDir)
+    outputs.dir(outputDir)
+    workingDir(nativeDir)
+    commandLine("bash", "build.sh")
+}
+
+tasks.processResources {
+    dependsOn(buildNativeMacOs)
+}
+
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-material", publishVersion)
+    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-jni", publishVersion)
 
     pom {
-        name.set("Nucleus Material Decorated Window")
-        description.set("Material 3 integration for Nucleus Decorated Window")
+        name.set("Nucleus Decorated Window JNI")
+        description.set("JBR-free custom decorated window with native title bar for Compose Desktop (via JNI)")
         url.set("https://github.com/kdroidFilter/Nucleus")
 
         licenses {

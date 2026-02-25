@@ -21,3 +21,4 @@ native-ssl/src/main/resources/nucleus/native/
 # MSVC build artifacts
 *.obj
 *.exp
+decorated-window-jni/src/main/resources/nucleus/native/.DS_Store
