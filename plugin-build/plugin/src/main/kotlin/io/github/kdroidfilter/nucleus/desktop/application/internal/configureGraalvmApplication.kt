@@ -281,11 +281,20 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             }
         }
 
+    // ── Default resources (icons, entitlements) ──
+
+    val unpackDefaultResources =
+        tasks.register<AbstractUnpackDefaultApplicationResourcesTask>(
+            taskNameAction = "unpack",
+            taskNameObject = "graalvmDefaultResources",
+        ) {}
+
     // ── Platform-specific packaging ──
 
     val packageGraalvmNative: TaskProvider<out DefaultTask> = when (currentOS) {
         OS.MacOS -> configureMacOsGraalvmPackaging(
             graalvm, graalvmHome, nativeImageCompile, nativeCompileDir, imageName,
+            unpackDefaultResources,
         )
         OS.Windows -> configureWindowsGraalvmPackaging(
             graalvmHome, nativeImageCompile, nativeCompileDir, imageName,
@@ -297,7 +306,7 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
     // ── Electron-builder integration ──
 
-    configureGraalvmElectronBuilderPackaging(packageGraalvmNative)
+    configureGraalvmElectronBuilderPackaging(packageGraalvmNative, unpackDefaultResources)
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -311,6 +320,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
     nativeImageCompile: TaskProvider<Exec>,
     nativeCompileDir: org.gradle.api.provider.Provider<org.gradle.api.file.Directory>,
     imageName: org.gradle.api.provider.Provider<String>,
+    unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
 ): TaskProvider<DefaultTask> {
     val appBundleName = packageNameProvider.map { "$it.app" }
     val appBundleDir = appTmpDir.map { tmpDir ->
@@ -420,8 +430,11 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
         ?: "1.0.0"
     val plistMinSystemVersion = graalvm.macOS.minimumSystemVersion
     val plistCopyright: String? = app.nativeDistributions.copyright
-    val plistIconFileName: String? = app.nativeDistributions.macOS.iconFile
-        .let { if (it.isPresent) it.get().asFile.name else null }
+    val plistIconFileName: String = if (app.nativeDistributions.macOS.iconFile.isPresent) {
+        app.nativeDistributions.macOS.iconFile.get().asFile.name
+    } else {
+        "default-icon-mac.icns"
+    }
 
     val generateInfoPlist =
         tasks.register<DefaultTask>(
@@ -439,7 +452,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
             inputs.property("imageName", imageName)
             inputs.property("minSystemVersion", plistMinSystemVersion)
             inputs.property("copyright", plistCopyright ?: "")
-            inputs.property("iconFileName", plistIconFileName ?: "")
+            inputs.property("iconFileName", plistIconFileName)
 
             doLast {
                 val plist = InfoPlistBuilder()
@@ -458,9 +471,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
                     plist[PlistKeys.NSHumanReadableCopyright] = plistCopyright
                 }
 
-                if (plistIconFileName != null) {
-                    plist[PlistKeys.CFBundleIconFile] = plistIconFileName
-                }
+                plist[PlistKeys.CFBundleIconFile] = plistIconFileName
 
                 plistFile.get().asFile.parentFile.mkdirs()
                 plist.writeToFile(plistFile.get().asFile)
@@ -479,21 +490,20 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
             into(appBundleDir)
         }
 
-    // Copy icon into Resources/
+    // Copy icon into Resources/ — use custom icon if set, otherwise default
     val copyIcon =
-        if (app.nativeDistributions.macOS.iconFile.isPresent) {
-            tasks.register<Copy>(
-                taskNameAction = "copy",
-                taskNameObject = "graalvmMacIcon",
-            ) {
-                description = "Copy app icon into .app bundle Resources"
-                dependsOn(cleanAppBundle)
-                doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
-                from(app.nativeDistributions.macOS.iconFile)
-                into(appBundleDir.map { it.dir("Resources") })
-            }
-        } else {
-            null
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmMacIcon",
+        ) {
+            description = "Copy app icon into .app bundle Resources"
+            dependsOn(cleanAppBundle, unpackDefaultResources)
+            doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+            val iconFile = app.nativeDistributions.macOS.iconFile.orElse(
+                unpackDefaultResources.flatMap { it.resources.macIcon }
+            )
+            from(iconFile)
+            into(appBundleDir.map { it.dir("Resources") })
         }
 
     val codesignBundle =
@@ -502,8 +512,7 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
             taskNameObject = "graalvmBundle",
         ) {
             description = "Ad-hoc sign the entire .app bundle"
-            dependsOn(codesignDylibs, copyBinary, fixRpath, copyInfoPlist, copyJawtToLib)
-            copyIcon?.let { dependsOn(it) }
+            dependsOn(codesignDylibs, copyBinary, fixRpath, copyInfoPlist, copyJawtToLib, copyIcon)
             val bundleDir = appTmpDir.map { it.dir("graalvm/output/${appBundleName.get()}") }
             commandLine("codesign", "--force", "--deep", "--sign", "-", bundleDir.get().asFile.absolutePath)
         }
@@ -516,9 +525,8 @@ private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
         dependsOn(
             copyBinary, copyAwtDylibs, copyJawtToLib,
             stripDylibs, codesignDylibs, codesignBundle,
-            fixRpath, copyInfoPlist,
+            fixRpath, copyInfoPlist, copyIcon,
         )
-        copyIcon?.let { dependsOn(it) }
     }
 }
 
@@ -700,13 +708,8 @@ private fun JvmApplicationContext.configureLinuxGraalvmPackaging(
 
 private fun JvmApplicationContext.configureGraalvmElectronBuilderPackaging(
     packageGraalvmNative: TaskProvider<out DefaultTask>,
+    unpackDefaultResources: TaskProvider<AbstractUnpackDefaultApplicationResourcesTask>,
 ) {
-    val unpackDefaultResources =
-        tasks.register<AbstractUnpackDefaultApplicationResourcesTask>(
-            taskNameAction = "unpack",
-            taskNameObject = "graalvmDefaultResources",
-        ) {}
-
     val ebFormats = app.nativeDistributions.targetFormats
         .filter { it.backend == PackagingBackend.ELECTRON_BUILDER && !it.isStoreFormat }
 
