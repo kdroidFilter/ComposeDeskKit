@@ -68,4 +68,9 @@ internal object JniMacTitleBarBridge {
     // Updates the position of the replacement fullscreen buttons (called on layout passes).
     @JvmStatic
     external fun nativeUpdateFullScreenButtons(nsWindowPtr: Long)
+
+    // Performs the macOS title bar double-click action (zoom or minimize)
+    // respecting the user's AppleActionOnDoubleClick system preference.
+    @JvmStatic
+    external fun nativePerformTitleBarDoubleClickAction(nsWindowPtr: Long)
 }

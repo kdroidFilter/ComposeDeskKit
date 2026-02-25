@@ -202,16 +202,8 @@ static void removeDragView(NSWindow *window);
 
 - (void)mouseUp:(NSEvent *)event {
     [[self.window contentView] mouseUp:event];
-    // Handle double-click: zoom or minimize based on system preference
-    if (event.clickCount == 2) {
-        NSString *action = [[NSUserDefaults standardUserDefaults]
-            stringForKey:@"AppleActionOnDoubleClick"];
-        if (action && [action caseInsensitiveCompare:@"Minimize"] == NSOrderedSame) {
-            [self.window performMiniaturize:nil];
-        } else if (!action || [action caseInsensitiveCompare:@"None"] != NSOrderedSame) {
-            [self.window performZoom:nil];
-        }
-    }
+    // Double-click zoom is handled by Compose (MacOSTitleBar) so it can
+    // check whether the event was consumed by an interactive component.
 }
 
 - (void)mouseDragged:(NSEvent *)event {
@@ -634,6 +626,28 @@ Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nati
     dispatch_async(dispatch_get_main_queue(), ^{
         @autoreleasepool {
             updateFullScreenButtonsPosition(window);
+        }
+    });
+}
+
+// Performs the macOS title bar double-click action (zoom or minimize)
+// respecting the user's system preference (AppleActionOnDoubleClick).
+// Called from Compose when an unconsumed double-click is detected.
+JNIEXPORT void JNICALL
+Java_io_github_kdroidfilter_nucleus_window_utils_macos_JniMacTitleBarBridge_nativePerformTitleBarDoubleClickAction(
+    JNIEnv *env, jclass clazz, jlong nsWindowPtr) {
+
+    if (nsWindowPtr == 0) return;
+    NSWindow *window = (__bridge NSWindow *)(void *)nsWindowPtr;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @autoreleasepool {
+            NSString *action = [[NSUserDefaults standardUserDefaults]
+                stringForKey:@"AppleActionOnDoubleClick"];
+            if (action && [action caseInsensitiveCompare:@"Minimize"] == NSOrderedSame) {
+                [window performMiniaturize:nil];
+            } else if (!action || [action caseInsensitiveCompare:@"None"] != NSOrderedSame) {
+                [window performZoom:nil];
+            }
         }
     });
 }
