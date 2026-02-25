@@ -19,28 +19,6 @@
       "type": "androidx.compose.ui.scene.skia.WindowSkiaLayerComponent$contentComponent$1"
     },
     {
-      "type": "coil3.RealImageLoader"
-    },
-    {
-      "type": "coil3.compose.internal.DeferredDispatchCoroutineDispatcher"
-    },
-    {
-      "type": "coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget"
-    },
-    {
-      "type": "com.apple.eawt.FullScreenHandler",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "handleFullScreenEventFromNative",
-          "parameterTypes": [
-            "java.awt.Window",
-            "int"
-          ]
-        }
-      ]
-    },
-    {
       "type": "com.apple.eawt._AppEventHandler",
       "jniAccessible": true,
       "methods": [
@@ -134,18 +112,6 @@
       "type": "com.sun.swing.internal.plaf.basic.resources.basic"
     },
     {
-      "type": "io.github.kdroidfilter.nucleus.darkmodedetector.mac.NativeDarkModeBridge",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "onThemeChanged",
-          "parameterTypes": [
-            "boolean"
-          ]
-        }
-      ]
-    },
-    {
       "type": "java.awt.AlphaComposite",
       "jniAccessible": true,
       "fields": [
@@ -202,9 +168,6 @@
           ]
         }
       ]
-    },
-    {
-      "type": "java.awt.Image"
     },
     {
       "type": "java.awt.Insets",
@@ -675,9 +638,6 @@
       ]
     },
     {
-      "type": "java.io.InputStream"
-    },
-    {
       "type": "java.io.OutputStream",
       "jniAccessible": true,
       "methods": [
@@ -760,9 +720,6 @@
       ]
     },
     {
-      "type": "java.nio.file.Files"
-    },
-    {
       "type": "java.util.ArrayList",
       "jniAccessible": true,
       "methods": [
@@ -797,9 +754,6 @@
           "parameterTypes": []
         }
       ]
-    },
-    {
-      "type": "java.util.List"
     },
     {
       "type": "java.util.Locale",
@@ -1660,13 +1614,6 @@
         },
         {
           "name": "trace",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        },
-        {
-          "name": "warn",
           "parameterTypes": [
             "java.lang.String",
             "java.lang.Throwable"
@@ -2585,11 +2532,6 @@
     {
       "type": "sun.lwawt.macosx.CPlatformWindow",
       "jniAccessible": true,
-      "fields": [
-        {
-          "name": "target"
-        }
-      ],
       "methods": [
         {
           "name": "deliverMoveResizeEvent",
@@ -2622,22 +2564,6 @@
         },
         {
           "name": "windowDidBecomeMain",
-          "parameterTypes": []
-        },
-        {
-          "name": "windowDidEnterFullScreen",
-          "parameterTypes": []
-        },
-        {
-          "name": "windowDidExitFullScreen",
-          "parameterTypes": []
-        },
-        {
-          "name": "windowWillEnterFullScreen",
-          "parameterTypes": []
-        },
-        {
-          "name": "windowWillExitFullScreen",
           "parameterTypes": []
         }
       ]
@@ -2693,18 +2619,6 @@
           "parameterTypes": []
         }
       ]
-    },
-    {
-      "type": "sun.security.provider.SHA2$SHA256",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "sun.text.resources.cldr.FormatData"
     }
   ],
   "resources": [
@@ -2712,22 +2626,7 @@
       "glob": "/fonts/inter/Inter-Bold.ttf"
     },
     {
-      "glob": "/fonts/inter/Inter-Italic.ttf"
-    },
-    {
       "glob": "/fonts/inter/Inter-Regular.ttf"
-    },
-    {
-      "glob": "/fonts/inter/Inter-SemiBold.ttf"
-    },
-    {
-      "glob": "/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
-    },
-    {
-      "glob": "META-INF/services/coil3.util.FetcherServiceLoaderTarget"
-    },
-    {
-      "glob": "META-INF/services/io.ktor.client.HttpClientEngineContainer"
     },
     {
       "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
@@ -2737,9 +2636,6 @@
     },
     {
       "glob": "META-INF/services/javax.xml.transform.TransformerFactory"
-    },
-    {
-      "glob": "META-INF/services/javax.xml.xpath.XPathFactory"
     },
     {
       "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
@@ -2760,91 +2656,10 @@
       "glob": "expui/actions/buildAutoReloadChanges@2x.svg"
     },
     {
-      "glob": "expui/build/taskGroup.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@20x20.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@20x20@2x.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@20x20_dark.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@2x.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup@2x_dark.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup_dark.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup_stroke.svg"
-    },
-    {
-      "glob": "expui/build/taskGroup_stroke@2x.svg"
-    },
-    {
-      "glob": "expui/fileTypes/java.svg"
-    },
-    {
-      "glob": "expui/fileTypes/java@2x.svg"
-    },
-    {
-      "glob": "expui/fileTypes/java@2x_dark.svg"
-    },
-    {
-      "glob": "expui/fileTypes/javaScript.svg"
-    },
-    {
-      "glob": "expui/fileTypes/javaScript@2x.svg"
-    },
-    {
-      "glob": "expui/fileTypes/javaScript@2x_dark.svg"
-    },
-    {
-      "glob": "expui/fileTypes/javaScript_dark.svg"
-    },
-    {
-      "glob": "expui/fileTypes/java_dark.svg"
-    },
-    {
-      "glob": "expui/general/add.svg"
-    },
-    {
-      "glob": "expui/general/add@2x.svg"
-    },
-    {
-      "glob": "expui/general/add@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/add_dark.svg"
-    },
-    {
       "glob": "expui/general/chevronDown.svg"
     },
     {
       "glob": "expui/general/chevronDown@2x.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled@2x.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled_dark.svg"
     },
     {
       "glob": "expui/general/chevronDownHovered.svg"
@@ -2859,127 +2674,10 @@
       "glob": "expui/general/chevronDownPressed@2x.svg"
     },
     {
-      "glob": "expui/general/chevronDown_dark.svg"
-    },
-    {
       "glob": "expui/general/chevronDown_stroke.svg"
     },
     {
       "glob": "expui/general/chevronDown_stroke@2x.svg"
-    },
-    {
-      "glob": "expui/general/chevronRight.svg"
-    },
-    {
-      "glob": "expui/general/chevronRight@2x.svg"
-    },
-    {
-      "glob": "expui/general/chevronRight@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/chevronRight_dark.svg"
-    },
-    {
-      "glob": "expui/general/close.svg"
-    },
-    {
-      "glob": "expui/general/close@2x.svg"
-    },
-    {
-      "glob": "expui/general/close@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/closeSmall.svg"
-    },
-    {
-      "glob": "expui/general/closeSmall@2x.svg"
-    },
-    {
-      "glob": "expui/general/closeSmall@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/closeSmall_dark.svg"
-    },
-    {
-      "glob": "expui/general/close_dark.svg"
-    },
-    {
-      "glob": "expui/general/copy.svg"
-    },
-    {
-      "glob": "expui/general/copy@2x.svg"
-    },
-    {
-      "glob": "expui/general/delete.svg"
-    },
-    {
-      "glob": "expui/general/delete@2x.svg"
-    },
-    {
-      "glob": "expui/general/paste.svg"
-    },
-    {
-      "glob": "expui/general/paste@2x.svg"
-    },
-    {
-      "glob": "expui/general/refresh.svg"
-    },
-    {
-      "glob": "expui/general/refresh@2x.svg"
-    },
-    {
-      "glob": "expui/general/refresh@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/refresh_dark.svg"
-    },
-    {
-      "glob": "expui/general/search.svg"
-    },
-    {
-      "glob": "expui/general/search@2x.svg"
-    },
-    {
-      "glob": "expui/general/search@2x_dark.svg"
-    },
-    {
-      "glob": "expui/general/search_dark.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink@2x.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink@2x_dark.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled@2x.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled@2x_dark.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled_dark.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink_dark.svg"
-    },
-    {
-      "glob": "expui/inline/inlineSettings.svg"
-    },
-    {
-      "glob": "expui/inline/inlineSettings@2x.svg"
-    },
-    {
-      "glob": "expui/inline/inlineSettings@2x_dark.svg"
-    },
-    {
-      "glob": "expui/inline/inlineSettings_dark.svg"
     },
     {
       "glob": "expui/inline/matchCase.svg"
@@ -2988,67 +2686,10 @@
       "glob": "expui/inline/matchCase@2x.svg"
     },
     {
-      "glob": "expui/status/error.svg"
-    },
-    {
-      "glob": "expui/status/error@2x.svg"
-    },
-    {
-      "glob": "expui/status/error@2x_dark.svg"
-    },
-    {
-      "glob": "expui/status/error_dark.svg"
-    },
-    {
-      "glob": "expui/status/info.svg"
-    },
-    {
-      "glob": "expui/status/info@2x.svg"
-    },
-    {
-      "glob": "expui/status/info@2x_dark.svg"
-    },
-    {
-      "glob": "expui/status/info_dark.svg"
-    },
-    {
-      "glob": "expui/status/success.svg"
-    },
-    {
-      "glob": "expui/status/success@2x.svg"
-    },
-    {
-      "glob": "expui/status/success@2x_dark.svg"
-    },
-    {
-      "glob": "expui/status/success_dark.svg"
-    },
-    {
-      "glob": "expui/status/warning.svg"
-    },
-    {
-      "glob": "expui/status/warning@2x.svg"
-    },
-    {
-      "glob": "expui/status/warning@2x_dark.svg"
-    },
-    {
-      "glob": "expui/status/warning_dark.svg"
-    },
-    {
       "glob": "fonts/inter/Inter-Bold.ttf"
     },
     {
-      "glob": "fonts/inter/Inter-Italic.ttf"
-    },
-    {
       "glob": "fonts/inter/Inter-Regular.ttf"
-    },
-    {
-      "glob": "fonts/inter/Inter-SemiBold.ttf"
-    },
-    {
-      "glob": "fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
     },
     {
       "glob": "icons/components/banners.svg"
@@ -3060,19 +2701,7 @@
       "glob": "icons/components/banners@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/banners@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/banners@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/banners@2x.svg"
-    },
-    {
-      "glob": "icons/components/banners@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/banners_dark.svg"
     },
     {
       "glob": "icons/components/borders.svg"
@@ -3084,19 +2713,7 @@
       "glob": "icons/components/borders@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/borders@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/borders@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/borders@2x.svg"
-    },
-    {
-      "glob": "icons/components/borders@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/borders_dark.svg"
     },
     {
       "glob": "icons/components/brush.svg"
@@ -3108,19 +2725,7 @@
       "glob": "icons/components/brush@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/brush@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/brush@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/brush@2x.svg"
-    },
-    {
-      "glob": "icons/components/brush@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/brush_dark.svg"
     },
     {
       "glob": "icons/components/button.svg"
@@ -3132,19 +2737,7 @@
       "glob": "icons/components/button@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/button@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/button@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/button@2x.svg"
-    },
-    {
-      "glob": "icons/components/button@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/button_dark.svg"
     },
     {
       "glob": "icons/components/checkBox.svg"
@@ -3156,19 +2749,7 @@
       "glob": "icons/components/checkBox@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/checkBox@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/checkBox@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/checkBox@2x.svg"
-    },
-    {
-      "glob": "icons/components/checkBox@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/checkBox_dark.svg"
     },
     {
       "glob": "icons/components/comboBox.svg"
@@ -3180,19 +2761,7 @@
       "glob": "icons/components/comboBox@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/comboBox@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/comboBox@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/comboBox@2x.svg"
-    },
-    {
-      "glob": "icons/components/comboBox@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/comboBox_dark.svg"
     },
     {
       "glob": "icons/components/links.svg"
@@ -3204,19 +2773,7 @@
       "glob": "icons/components/links@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/links@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/links@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/links@2x.svg"
-    },
-    {
-      "glob": "icons/components/links@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/links_dark.svg"
     },
     {
       "glob": "icons/components/menu.svg"
@@ -3228,19 +2785,7 @@
       "glob": "icons/components/menu@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/menu@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/menu@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/menu@2x.svg"
-    },
-    {
-      "glob": "icons/components/menu@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/menu_dark.svg"
     },
     {
       "glob": "icons/components/progressbar.svg"
@@ -3252,19 +2797,7 @@
       "glob": "icons/components/progressbar@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/progressbar@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/progressbar@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/progressbar@2x.svg"
-    },
-    {
-      "glob": "icons/components/progressbar@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/progressbar_dark.svg"
     },
     {
       "glob": "icons/components/radioButton.svg"
@@ -3276,19 +2809,7 @@
       "glob": "icons/components/radioButton@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/radioButton@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/radioButton@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/radioButton@2x.svg"
-    },
-    {
-      "glob": "icons/components/radioButton@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/radioButton_dark.svg"
     },
     {
       "glob": "icons/components/scrollbar.svg"
@@ -3300,19 +2821,7 @@
       "glob": "icons/components/scrollbar@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/scrollbar@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/scrollbar@2x.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar_dark.svg"
     },
     {
       "glob": "icons/components/segmentedControl.svg"
@@ -3324,19 +2833,7 @@
       "glob": "icons/components/segmentedControl@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/segmentedControl@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/segmentedControl@2x.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl_dark.svg"
     },
     {
       "glob": "icons/components/slider.svg"
@@ -3348,19 +2845,7 @@
       "glob": "icons/components/slider@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/slider@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/slider@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/slider@2x.svg"
-    },
-    {
-      "glob": "icons/components/slider@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/slider_dark.svg"
     },
     {
       "glob": "icons/components/splitLayout.svg"
@@ -3372,19 +2857,7 @@
       "glob": "icons/components/splitLayout@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/splitLayout@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/splitLayout@2x.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout_dark.svg"
     },
     {
       "glob": "icons/components/tabs.svg"
@@ -3396,19 +2869,7 @@
       "glob": "icons/components/tabs@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/tabs@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tabs@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/tabs@2x.svg"
-    },
-    {
-      "glob": "icons/components/tabs@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tabs_dark.svg"
     },
     {
       "glob": "icons/components/textArea.svg"
@@ -3420,19 +2881,7 @@
       "glob": "icons/components/textArea@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/textArea@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/textArea@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/textArea@2x.svg"
-    },
-    {
-      "glob": "icons/components/textArea@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/textArea_dark.svg"
     },
     {
       "glob": "icons/components/textField.svg"
@@ -3444,19 +2893,7 @@
       "glob": "icons/components/textField@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/textField@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/textField@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/textField@2x.svg"
-    },
-    {
-      "glob": "icons/components/textField@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/textField_dark.svg"
     },
     {
       "glob": "icons/components/toolbar.svg"
@@ -3468,19 +2905,7 @@
       "glob": "icons/components/toolbar@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/toolbar@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/toolbar@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/toolbar@2x.svg"
-    },
-    {
-      "glob": "icons/components/toolbar@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/toolbar_dark.svg"
     },
     {
       "glob": "icons/components/tooltip.svg"
@@ -3492,19 +2917,7 @@
       "glob": "icons/components/tooltip@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/tooltip@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tooltip@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/tooltip@2x.svg"
-    },
-    {
-      "glob": "icons/components/tooltip@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tooltip_dark.svg"
     },
     {
       "glob": "icons/components/tree.svg"
@@ -3516,19 +2929,7 @@
       "glob": "icons/components/tree@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/tree@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tree@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/tree@2x.svg"
-    },
-    {
-      "glob": "icons/components/tree@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/tree_dark.svg"
     },
     {
       "glob": "icons/components/typography.svg"
@@ -3540,55 +2941,13 @@
       "glob": "icons/components/typography@20x20@2x.svg"
     },
     {
-      "glob": "icons/components/typography@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/typography@20x20_dark.svg"
-    },
-    {
       "glob": "icons/components/typography@2x.svg"
-    },
-    {
-      "glob": "icons/components/typography@2x_dark.svg"
-    },
-    {
-      "glob": "icons/components/typography_dark.svg"
     },
     {
       "glob": "icons/darkTheme.svg"
     },
     {
-      "glob": "icons/darkTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/darkTheme@20x20@2x.svg"
-    },
-    {
-      "glob": "icons/darkTheme@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/darkTheme@20x20_dark.svg"
-    },
-    {
       "glob": "icons/darkTheme@2x.svg"
-    },
-    {
-      "glob": "icons/darkTheme@2x_dark.svg"
-    },
-    {
-      "glob": "icons/darkThemeSelected.svg"
-    },
-    {
-      "glob": "icons/darkThemeSelected@2x.svg"
-    },
-    {
-      "glob": "icons/darkThemeSelected@2x_dark.svg"
-    },
-    {
-      "glob": "icons/darkThemeSelected_dark.svg"
-    },
-    {
-      "glob": "icons/darkTheme_dark.svg"
     },
     {
       "glob": "icons/github.svg"
@@ -3597,43 +2956,10 @@
       "glob": "icons/github@2x.svg"
     },
     {
-      "glob": "icons/github@2x_dark.svg"
-    },
-    {
-      "glob": "icons/github_dark.svg"
-    },
-    {
       "glob": "icons/jewel-logo.svg"
     },
     {
       "glob": "icons/jewel-logo@2x.svg"
-    },
-    {
-      "glob": "icons/jewel-logo@2x_dark.svg"
-    },
-    {
-      "glob": "icons/jewel-logo_dark.svg"
-    },
-    {
-      "glob": "icons/jewel-logo_stroke.svg"
-    },
-    {
-      "glob": "icons/jewel-logo_stroke@2x.svg"
-    },
-    {
-      "glob": "icons/kotlin.svg"
-    },
-    {
-      "glob": "icons/kotlin@2x.svg"
-    },
-    {
-      "glob": "icons/kotlin@2x_dark.svg"
-    },
-    {
-      "glob": "icons/kotlin_dark.svg"
-    },
-    {
-      "glob": "icons/lightTheme.svg"
     },
     {
       "glob": "icons/lightTheme@20x20.svg"
@@ -3642,61 +2968,16 @@
       "glob": "icons/lightTheme@20x20@2x.svg"
     },
     {
-      "glob": "icons/lightTheme@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/lightTheme@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/lightTheme@2x.svg"
-    },
-    {
-      "glob": "icons/lightTheme@2x_dark.svg"
-    },
-    {
       "glob": "icons/lightThemeSelected.svg"
     },
     {
       "glob": "icons/lightThemeSelected@2x.svg"
     },
     {
-      "glob": "icons/lightThemeSelected@2x_dark.svg"
-    },
-    {
-      "glob": "icons/lightThemeSelected_dark.svg"
-    },
-    {
-      "glob": "icons/lightTheme_dark.svg"
-    },
-    {
       "glob": "icons/lightWithLightHeaderTheme.svg"
     },
     {
-      "glob": "icons/lightWithLightHeaderTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme@20x20@2x.svg"
-    },
-    {
       "glob": "icons/lightWithLightHeaderTheme@2x.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme@2x_dark.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderThemeSelected.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderThemeSelected@2x.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme_dark.svg"
-    },
-    {
-      "glob": "icons/markdown/extensions/github/alerts/alert-warning.svg"
-    },
-    {
-      "glob": "icons/markdown/extensions/github/alerts/alert-warning@2x.svg"
     },
     {
       "glob": "icons/markdown@20x20.svg"
@@ -3711,130 +2992,19 @@
       "glob": "icons/meetNewUi@20x20@2x.svg"
     },
     {
-      "glob": "icons/meetNewUi@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/meetNewUi@20x20_dark.svg"
-    },
-    {
       "glob": "icons/structure@20x20.svg"
     },
     {
       "glob": "icons/structure@20x20@2x.svg"
     },
     {
-      "glob": "icons/structure@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/structure@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/sunny.svg"
-    },
-    {
-      "glob": "icons/sunny@2x.svg"
-    },
-    {
-      "glob": "icons/sunny@2x_dark.svg"
-    },
-    {
-      "glob": "icons/sunny_dark.svg"
-    },
-    {
       "glob": "icons/systemTheme.svg"
-    },
-    {
-      "glob": "icons/systemTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/systemTheme@20x20@2x.svg"
-    },
-    {
-      "glob": "icons/systemTheme@20x20@2x_dark.svg"
-    },
-    {
-      "glob": "icons/systemTheme@20x20_dark.svg"
     },
     {
       "glob": "icons/systemTheme@2x.svg"
     },
     {
-      "glob": "icons/systemTheme@2x_dark.svg"
-    },
-    {
-      "glob": "icons/systemThemeSelected.svg"
-    },
-    {
-      "glob": "icons/systemThemeSelected@2x.svg"
-    },
-    {
-      "glob": "icons/systemThemeSelected@2x_dark.svg"
-    },
-    {
-      "glob": "icons/systemThemeSelected_dark.svg"
-    },
-    {
-      "glob": "icons/systemTheme_dark.svg"
-    },
-    {
-      "glob": "language/go.svg"
-    },
-    {
-      "glob": "language/go@2x.svg"
-    },
-    {
-      "glob": "language/go@2x_dark.svg"
-    },
-    {
-      "glob": "language/go_dark.svg"
-    },
-    {
-      "glob": "language/python.svg"
-    },
-    {
-      "glob": "language/python@2x.svg"
-    },
-    {
-      "glob": "language/python@2x_dark.svg"
-    },
-    {
-      "glob": "language/python_dark.svg"
-    },
-    {
-      "glob": "language/ruby.svg"
-    },
-    {
-      "glob": "language/ruby@2x.svg"
-    },
-    {
-      "glob": "language/ruby@2x_dark.svg"
-    },
-    {
-      "glob": "language/ruby_dark.svg"
-    },
-    {
-      "glob": "language/rust.svg"
-    },
-    {
-      "glob": "language/rust@2x.svg"
-    },
-    {
-      "glob": "language/rust@2x_dark.svg"
-    },
-    {
-      "glob": "language/rust_dark.svg"
-    },
-    {
       "glob": "libskiko-macos-arm64.dylib.sha256"
-    },
-    {
-      "glob": "messages/JewelIntUIBundle.properties"
-    },
-    {
-      "glob": "messages/JewelIntUIBundle_fr.properties"
-    },
-    {
-      "glob": "messages/JewelIntUIBundle_fr_IL.properties"
     },
     {
       "glob": "nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"
@@ -3846,43 +3016,10 @@
       "glob": "org/slf4j/impl/StaticLoggerBinder.class"
     },
     {
-      "glob": "readme/jewel-logo.svg"
-    },
-    {
       "glob": "themes/expUI/icons/dark/checkBox.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/checkBox@2x.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBox@2x_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxDisabled.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxDisabled@2x.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxDisabled@2x_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxDisabled_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxSelected.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxSelected@2x.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxSelected@2x_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxSelected_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBox_dark.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/radio.svg"
@@ -3891,34 +3028,16 @@
       "glob": "themes/expUI/icons/dark/radio@2x.svg"
     },
     {
-      "glob": "themes/expUI/icons/dark/radio@2x_dark.svg"
-    },
-    {
       "glob": "themes/expUI/icons/dark/radioDisabled.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/radioDisabled@2x.svg"
     },
     {
-      "glob": "themes/expUI/icons/dark/radioDisabled@2x_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radioDisabled_dark.svg"
-    },
-    {
       "glob": "themes/expUI/icons/dark/radioSelected.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/radioSelected@2x.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radioSelected@2x_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radioSelected_dark.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radio_dark.svg"
     },
     {
       "module": "java.desktop",
@@ -3964,9 +3083,6 @@
     },
     {
       "bundle": "com.sun.swing.internal.plaf.basic.resources.basic"
-    },
-    {
-      "bundle": "messages.JewelIntUIBundle"
     },
     {
       "bundle": "sun.awt.resources.awt"

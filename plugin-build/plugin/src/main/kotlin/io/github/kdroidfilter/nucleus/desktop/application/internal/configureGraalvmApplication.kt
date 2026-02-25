@@ -1,0 +1,794 @@
+package io.github.kdroidfilter.nucleus.desktop.application.internal
+
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.GraalvmSettings
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.PackagingBackend
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractElectronBuilderPackageTask
+import io.github.kdroidfilter.nucleus.desktop.application.tasks.AbstractNotarizationTask
+import io.github.kdroidfilter.nucleus.desktop.tasks.AbstractUnpackDefaultApplicationResourcesTask
+import io.github.kdroidfilter.nucleus.internal.utils.Arch
+import io.github.kdroidfilter.nucleus.internal.utils.OS
+import io.github.kdroidfilter.nucleus.internal.utils.currentArch
+import io.github.kdroidfilter.nucleus.internal.utils.currentOS
+import io.github.kdroidfilter.nucleus.internal.utils.executableName
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.JavaExec
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.jvm.tasks.Jar
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
+import java.io.File
+
+private val graalvmDefaultJvmArgs: List<String> =
+    buildList {
+        add("-D$CONFIGURE_SWING_GLOBALS=true")
+        if (currentOS == OS.MacOS) {
+            add("--add-opens=java.desktop/sun.awt=ALL-UNNAMED")
+            add("--add-opens=java.desktop/sun.lwawt=ALL-UNNAMED")
+            add("--add-opens=java.desktop/sun.lwawt.macosx=ALL-UNNAMED")
+        }
+    }
+
+@Suppress("LongMethod", "CyclomaticComplexMethod")
+internal fun JvmApplicationContext.configureGraalvmApplication() {
+    val graalvm = app.graalvm
+    val javaToolchains = project.extensions.getByType(JavaToolchainService::class.java)
+
+    val graalvmLauncher = javaToolchains.launcherFor { spec ->
+        spec.languageVersion.set(JavaLanguageVersion.of(graalvm.javaLanguageVersion.get()))
+        if (graalvm.jvmVendor.isPresent) {
+            spec.vendor.set(graalvm.jvmVendor)
+        }
+    }
+
+    val graalvmHome = graalvmLauncher.map { launcher ->
+        launcher.metadata.installationPath.asFile.absolutePath
+    }
+
+    val nativeImageConfigDir = graalvm.nativeImageConfigBaseDir
+
+    // ── Uber JAR (reuse existing task) ──
+
+    val flattenJars =
+        tasks.register<org.gradle.api.tasks.bundling.Jar>(
+            taskNameAction = "flatten",
+            taskNameObject = "graalvmJars",
+        ) {
+            // Empty config — we wire it below
+        }
+
+    // We need the uber JAR from the existing pipeline
+    val packageUberJar = project.tasks.named("packageUberJarForCurrentOS", Jar::class.java)
+
+    // ── runWithNativeAgent ──
+
+    val runWithNativeAgent =
+        tasks.register<JavaExec>(
+            taskNameAction = "run",
+            taskNameObject = "withNativeAgent",
+        ) {
+            description = "Run the app with the GraalVM native-image-agent to collect reflection metadata"
+
+            mainClass.set(app.mainClass)
+            setExecutable(graalvmLauncher.get().executablePath.asFile.absolutePath)
+
+            useAppRuntimeFiles { (runtimeJars, _) ->
+                classpath = runtimeJars
+            }
+
+            jvmArgs = buildList {
+                addAll(graalvmDefaultJvmArgs)
+                addAll(app.jvmArgs.filter { arg ->
+                    // Exclude jpackage-specific artificial args
+                    !arg.startsWith("-splash:\$APPDIR/") &&
+                        !arg.startsWith("-D$APP_EXECUTABLE_TYPE=") &&
+                        !arg.startsWith("-D$APP_RESOURCES_DIR=")
+                })
+
+                val configDir = if (nativeImageConfigDir.isPresent) {
+                    nativeImageConfigDir.get().asFile.absolutePath
+                } else {
+                    project.layout.projectDirectory
+                        .dir("src/main/resources/META-INF/native-image")
+                        .asFile.absolutePath
+                }
+                add("-agentlib:native-image-agent=config-output-dir=$configDir")
+            }
+
+            args = app.args
+        }
+
+    // ── Platform-specific pre-compile tasks ──
+
+    val nativeCompileDir = appTmpDir.map { it.dir("graalvm/nativeCompile") }
+    val imageName = graalvm.imageName.orElse(packageNameProvider)
+    val binaryName = imageName.map { executableName(it) }
+
+    // macOS: compile C stubs
+    val compileStubs =
+        if (currentOS == OS.MacOS && graalvm.macOS.cStubsSrc.isPresent) {
+            tasks.register<Exec>(
+                taskNameAction = "compile",
+                taskNameObject = "graalvmStubs",
+            ) {
+                description = "Compile C stubs for symbols referenced by AWT flat-namespace dylibs"
+
+                val src = graalvm.macOS.cStubsSrc.get().asFile
+                val outFile = appTmpDir.map { it.file("graalvm/cursor_stub.o") }
+
+                inputs.file(src)
+                outputs.file(outFile)
+
+                commandLine("clang", "-c", src.absolutePath, "-o", outFile.get().asFile.absolutePath)
+            }
+        } else {
+            null
+        }
+
+    // Windows: generate .rc resource and compile to .res
+    val generateWindowsResources =
+        if (currentOS == OS.Windows) {
+            // Capture all DSL values at configuration time to avoid serializing
+            // Project/SourceSet references into the configuration cache.
+            val winPkgName = packageNameProvider
+            val winPkgVersion = provider { app.nativeDistributions.packageVersion ?: "1.0.0" }
+            val winCopyright = provider { app.nativeDistributions.copyright ?: "" }
+            val winDescription = provider { app.nativeDistributions.description ?: packageNameProvider.get() }
+            val winIconFile = app.nativeDistributions.windows.iconFile
+
+            tasks.register<DefaultTask>(
+                taskNameAction = "generate",
+                taskNameObject = "graalvmWindowsResources",
+            ) {
+                description = "Generate and compile Windows resource file (.rc -> .res) for native image icon and version info"
+
+                val rcFile = appTmpDir.map { it.file("graalvm/icon.rc") }
+                val resFile = appTmpDir.map { it.file("graalvm/icon.res") }
+
+                outputs.file(resFile)
+                if (winIconFile.isPresent) {
+                    inputs.file(winIconFile)
+                }
+                inputs.property("pkgName", winPkgName)
+                inputs.property("pkgVersion", winPkgVersion)
+                inputs.property("copyright", winCopyright)
+                inputs.property("description", winDescription)
+                inputs.property("imageName", imageName)
+
+                doLast {
+                    val rcDir = rcFile.get().asFile.parentFile
+                    rcDir.mkdirs()
+
+                    val pkgName = winPkgName.get()
+                    val pkgVersion = winPkgVersion.get()
+                    val copyright = winCopyright.get()
+                    val taskDescription = winDescription.get()
+                    val versionParts = pkgVersion.split(".").map { it.toIntOrNull() ?: 0 }
+                    val v1 = versionParts.getOrElse(0) { 0 }
+                    val v2 = versionParts.getOrElse(1) { 0 }
+                    val v3 = versionParts.getOrElse(2) { 0 }
+                    val v4 = versionParts.getOrElse(3) { 0 }
+
+                    val rcContent = buildString {
+                        if (winIconFile.isPresent) {
+                            appendLine("1 ICON \"${winIconFile.get().asFile.absolutePath.replace("\\", "\\\\")}\"")
+                            appendLine()
+                        }
+                        appendLine("1 VERSIONINFO")
+                        appendLine("FILEVERSION $v1,$v2,$v3,$v4")
+                        appendLine("PRODUCTVERSION $v1,$v2,$v3,$v4")
+                        appendLine("BEGIN")
+                        appendLine("  BLOCK \"StringFileInfo\"")
+                        appendLine("  BEGIN")
+                        appendLine("    BLOCK \"040904B0\"")
+                        appendLine("    BEGIN")
+                        appendLine("      VALUE \"FileDescription\", \"$taskDescription\"")
+                        appendLine("      VALUE \"FileVersion\", \"$pkgVersion\"")
+                        appendLine("      VALUE \"InternalName\", \"$pkgName\"")
+                        appendLine("      VALUE \"LegalCopyright\", \"$copyright\"")
+                        appendLine("      VALUE \"OriginalFilename\", \"${imageName.get()}.exe\"")
+                        appendLine("      VALUE \"ProductName\", \"$pkgName\"")
+                        appendLine("      VALUE \"ProductVersion\", \"$pkgVersion\"")
+                        appendLine("    END")
+                        appendLine("  END")
+                        appendLine("  BLOCK \"VarFileInfo\"")
+                        appendLine("  BEGIN")
+                        appendLine("    VALUE \"Translation\", 0x0409, 0x04B0")
+                        appendLine("  END")
+                        appendLine("END")
+                    }
+                    rcFile.get().asFile.writeText(rcContent)
+
+                    // Compile .rc to .res using rc.exe
+                    val arch = when (currentArch) {
+                        Arch.X64 -> "x64"
+                        Arch.Arm64 -> "arm64"
+                    }
+                    val rcExe = WindowsKitsLocator.locateRc(arch)
+                        ?: error(
+                            "Could not locate rc.exe from Windows SDK. " +
+                                "Ensure Windows SDK is installed."
+                        )
+
+                    val processBuilder = ProcessBuilder(
+                        rcExe.absolutePath,
+                        "/fo", resFile.get().asFile.absolutePath,
+                        rcFile.get().asFile.absolutePath,
+                    )
+                    processBuilder.inheritIO()
+                    val process = processBuilder.start()
+                    val exitCode = process.waitFor()
+                    check(exitCode == 0) { "rc.exe failed with exit code $exitCode" }
+                }
+            }
+        } else {
+            null
+        }
+
+    // ── nativeImageCompile ──
+
+    val nativeImageCompile =
+        tasks.register<Exec>(
+            taskNameAction = "nativeImage",
+            taskNameObject = "compile",
+        ) {
+            description = "Compile the application into a GraalVM native image"
+
+            dependsOn(packageUberJar)
+            compileStubs?.let { dependsOn(it) }
+            generateWindowsResources?.let { dependsOn(it) }
+
+            val uberJarFile = packageUberJar.flatMap { it.archiveFile }
+            inputs.file(uberJarFile)
+            val outputDir = nativeCompileDir.get().asFile
+            outputs.dir(outputDir)
+
+            val nativeImageExe = graalvmHome.map { home ->
+                File(home).resolve("bin/${executableName("native-image")}").absolutePath
+            }
+
+            executable = nativeImageExe.get()
+
+            doFirst {
+                outputDir.mkdirs()
+            }
+
+            args = buildList {
+                add("-jar")
+                add(uberJarFile.get().asFile.absolutePath)
+                add("-o")
+                add(File(outputDir, imageName.get()).absolutePath)
+                add("-march=${graalvm.march.get()}")
+
+                // macOS: link C stubs
+                if (currentOS == OS.MacOS && compileStubs != null) {
+                    val stubObj = appTmpDir.get().file("graalvm/cursor_stub.o").asFile.absolutePath
+                    add("-H:NativeLinkerOption=$stubObj")
+                }
+
+                // Windows: link .res for icon + version info, configure subsystem
+                if (currentOS == OS.Windows && generateWindowsResources != null) {
+                    val resFile = appTmpDir.get().file("graalvm/icon.res").asFile.absolutePath
+                    add("-H:NativeLinkerOption=$resFile")
+                    add("-H:NativeLinkerOption=/SUBSYSTEM:WINDOWS")
+                    add("-H:NativeLinkerOption=/ENTRY:mainCRTStartup")
+                }
+
+                addAll(graalvm.buildArgs.get())
+            }
+        }
+
+    // ── Platform-specific packaging ──
+
+    val packageGraalvmNative: TaskProvider<out DefaultTask> = when (currentOS) {
+        OS.MacOS -> configureMacOsGraalvmPackaging(
+            graalvm, graalvmHome, nativeImageCompile, nativeCompileDir, imageName,
+        )
+        OS.Windows -> configureWindowsGraalvmPackaging(
+            graalvmHome, nativeImageCompile, nativeCompileDir, imageName,
+        )
+        OS.Linux -> configureLinuxGraalvmPackaging(
+            graalvmHome, nativeImageCompile, nativeCompileDir, imageName,
+        )
+    }
+
+    // ── Electron-builder integration ──
+
+    configureGraalvmElectronBuilderPackaging(packageGraalvmNative)
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// macOS packaging
+// ═══════════════════════════════════════════════════════════════════
+
+@Suppress("LongMethod", "LongParameterList")
+private fun JvmApplicationContext.configureMacOsGraalvmPackaging(
+    graalvm: GraalvmSettings,
+    graalvmHome: org.gradle.api.provider.Provider<String>,
+    nativeImageCompile: TaskProvider<Exec>,
+    nativeCompileDir: org.gradle.api.provider.Provider<org.gradle.api.file.Directory>,
+    imageName: org.gradle.api.provider.Provider<String>,
+): TaskProvider<DefaultTask> {
+    val appBundleName = packageNameProvider.map { "$it.app" }
+    val appBundleDir = appTmpDir.map { tmpDir ->
+        tmpDir.dir("graalvm/output/${appBundleName.get()}/Contents")
+    }
+
+    val cleanAppBundle =
+        tasks.register<Delete>(
+            taskNameAction = "clean",
+            taskNameObject = "graalvmAppBundle",
+        ) {
+            description = "Remove stale .app bundle before rebuilding"
+            mustRunAfter(nativeImageCompile)
+            delete(appTmpDir.map { it.dir("graalvm/output") })
+        }
+
+    val copyBinary =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmBinaryToApp",
+        ) {
+            description = "Copy native binary into .app bundle"
+            dependsOn(nativeImageCompile, cleanAppBundle)
+            // strip modifies files in-place after copy, leaving temp files that
+            // break Gradle's incremental destination scanning on the next run.
+            doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+            from(nativeCompileDir.map { it.file(imageName.get()) })
+            into(appBundleDir.map { it.dir("MacOS") })
+        }
+
+    val copyAwtDylibs =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmAwtDylibs",
+        ) {
+            description = "Copy AWT dylibs into .app bundle"
+            dependsOn(nativeImageCompile, cleanAppBundle)
+            doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+            from("${graalvmHome.get()}/lib") {
+                include(
+                    "libawt.dylib", "libawt_lwawt.dylib", "libfontmanager.dylib",
+                    "libfreetype.dylib", "libjava.dylib", "libjavajpeg.dylib",
+                    "libjawt.dylib", "liblcms.dylib", "libmlib_image.dylib",
+                    "libosxapp.dylib", "libsplashscreen.dylib",
+                )
+            }
+            from("${graalvmHome.get()}/lib/server") {
+                include("libjvm.dylib")
+            }
+            into(appBundleDir.map { it.dir("MacOS") })
+        }
+
+    val copyJawtToLib =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmJawtToLib",
+        ) {
+            description = "Copy libjawt.dylib to lib/ subdir for Skiko"
+            dependsOn(nativeImageCompile, cleanAppBundle)
+            doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+            from("${graalvmHome.get()}/lib") {
+                include("libjawt.dylib")
+            }
+            into(appBundleDir.map { it.dir("MacOS/lib") })
+        }
+
+    val stripDylibs =
+        tasks.register<Exec>(
+            taskNameAction = "strip",
+            taskNameObject = "graalvmDylibs",
+        ) {
+            description = "Strip debug symbols from dylibs"
+            dependsOn(copyAwtDylibs)
+            val macosDir = appBundleDir.map { it.dir("MacOS") }
+            commandLine("bash", "-c", "strip -x ${macosDir.get().asFile.absolutePath}/*.dylib")
+        }
+
+    val codesignDylibs =
+        tasks.register<Exec>(
+            taskNameAction = "codesign",
+            taskNameObject = "graalvmDylibs",
+        ) {
+            description = "Re-sign dylibs after stripping (ad-hoc)"
+            dependsOn(stripDylibs)
+            val macosDir = appBundleDir.map { it.dir("MacOS") }
+            commandLine("bash", "-c", "codesign --force --sign - ${macosDir.get().asFile.absolutePath}/*.dylib")
+        }
+
+    val fixRpath =
+        tasks.register<Exec>(
+            taskNameAction = "fix",
+            taskNameObject = "graalvmRpath",
+        ) {
+            description = "Add @executable_path rpath to native image"
+            dependsOn(copyBinary)
+            val binary = appBundleDir.map { it.file("MacOS/${imageName.get()}") }
+            commandLine("install_name_tool", "-add_rpath", "@executable_path/.", binary.get().asFile.absolutePath)
+            isIgnoreExitValue = true
+        }
+
+    // Generate Info.plist — all DSL values are captured at configuration time
+    // to avoid serializing Project/SourceSet references into the configuration cache.
+    val plistBundleName: String = app.nativeDistributions.packageName ?: project.name
+    val plistBundleID: String? = app.nativeDistributions.macOS.bundleID
+    val plistVersion: String = app.nativeDistributions.packageVersion
+        ?: project.version.toString().takeIf { it != "unspecified" }
+        ?: "1.0.0"
+    val plistMinSystemVersion = graalvm.macOS.minimumSystemVersion
+    val plistCopyright: String? = app.nativeDistributions.copyright
+    val plistIconFileName: String? = app.nativeDistributions.macOS.iconFile
+        .let { if (it.isPresent) it.get().asFile.name else null }
+
+    val generateInfoPlist =
+        tasks.register<DefaultTask>(
+            taskNameAction = "generate",
+            taskNameObject = "graalvmInfoPlist",
+        ) {
+            description = "Generate Info.plist for GraalVM .app bundle"
+            val plistFile = appTmpDir.map { it.file("graalvm/Info.plist") }
+            outputs.file(plistFile)
+
+            // Wire inputs for up-to-date checks
+            inputs.property("bundleName", plistBundleName)
+            inputs.property("bundleID", plistBundleID ?: "")
+            inputs.property("version", plistVersion)
+            inputs.property("imageName", imageName)
+            inputs.property("minSystemVersion", plistMinSystemVersion)
+            inputs.property("copyright", plistCopyright ?: "")
+            inputs.property("iconFileName", plistIconFileName ?: "")
+
+            doLast {
+                val plist = InfoPlistBuilder()
+                plist[PlistKeys.CFBundleName] = plistBundleName
+                plist[PlistKeys.CFBundleIdentifier] = plistBundleID
+                plist[PlistKeys.CFBundleVersion] = plistVersion
+                plist[PlistKeys.CFBundleShortVersionString] = plistVersion
+                plist[PlistKeys.CFBundleExecutable] = imageName.get()
+                plist[PlistKeys.CFBundlePackageType] = "APPL"
+                plist[PlistKeys.CFBundleInfoDictionaryVersion] = "6.0"
+                plist[PlistKeys.NSHighResolutionCapable] = true
+                plist[PlistKeys.NSSupportsAutomaticGraphicsSwitching] = true
+                plist[PlistKeys.LSMinimumSystemVersion] = plistMinSystemVersion.get()
+
+                if (plistCopyright != null) {
+                    plist[PlistKeys.NSHumanReadableCopyright] = plistCopyright
+                }
+
+                if (plistIconFileName != null) {
+                    plist[PlistKeys.CFBundleIconFile] = plistIconFileName
+                }
+
+                plistFile.get().asFile.parentFile.mkdirs()
+                plist.writeToFile(plistFile.get().asFile)
+            }
+        }
+
+    val copyInfoPlist =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmInfoPlist",
+        ) {
+            description = "Copy Info.plist into .app bundle"
+            dependsOn(generateInfoPlist, cleanAppBundle)
+            doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+            from(appTmpDir.map { it.file("graalvm/Info.plist") })
+            into(appBundleDir)
+        }
+
+    // Copy icon into Resources/
+    val copyIcon =
+        if (app.nativeDistributions.macOS.iconFile.isPresent) {
+            tasks.register<Copy>(
+                taskNameAction = "copy",
+                taskNameObject = "graalvmMacIcon",
+            ) {
+                description = "Copy app icon into .app bundle Resources"
+                dependsOn(cleanAppBundle)
+                doNotTrackState("Output directory is modified by downstream strip/codesign tasks")
+                from(app.nativeDistributions.macOS.iconFile)
+                into(appBundleDir.map { it.dir("Resources") })
+            }
+        } else {
+            null
+        }
+
+    val codesignBundle =
+        tasks.register<Exec>(
+            taskNameAction = "codesign",
+            taskNameObject = "graalvmBundle",
+        ) {
+            description = "Ad-hoc sign the entire .app bundle"
+            dependsOn(codesignDylibs, copyBinary, fixRpath, copyInfoPlist, copyJawtToLib)
+            copyIcon?.let { dependsOn(it) }
+            val bundleDir = appTmpDir.map { it.dir("graalvm/output/${appBundleName.get()}") }
+            commandLine("codesign", "--force", "--deep", "--sign", "-", bundleDir.get().asFile.absolutePath)
+        }
+
+    return tasks.register<DefaultTask>(
+        taskNameAction = "package",
+        taskNameObject = "graalvmNative",
+    ) {
+        description = "Build native image and package as macOS .app bundle"
+        dependsOn(
+            copyBinary, copyAwtDylibs, copyJawtToLib,
+            stripDylibs, codesignDylibs, codesignBundle,
+            fixRpath, copyInfoPlist,
+        )
+        copyIcon?.let { dependsOn(it) }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Windows packaging
+// ═══════════════════════════════════════════════════════════════════
+
+@Suppress("LongParameterList")
+private fun JvmApplicationContext.configureWindowsGraalvmPackaging(
+    graalvmHome: org.gradle.api.provider.Provider<String>,
+    nativeImageCompile: TaskProvider<Exec>,
+    nativeCompileDir: org.gradle.api.provider.Provider<org.gradle.api.file.Directory>,
+    imageName: org.gradle.api.provider.Provider<String>,
+): TaskProvider<DefaultTask> {
+    val outputDir = appTmpDir.map { it.dir("graalvm/output/${packageNameProvider.get()}") }
+
+    val copyBinary =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmBinaryToOutput",
+        ) {
+            description = "Copy native binary into output directory"
+            dependsOn(nativeImageCompile)
+            from(nativeCompileDir.map { it.file("${imageName.get()}.exe") })
+            into(outputDir)
+        }
+
+    val copyAwtDlls =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmAwtDlls",
+        ) {
+            description = "Copy AWT DLLs into output directory"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/bin") {
+                include(
+                    "awt.dll", "java.dll", "javajpeg.dll", "fontmanager.dll",
+                    "freetype.dll", "lcms.dll", "mlib_image.dll", "splashscreen.dll",
+                )
+            }
+            into(outputDir)
+        }
+
+    val copyJvmDll =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmJvmDll",
+        ) {
+            description = "Copy jvm.dll into output directory"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/bin/server") {
+                include("jvm.dll")
+            }
+            into(outputDir)
+        }
+
+    val copyJawtToBin =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmJawtToBin",
+        ) {
+            description = "Copy jawt.dll to bin/ subdir for Skiko"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/bin") {
+                include("jawt.dll")
+            }
+            into(outputDir.map { it.dir("bin") })
+        }
+
+    return tasks.register<DefaultTask>(
+        taskNameAction = "package",
+        taskNameObject = "graalvmNative",
+    ) {
+        description = "Build native image and package with DLLs"
+        dependsOn(copyBinary, copyAwtDlls, copyJvmDll, copyJawtToBin)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Linux packaging
+// ═══════════════════════════════════════════════════════════════════
+
+@Suppress("LongParameterList")
+private fun JvmApplicationContext.configureLinuxGraalvmPackaging(
+    graalvmHome: org.gradle.api.provider.Provider<String>,
+    nativeImageCompile: TaskProvider<Exec>,
+    nativeCompileDir: org.gradle.api.provider.Provider<org.gradle.api.file.Directory>,
+    imageName: org.gradle.api.provider.Provider<String>,
+): TaskProvider<DefaultTask> {
+    val outputDir = appTmpDir.map { it.dir("graalvm/output/${packageNameProvider.get()}") }
+
+    val copyBinary =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmBinaryToOutput",
+        ) {
+            description = "Copy native binary into output directory"
+            dependsOn(nativeImageCompile)
+            from(nativeCompileDir.map { it.file(imageName.get()) })
+            into(outputDir)
+        }
+
+    val copyAwtSoLibs =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmAwtSoLibs",
+        ) {
+            description = "Copy AWT .so libs into output directory"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/lib") {
+                include(
+                    "libawt.so", "libawt_headless.so", "libawt_xawt.so", "libfontmanager.so",
+                    "libjava.so", "libjavajpeg.so", "libjawt.so", "liblcms.so",
+                    "libmlib_image.so", "libsplashscreen.so",
+                )
+            }
+            into(outputDir)
+        }
+
+    val copyJvmSo =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmJvmSo",
+        ) {
+            description = "Copy libjvm.so into output directory"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/lib/server") {
+                include("libjvm.so")
+            }
+            into(outputDir)
+        }
+
+    val copyJawtToLib =
+        tasks.register<Copy>(
+            taskNameAction = "copy",
+            taskNameObject = "graalvmJawtToLib",
+        ) {
+            description = "Copy libjawt.so to lib/ subdir for Skiko"
+            dependsOn(nativeImageCompile)
+            from("${graalvmHome.get()}/lib") {
+                include("libjawt.so")
+            }
+            into(outputDir.map { it.dir("lib") })
+        }
+
+    val fixRpath =
+        tasks.register<Exec>(
+            taskNameAction = "fix",
+            taskNameObject = "graalvmRpath",
+        ) {
+            description = "Set RPATH to \$ORIGIN so the binary finds .so libs next to it"
+            dependsOn(copyBinary)
+            val binary = outputDir.map { it.file(imageName.get()) }
+            commandLine("patchelf", "--set-rpath", "\$ORIGIN", binary.get().asFile.absolutePath)
+        }
+
+    val stripSoLibs =
+        tasks.register<Exec>(
+            taskNameAction = "strip",
+            taskNameObject = "graalvmSoLibs",
+        ) {
+            description = "Strip debug symbols from .so libs"
+            dependsOn(copyAwtSoLibs, copyJvmSo)
+            commandLine("bash", "-c", "strip --strip-debug ${outputDir.get().asFile.absolutePath}/*.so")
+        }
+
+    return tasks.register<DefaultTask>(
+        taskNameAction = "package",
+        taskNameObject = "graalvmNative",
+    ) {
+        description = "Build native image and package with .so libs"
+        dependsOn(copyBinary, copyAwtSoLibs, copyJvmSo, copyJawtToLib, fixRpath, stripSoLibs)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Electron-builder integration
+// ═══════════════════════════════════════════════════════════════════
+
+private fun JvmApplicationContext.configureGraalvmElectronBuilderPackaging(
+    packageGraalvmNative: TaskProvider<out DefaultTask>,
+) {
+    val unpackDefaultResources =
+        tasks.register<AbstractUnpackDefaultApplicationResourcesTask>(
+            taskNameAction = "unpack",
+            taskNameObject = "graalvmDefaultResources",
+        ) {}
+
+    val ebFormats = app.nativeDistributions.targetFormats
+        .filter { it.backend == PackagingBackend.ELECTRON_BUILDER && !it.isStoreFormat }
+
+    for (targetFormat in ebFormats) {
+        val packageFormat =
+            tasks.register<AbstractElectronBuilderPackageTask>(
+                taskNameAction = "packageGraalvm",
+                taskNameObject = targetFormat.name,
+                args = listOf(targetFormat),
+            ) {
+                enabled = targetFormat.isCompatibleWithCurrentOS
+                dependsOn(packageGraalvmNative, unpackDefaultResources)
+
+                // The app image root is the output directory from the native packaging step
+                appImageRoot.set(
+                    appTmpDir.map { it.dir("graalvm/output") },
+                )
+
+                destinationDir.set(
+                    app.nativeDistributions.outputBaseDir.map {
+                        it.dir("$appDirName/graalvm-${targetFormat.outputDirName}")
+                    },
+                )
+
+                packageName.set(packageNameProvider)
+                packageVersion.set(packageVersionFor(targetFormat))
+
+                // Only wire platform-specific icons/entitlements for the current OS
+                // to avoid validation errors from missing cross-platform files.
+                when (currentOS) {
+                    OS.Linux -> {
+                        linuxIconFile.set(
+                            app.nativeDistributions.linux.iconFile
+                                .orElse(unpackDefaultResources.flatMap { it.resources.linuxIcon }),
+                        )
+                        val startupWMClass =
+                            app.nativeDistributions.linux.startupWMClass
+                                ?.takeIf { it.isNotBlank() }
+                                ?: app.mainClass?.replace('.', '-')
+                        if (startupWMClass != null) {
+                            this.startupWMClass.set(startupWMClass)
+                        }
+                    }
+                    OS.Windows -> {
+                        windowsIconFile.set(
+                            app.nativeDistributions.windows.iconFile
+                                .orElse(unpackDefaultResources.flatMap { it.resources.windowsIcon }),
+                        )
+                    }
+                    OS.MacOS -> {
+                        val mac = app.nativeDistributions.macOS
+                        nonValidatedMacSigningSettings = mac.signing
+                        nonValidatedMacBundleID.set(mac.bundleID)
+                        macAppStore.set(mac.appStore)
+                        macEntitlementsFile.set(
+                            mac.entitlementsFile.orElse(
+                                unpackDefaultResources.flatMap { it.resources.defaultEntitlements },
+                            ),
+                        )
+                        macRuntimeEntitlementsFile.set(
+                            mac.runtimeEntitlementsFile.orElse(
+                                unpackDefaultResources.flatMap { it.resources.defaultEntitlements },
+                            ),
+                        )
+                    }
+                }
+
+                customNodePath.set(NucleusProperties.electronBuilderNodePath(project.providers))
+                publishMode.set(NucleusProperties.electronBuilderPublishMode(project.providers))
+                distributions = app.nativeDistributions
+            }
+
+        if (targetFormat.isCompatibleWith(OS.MacOS)) {
+            tasks.register<AbstractNotarizationTask>(
+                taskNameAction = "notarizeGraalvm",
+                taskNameObject = targetFormat.name,
+                args = listOf(targetFormat),
+            ) {
+                dependsOn(packageFormat)
+                inputDir.set(packageFormat.flatMap { it.destinationDir })
+                configureCommonNotarizationSettings(this)
+            }
+        }
+    }
+}
