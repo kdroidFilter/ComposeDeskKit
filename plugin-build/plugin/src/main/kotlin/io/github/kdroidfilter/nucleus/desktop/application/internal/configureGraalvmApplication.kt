@@ -11,6 +11,7 @@ import io.github.kdroidfilter.nucleus.internal.utils.OS
 import io.github.kdroidfilter.nucleus.internal.utils.currentArch
 import io.github.kdroidfilter.nucleus.internal.utils.currentOS
 import io.github.kdroidfilter.nucleus.internal.utils.executableName
+import io.github.kdroidfilter.nucleus.internal.utils.uppercaseFirstChar
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
@@ -52,16 +53,9 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
 
     // ── Uber JAR (reuse existing task) ──
 
-    val flattenJars =
-        tasks.register<org.gradle.api.tasks.bundling.Jar>(
-            taskNameAction = "flatten",
-            taskNameObject = "graalvmJars",
-        ) {
-            // Empty config — we wire it below
-        }
-
-    // We need the uber JAR from the existing pipeline
-    val packageUberJar = project.tasks.named("packageUberJarForCurrentOS", Jar::class.java)
+    // We need the uber JAR from the existing pipeline (respects build type classifier)
+    val uberJarTaskName = "package${buildType.classifier.uppercaseFirstChar()}UberJarForCurrentOS"
+    val packageUberJar = project.tasks.named(uberJarTaskName, Jar::class.java)
 
     // ── runWithNativeAgent ──
 
@@ -281,13 +275,12 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
             }
         }
 
-    // ── Default resources (icons, entitlements) ──
+    // ── Default resources (icons, entitlements) — reuse the one from configureJvmApplication ──
 
-    val unpackDefaultResources =
-        tasks.register<AbstractUnpackDefaultApplicationResourcesTask>(
-            taskNameAction = "unpack",
-            taskNameObject = "graalvmDefaultResources",
-        ) {}
+    val unpackDefaultResources = project.tasks.named(
+        "unpackDefaultComposeDesktopJvmApplicationResources",
+        AbstractUnpackDefaultApplicationResourcesTask::class.java,
+    )
 
     // ── Platform-specific packaging ──
 

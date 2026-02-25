@@ -22,6 +22,8 @@ internal fun configureDesktop(
 
         if (appInternal.data.graalvm.isEnabled.getOrElse(false)) {
             appData.configureGraalvmApplication()
+            appData.copy(buildType = appInternal.data.buildTypes.release)
+                .configureGraalvmApplication()
         }
     }
 

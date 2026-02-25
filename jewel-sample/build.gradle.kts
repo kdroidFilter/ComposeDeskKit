@@ -1,3 +1,4 @@
+import io.github.kdroidfilter.nucleus.desktop.application.dsl.CompressionLevel
 import io.github.kdroidfilter.nucleus.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -67,6 +68,17 @@ nucleus.application {
         "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
     )
 
+    buildTypes {
+        release {
+            proguard {
+                version = "7.8.1"
+                isEnabled = true
+                optimize = false
+                configurationFiles.from(project.file("proguard-rules.pro"))
+            }
+        }
+    }
+
     graalvm {
         isEnabled = true
         javaLanguageVersion = 25
@@ -95,6 +107,7 @@ nucleus.application {
     }
 
     nativeDistributions {
+        compressionLevel = CompressionLevel.Maximum
         targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb)
 
         packageName = "JewelSample"
@@ -104,4 +117,11 @@ nucleus.application {
             bundleID = "io.github.kdroidfilter.jewelsample"
         }
     }
+}
+
+tasks.withType<Jar> {
+    exclude("META-INF/*.SF")
+    exclude("META-INF/*.DSA")
+    exclude("META-INF/*.RSA")
+    exclude("META-INF/*.EC")
 }
