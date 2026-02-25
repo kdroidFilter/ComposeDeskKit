@@ -88,7 +88,10 @@ tasks.register<JavaExec>("runWithAgent") {
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("jewelsample.MainKt")
     jvmArgs(
-        "-agentlib:native-image-agent=config-output-dir=${nativeImageConfigDir.asFile.absolutePath}"
+        "--add-opens", "java.desktop/sun.awt=ALL-UNNAMED",
+        "--add-opens", "java.desktop/sun.lwawt=ALL-UNNAMED",
+        "--add-opens", "java.desktop/sun.lwawt.macosx=ALL-UNNAMED",
+        "-agentlib:native-image-agent=config-output-dir=${nativeImageConfigDir.asFile.absolutePath}",
     )
 }
 
