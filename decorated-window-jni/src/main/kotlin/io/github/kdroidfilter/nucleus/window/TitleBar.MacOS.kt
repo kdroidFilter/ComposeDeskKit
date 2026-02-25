@@ -13,10 +13,6 @@ import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import io.github.kdroidfilter.nucleus.window.utils.macos.JniMacTitleBarBridge
 import io.github.kdroidfilter.nucleus.window.utils.macos.JniMacWindowUtil
 
-// In the JNI module fullscreen controls are always enabled — replacement buttons
-// are installed in the content view automatically by the native observer.
-fun Modifier.newFullscreenControls(newControls: Boolean = true): Modifier = this
-
 @Suppress("FunctionNaming")
 @Composable
 internal fun DecoratedWindowScope.MacOSTitleBar(
@@ -36,19 +32,14 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         modifier = modifier,
         gradientStartColor = gradientStartColor,
         style = style,
-        applyTitleBar = { height, state ->
+        applyTitleBar = { height, titleBarState ->
             // Apply AWT properties so content view extends into the title bar area.
             // Idempotent — safe to call on every layout pass.
             JniMacWindowUtil.applyWindowProperties(window)
 
             val ptr = JniMacWindowUtil.getWindowPtr(window)
 
-            if (state.isFullscreen) {
-                // In fullscreen the native observer has installed replacement buttons
-                // in the content view. Update their position and reserve 80dp for them.
-                if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
-                    JniMacTitleBarBridge.nativeUpdateFullScreenButtons(ptr)
-                }
+            if (titleBarState.isFullscreen) {
                 PaddingValues(start = 80.dp)
             } else {
                 val leftInset =
@@ -59,6 +50,14 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
                         height.value + 2f * shrink * 20f
                     }
                 PaddingValues(start = leftInset.dp)
+            }
+        },
+        onPlace = {
+            if (state.isFullscreen) {
+                val ptr = JniMacWindowUtil.getWindowPtr(window)
+                if (ptr != 0L && JniMacTitleBarBridge.isLoaded) {
+                    JniMacTitleBarBridge.nativeUpdateFullScreenButtons(ptr)
+                }
             }
         },
         // Window drag is handled natively by NucleusDragView installed in the titlebar.

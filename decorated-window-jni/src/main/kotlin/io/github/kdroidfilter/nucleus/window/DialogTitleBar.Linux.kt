@@ -28,16 +28,17 @@ internal fun DecoratedDialogScope.LinuxDialogTitleBar(
     val dialogState = state
 
     DialogTitleBarImpl(
-        modifier = modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Main) {
-            // No double-click behavior for dialogs — just consume primary presses
-            // so the drag handler below can start dragging.
-            if (
-                this.currentEvent.button == PointerButton.Primary &&
-                this.currentEvent.changes.any { !it.isConsumed }
-            ) {
-                // Intentional no-op: drag is handled by the background Spacer.
-            }
-        },
+        modifier =
+            modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Main) {
+                // No double-click behavior for dialogs — just consume primary presses
+                // so the drag handler below can start dragging.
+                if (
+                    this.currentEvent.button == PointerButton.Primary &&
+                    this.currentEvent.changes.any { !it.isConsumed }
+                ) {
+                    // Intentional no-op: drag is handled by the background Spacer.
+                }
+            },
         gradientStartColor = gradientStartColor,
         style = linuxStyle,
         applyTitleBar = { _, _ ->

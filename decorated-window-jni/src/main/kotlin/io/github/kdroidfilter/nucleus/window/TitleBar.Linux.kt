@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,22 +16,6 @@ import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import java.awt.Frame
-
-@Composable
-internal fun createLinuxTitleBarStyle(style: TitleBarStyle): TitleBarStyle =
-    remember(style) {
-        style.copy(
-            colors =
-                style.colors.copy(
-                    titlePaneButtonHoveredBackground = Color.Transparent,
-                    titlePaneButtonPressedBackground = Color.Transparent,
-                    titlePaneCloseButtonHoveredBackground = Color.Transparent,
-                    titlePaneCloseButtonPressedBackground = Color.Transparent,
-                    iconButtonHoveredBackground = Color.Transparent,
-                    iconButtonPressedBackground = Color.Transparent,
-                ),
-        )
-    }
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")
@@ -50,22 +33,23 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
 
     TitleBarImpl(
         // Detect double-click to maximize/restore on the title bar area
-        modifier = modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Main) {
-            if (
-                this.currentEvent.button == PointerButton.Primary &&
-                this.currentEvent.changes.any { !it.isConsumed }
-            ) {
-                val now = System.currentTimeMillis()
-                if (now - lastPress in viewConfig.doubleTapMinTimeMillis..viewConfig.doubleTapTimeoutMillis) {
-                    if (state.isMaximized) {
-                        window.extendedState = Frame.NORMAL
-                    } else {
-                        window.extendedState = Frame.MAXIMIZED_BOTH
+        modifier =
+            modifier.onPointerEvent(PointerEventType.Press, PointerEventPass.Main) {
+                if (
+                    this.currentEvent.button == PointerButton.Primary &&
+                    this.currentEvent.changes.any { !it.isConsumed }
+                ) {
+                    val now = System.currentTimeMillis()
+                    if (now - lastPress in viewConfig.doubleTapMinTimeMillis..viewConfig.doubleTapTimeoutMillis) {
+                        if (state.isMaximized) {
+                            window.extendedState = Frame.NORMAL
+                        } else {
+                            window.extendedState = Frame.MAXIMIZED_BOTH
+                        }
                     }
+                    lastPress = now
                 }
-                lastPress = now
-            }
-        },
+            },
         gradientStartColor = gradientStartColor,
         style = linuxStyle,
         applyTitleBar = { _, _ ->

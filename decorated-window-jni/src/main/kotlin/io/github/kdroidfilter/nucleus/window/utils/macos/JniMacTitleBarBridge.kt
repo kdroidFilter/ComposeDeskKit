@@ -56,7 +56,10 @@ internal object JniMacTitleBarBridge {
     // heightPt: title bar height in NSPoints (= dp on macOS).
     // Returns the left inset in points to reserve space for the traffic lights.
     @JvmStatic
-    external fun nativeApplyTitleBar(nsWindowPtr: Long, heightPt: Float): Float
+    external fun nativeApplyTitleBar(
+        nsWindowPtr: Long,
+        heightPt: Float,
+    ): Float
 
     // Removes all custom constraints, fullscreen observer, and restores AppKit defaults.
     @JvmStatic
