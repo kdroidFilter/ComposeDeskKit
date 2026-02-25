@@ -72,10 +72,32 @@ import kotlin.system.exitProcess
 
 private const val AOT_TRAINING_DURATION_MS = 45_000L
 
+private val isNativeImage = System.getProperty("org.graalvm.nativeimage.imagecode") != null
+
 private val deepLinkUri = mutableStateOf<URI?>(null)
 
 @Suppress("LongMethod")
 fun main(args: Array<String>) {
+    if (isNativeImage) {
+        // Metal L&F avoids loading platform-specific modules unsupported in native image
+        System.setProperty("swing.defaultlaf", "javax.swing.plaf.metal.MetalLookAndFeel")
+        // Set java.home to the executable's dir so Skiko can find jawt (lib/ on macOS/Linux, bin/ on Windows)
+        val execDir = File(ProcessHandle.current().info().command().orElse("")).parentFile?.absolutePath ?: "."
+        System.setProperty("java.home", execDir)
+        // Ensure the native libraries next to the executable (fontmanager, freetype, awt, etc.) are
+        // discoverable. After overriding java.home, the default java.library.path may only include
+        // <java.home>/bin, missing the DLLs in the executable's root directory.
+        val sep = File.pathSeparator
+        System.setProperty("java.library.path", "$execDir$sep$execDir${File.separator}bin")
+
+        // Force early initialization of the charset subsystem and fontmanager native library
+        // to avoid "InternalError: platform encoding not initialized" at runtime.
+        java.nio.charset.Charset.defaultCharset()
+        try {
+            System.loadLibrary("fontmanager")
+        } catch (_: Throwable) { }
+    }
+
     DeepLinkHandler.register(args) { uri ->
         deepLinkUri.value = uri
     }

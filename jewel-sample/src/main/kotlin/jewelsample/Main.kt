@@ -48,6 +48,20 @@ fun main() {
     }
 
     JewelLogger.getInstance("StandaloneSample").info("Starting Jewel Standalone sample")
+
+    if (isNativeImage) {
+        // GraalVM native images may not have platform encoding initialized when
+        // Font.createFont() is first called, causing "InternalError: platform encoding
+        // not initialized". Force early initialization of the charset subsystem and
+        // fontmanager native library.
+        java.nio.charset.Charset.defaultCharset()
+        try {
+            System.loadLibrary("fontmanager")
+        } catch (_: Throwable) {
+            // Ignore — fontmanager may already be loaded or unavailable
+        }
+    }
+
     val icon = svgResource("icons/jewel-logo.svg")
 
     application {

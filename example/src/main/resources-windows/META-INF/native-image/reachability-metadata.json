@@ -4,6 +4,9 @@
       "type": "android.os.Build"
     },
     {
+      "type": "androidx.compose.ui.awt.ComposeDialog"
+    },
+    {
       "type": "androidx.compose.ui.awt.ComposeWindow"
     },
     {
@@ -19,16 +22,95 @@
       "type": "androidx.compose.ui.scene.skia.WindowSkiaLayerComponent$contentComponent$1"
     },
     {
-      "type": "coil3.RealImageLoader"
+      "type": "com.example.demo.MainKt",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "main",
+          "parameterTypes": [
+            "java.lang.String[]"
+          ]
+        }
+      ]
     },
     {
-      "type": "coil3.compose.internal.DeferredDispatchCoroutineDispatcher"
+      "type": "com.sun.java.accessibility.internal.AccessBridge",
+      "allDeclaredConstructors": true,
+      "allDeclaredMethods": true,
+      "allDeclaredFields": true,
+      "jniAccessible": true
     },
     {
-      "type": "coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget"
+      "type": "com.sun.crypto.provider.AESCipher$General",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
-      "type": "com.intellij.openapi.diagnostic.Logger"
+      "type": "com.sun.crypto.provider.ARCFOURCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.ChaCha20Cipher$ChaCha20Poly1305",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DESCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DESedeCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DHParameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.GaloisCounterMode$AESGCM",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "com.sun.java.accessibility.internal.AccessBridge",
@@ -955,7 +1037,7 @@
       ]
     },
     {
-      "type": "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl",
+      "type": "com.sun.java.swing.plaf.windows.WindowsLookAndFeel",
       "methods": [
         {
           "name": "<init>",
@@ -964,10 +1046,21 @@
       ]
     },
     {
-      "type": "com.sun.swing.internal.plaf.basic.resources.basic"
+      "type": "com.sun.java.swing.plaf.windows.WindowsRootPaneUI",
+      "methods": [
+        {
+          "name": "createUI",
+          "parameterTypes": [
+            "javax.swing.JComponent"
+          ]
+        }
+      ]
     },
     {
-      "type": "com.sun.swing.internal.plaf.metal.resources.metal"
+      "type": "com.sun.java.swing.plaf.windows.resources.windows"
+    },
+    {
+      "type": "com.sun.swing.internal.plaf.basic.resources.basic"
     },
     {
       "type": "java.awt.AWTEvent",
@@ -1127,20 +1220,14 @@
         {
           "name": "width"
         }
-      ]
-    },
-    {
-      "type": "java.awt.Event",
-      "jniAccessible": true,
-      "fields": [
+      ],
+      "methods": [
         {
-          "name": "target"
-        },
-        {
-          "name": "x"
-        },
-        {
-          "name": "y"
+          "name": "<init>",
+          "parameterTypes": [
+            "int",
+            "int"
+          ]
         }
       ]
     },
@@ -1175,21 +1262,6 @@
       ]
     },
     {
-      "type": "java.awt.FontMetrics",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "font"
-        }
-      ],
-      "methods": [
-        {
-          "name": "getHeight",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
       "type": "java.awt.Frame",
       "jniAccessible": true,
       "fields": [
@@ -1197,9 +1269,6 @@
           "name": "undecorated"
         }
       ]
-    },
-    {
-      "type": "java.awt.Image"
     },
     {
       "type": "java.awt.Insets",
@@ -1275,6 +1344,89 @@
           "parameterTypes": [
             "java.awt.AWTEvent"
           ]
+        }
+      ]
+    },
+    {
+      "type": "java.awt.SystemColor",
+      "fields": [
+        {
+          "name": "activeCaption"
+        },
+        {
+          "name": "activeCaptionBorder"
+        },
+        {
+          "name": "activeCaptionText"
+        },
+        {
+          "name": "control"
+        },
+        {
+          "name": "controlDkShadow"
+        },
+        {
+          "name": "controlHighlight"
+        },
+        {
+          "name": "controlLtHighlight"
+        },
+        {
+          "name": "controlShadow"
+        },
+        {
+          "name": "controlText"
+        },
+        {
+          "name": "desktop"
+        },
+        {
+          "name": "inactiveCaption"
+        },
+        {
+          "name": "inactiveCaptionBorder"
+        },
+        {
+          "name": "inactiveCaptionText"
+        },
+        {
+          "name": "info"
+        },
+        {
+          "name": "infoText"
+        },
+        {
+          "name": "menu"
+        },
+        {
+          "name": "menuText"
+        },
+        {
+          "name": "scrollbar"
+        },
+        {
+          "name": "text"
+        },
+        {
+          "name": "textHighlight"
+        },
+        {
+          "name": "textHighlightText"
+        },
+        {
+          "name": "textInactiveText"
+        },
+        {
+          "name": "textText"
+        },
+        {
+          "name": "window"
+        },
+        {
+          "name": "windowBorder"
+        },
+        {
+          "name": "windowText"
         }
       ]
     },
@@ -1751,9 +1903,6 @@
       ]
     },
     {
-      "type": "java.io.InputStream"
-    },
-    {
       "type": "java.io.OutputStream",
       "jniAccessible": true,
       "methods": [
@@ -1870,7 +2019,10 @@
       ]
     },
     {
-      "type": "java.nio.file.Files"
+      "type": "java.security.AlgorithmParametersSpi"
+    },
+    {
+      "type": "java.security.KeyStoreSpi"
     },
     {
       "type": "java.util.Iterator",
@@ -1885,9 +2037,6 @@
           "parameterTypes": []
         }
       ]
-    },
-    {
-      "type": "java.util.List"
     },
     {
       "type": "java.util.Locale",
@@ -2108,29 +2257,6 @@
           "name": "createUI",
           "parameterTypes": [
             "javax.swing.JComponent"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "javax.swing.plaf.metal.MetalRootPaneUI",
-      "methods": [
-        {
-          "name": "createUI",
-          "parameterTypes": [
-            "javax.swing.JComponent"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "jewelsample.MainKt",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "main",
-          "parameterTypes": [
-            "java.lang.String[]"
           ]
         }
       ]
@@ -2740,9 +2866,6 @@
       ]
     },
     {
-      "type": "org.jetbrains.skia.paragraph.TextBox[]"
-    },
-    {
       "type": "org.jetbrains.skia.shaper.BidiRun",
       "jniAccessible": true,
       "fields": [
@@ -2959,43 +3082,6 @@
       "methods": [
         {
           "name": "isAdapterSupported",
-          "parameterTypes": [
-            "java.lang.String"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "org.slf4j.Logger",
-      "methods": [
-        {
-          "name": "info",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        },
-        {
-          "name": "trace",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        },
-        {
-          "name": "warn",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "org.slf4j.LoggerFactory",
-      "methods": [
-        {
-          "name": "getLogger",
           "parameterTypes": [
             "java.lang.String"
           ]
@@ -3245,6 +3331,10 @@
           "parameterTypes": []
         },
         {
+          "name": "dynamicallyLayoutContainer",
+          "parameterTypes": []
+        },
+        {
           "name": "getHWnd",
           "parameterTypes": []
         },
@@ -3350,6 +3440,9 @@
       ]
     },
     {
+      "type": "sun.awt.windows.WDialogPeer"
+    },
+    {
       "type": "sun.awt.windows.WFontPeer",
       "jniAccessible": true,
       "fields": [
@@ -3447,6 +3540,12 @@
           "parameterTypes": []
         },
         {
+          "name": "getActiveWindowHandles",
+          "parameterTypes": [
+            "java.awt.Component"
+          ]
+        },
+        {
           "name": "notifyWindowStateChanged",
           "parameterTypes": [
             "int",
@@ -3526,26 +3625,6 @@
           "parameterTypes": [
             "int"
           ]
-        }
-      ]
-    },
-    {
-      "type": "sun.font.FontUtilities",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "debugFonts",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "sun.font.FreetypeFontScaler",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "invalidateScaler",
-          "parameterTypes": []
         }
       ]
     },
@@ -4226,6 +4305,24 @@
       ]
     },
     {
+      "type": "sun.security.pkcs12.PKCS12KeyStore",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "sun.security.provider.DRBG",
       "methods": [
         {
@@ -4237,7 +4334,34 @@
       ]
     },
     {
+      "type": "sun.security.provider.DSA$SHA224withDSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.DSA$SHA256withDSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "sun.security.provider.SHA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA2$SHA224",
       "methods": [
         {
           "name": "<init>",
@@ -4253,242 +4377,233 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "sun.security.provider.SHA5$SHA384",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA5$SHA512",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.X509Factory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.PSSParameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAKeyFactory$Legacy",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAPSSSignature",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSASignature$SHA224withRSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityInfoAccessExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.BasicConstraintsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CRLDistributionPointsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CertificatePoliciesExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.KeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.NetscapeCertTypeExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.PrivateKeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.SubjectAlternativeNameExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.SubjectKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
     }
   ],
   "resources": [
     {
-      "glob": "/fonts/inter/Inter-Bold.ttf"
-    },
-    {
-      "glob": "/fonts/inter/Inter-Italic.ttf"
-    },
-    {
-      "glob": "/fonts/inter/Inter-Regular.ttf"
-    },
-    {
-      "glob": "/fonts/inter/Inter-SemiBold.ttf"
-    },
-    {
-      "glob": "/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
-    },
-    {
-      "glob": "META-INF/services/coil3.util.FetcherServiceLoaderTarget"
-    },
-    {
-      "glob": "META-INF/services/io.ktor.client.HttpClientEngineContainer"
-    },
-    {
       "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
     },
     {
-      "glob": "META-INF/services/java.nio.charset.spi.CharsetProvider"
+      "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
+    },
+    {
+      "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
     },
     {
       "glob": "META-INF/services/javax.accessibility.AccessibilityProvider"
     },
     {
-      "glob": "META-INF/services/javax.xml.transform.TransformerFactory"
-    },
-    {
       "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
-    },
-    {
-      "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
-    },
-    {
-      "glob": "expui/actions/addFile.svg"
-    },
-    {
-      "glob": "expui/actions/buildAutoReloadChanges.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownHovered.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownPressed.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown_stroke.svg"
-    },
-    {
-      "glob": "expui/inline/matchCase.svg"
-    },
-    {
-      "glob": "fonts/inter/Inter-Bold.ttf"
-    },
-    {
-      "glob": "fonts/inter/Inter-Italic.ttf"
-    },
-    {
-      "glob": "fonts/inter/Inter-Regular.ttf"
-    },
-    {
-      "glob": "fonts/inter/Inter-SemiBold.ttf"
-    },
-    {
-      "glob": "fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
-    },
-    {
-      "glob": "icons/components/banners.svg"
-    },
-    {
-      "glob": "icons/components/banners@20x20.svg"
-    },
-    {
-      "glob": "icons/components/borders.svg"
-    },
-    {
-      "glob": "icons/components/borders@20x20.svg"
-    },
-    {
-      "glob": "icons/components/brush.svg"
-    },
-    {
-      "glob": "icons/components/brush@20x20.svg"
-    },
-    {
-      "glob": "icons/components/button.svg"
-    },
-    {
-      "glob": "icons/components/button@20x20.svg"
-    },
-    {
-      "glob": "icons/components/checkBox.svg"
-    },
-    {
-      "glob": "icons/components/checkBox@20x20.svg"
-    },
-    {
-      "glob": "icons/components/comboBox.svg"
-    },
-    {
-      "glob": "icons/components/comboBox@20x20.svg"
-    },
-    {
-      "glob": "icons/components/links.svg"
-    },
-    {
-      "glob": "icons/components/links@20x20.svg"
-    },
-    {
-      "glob": "icons/components/menu.svg"
-    },
-    {
-      "glob": "icons/components/menu@20x20.svg"
-    },
-    {
-      "glob": "icons/components/progressbar.svg"
-    },
-    {
-      "glob": "icons/components/progressbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/radioButton.svg"
-    },
-    {
-      "glob": "icons/components/radioButton@20x20.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl@20x20.svg"
-    },
-    {
-      "glob": "icons/components/slider.svg"
-    },
-    {
-      "glob": "icons/components/slider@20x20.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tabs.svg"
-    },
-    {
-      "glob": "icons/components/tabs@20x20.svg"
-    },
-    {
-      "glob": "icons/components/textArea.svg"
-    },
-    {
-      "glob": "icons/components/textArea@20x20.svg"
-    },
-    {
-      "glob": "icons/components/textField.svg"
-    },
-    {
-      "glob": "icons/components/textField@20x20.svg"
-    },
-    {
-      "glob": "icons/components/toolbar.svg"
-    },
-    {
-      "glob": "icons/components/toolbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tooltip.svg"
-    },
-    {
-      "glob": "icons/components/tooltip@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tree.svg"
-    },
-    {
-      "glob": "icons/components/tree@20x20.svg"
-    },
-    {
-      "glob": "icons/components/typography.svg"
-    },
-    {
-      "glob": "icons/components/typography@20x20.svg"
-    },
-    {
-      "glob": "icons/darkTheme.svg"
-    },
-    {
-      "glob": "icons/github.svg"
-    },
-    {
-      "glob": "icons/jewel-logo.svg"
-    },
-    {
-      "glob": "icons/lightTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/lightThemeSelected.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme.svg"
-    },
-    {
-      "glob": "icons/markdown/extensions/github/alerts/alert-warning.svg"
-    },
-    {
-      "glob": "icons/markdown@20x20.svg"
-    },
-    {
-      "glob": "icons/meetNewUi@20x20.svg"
-    },
-    {
-      "glob": "icons/structure@20x20.svg"
-    },
-    {
-      "glob": "icons/systemTheme.svg"
     },
     {
       "glob": "nucleus/native/win32-x64/nucleus_windows_decoration.dll"
@@ -4506,10 +4621,22 @@
       "glob": "nucleus/window/icons/windows/closeInactive.svg"
     },
     {
+      "glob": "nucleus/window/icons/windows/closeInactive_dark.svg"
+    },
+    {
+      "glob": "nucleus/window/icons/windows/close_dark.svg"
+    },
+    {
       "glob": "nucleus/window/icons/windows/maximize.svg"
     },
     {
       "glob": "nucleus/window/icons/windows/maximizeInactive.svg"
+    },
+    {
+      "glob": "nucleus/window/icons/windows/maximizeInactive_dark.svg"
+    },
+    {
+      "glob": "nucleus/window/icons/windows/maximize_dark.svg"
     },
     {
       "glob": "nucleus/window/icons/windows/minimize.svg"
@@ -4518,22 +4645,25 @@
       "glob": "nucleus/window/icons/windows/minimizeInactive.svg"
     },
     {
+      "glob": "nucleus/window/icons/windows/minimizeInactive_dark.svg"
+    },
+    {
+      "glob": "nucleus/window/icons/windows/minimize_dark.svg"
+    },
+    {
       "glob": "nucleus/window/icons/windows/restore.svg"
     },
     {
       "glob": "nucleus/window/icons/windows/restoreInactive.svg"
     },
     {
-      "glob": "org/slf4j/impl/StaticLoggerBinder.class"
+      "glob": "nucleus/window/icons/windows/restoreInactive_dark.svg"
     },
     {
-      "glob": "readme/jewel-logo.svg"
+      "glob": "nucleus/window/icons/windows/restore_dark.svg"
     },
     {
       "glob": "skiko-windows-x64.dll.sha256"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBox.svg"
     },
     {
       "module": "java.desktop",
@@ -4541,37 +4671,21 @@
     },
     {
       "module": "java.desktop",
-      "glob": "com/sun/swing/internal/plaf/basic/resources/basic_fr_FR.properties"
+      "glob": "com/sun/java/swing/plaf/windows/resources/windows_fr_FR.properties"
     },
     {
       "module": "java.desktop",
-      "glob": "com/sun/swing/internal/plaf/metal/resources/metal_fr_FR.properties"
+      "glob": "com/sun/swing/internal/plaf/basic/resources/basic_fr_FR.properties"
     },
     {
       "module": "java.desktop",
       "glob": "sun/awt/resources/awt_fr_FR.properties"
     },
     {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/Encodings.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr_FR.properties"
-    },
-    {
       "bundle": "com.sun.accessibility.internal.resources.accessibility"
     },
     {
-      "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
+      "bundle": "com.sun.java.swing.plaf.windows.resources.windows"
     },
     {
       "bundle": "com.sun.swing.internal.plaf.basic.resources.basic"
