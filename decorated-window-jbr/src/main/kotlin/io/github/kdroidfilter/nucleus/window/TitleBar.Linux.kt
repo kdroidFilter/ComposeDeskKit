@@ -2,7 +2,6 @@ package io.github.kdroidfilter.nucleus.window
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,22 +16,6 @@ import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import java.awt.Frame
 import java.awt.event.MouseEvent
-
-@Composable
-internal fun createLinuxTitleBarStyle(style: TitleBarStyle): TitleBarStyle =
-    remember(style) {
-        style.copy(
-            colors =
-                style.colors.copy(
-                    titlePaneButtonHoveredBackground = Color.Transparent,
-                    titlePaneButtonPressedBackground = Color.Transparent,
-                    titlePaneCloseButtonHoveredBackground = Color.Transparent,
-                    titlePaneCloseButtonPressedBackground = Color.Transparent,
-                    iconButtonHoveredBackground = Color.Transparent,
-                    iconButtonPressedBackground = Color.Transparent,
-                ),
-        )
-    }
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")

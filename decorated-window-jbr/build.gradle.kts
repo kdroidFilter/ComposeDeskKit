@@ -16,6 +16,7 @@ val publishVersion =
         ?: "1.0.0"
 
 dependencies {
+    api(project(":decorated-window-core"))
     compileOnly(project(":core-runtime"))
     compileOnly(compose.desktop.common)
     compileOnly(libs.jbr.api)
@@ -50,11 +51,11 @@ tasks.processResources {
 }
 
 mavenPublishing {
-    coordinates("io.github.kdroidfilter", "nucleus.decorated-window", publishVersion)
+    coordinates("io.github.kdroidfilter", "nucleus.decorated-window-jbr", publishVersion)
 
     pom {
-        name.set("Nucleus Decorated Window")
-        description.set("Custom decorated window with native title bar for Compose Desktop")
+        name.set("Nucleus Decorated Window JBR")
+        description.set("JBR-based custom decorated window with native title bar for Compose Desktop")
         url.set("https://github.com/kdroidFilter/Nucleus")
 
         licenses {

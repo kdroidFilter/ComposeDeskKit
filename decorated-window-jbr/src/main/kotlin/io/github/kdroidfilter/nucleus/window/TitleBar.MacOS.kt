@@ -91,15 +91,12 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
         modifier = modifier.customTitleBarMouseEventHandler(titleBar),
         gradientStartColor = gradientStartColor,
         style = style,
-        applyTitleBar = { height, state ->
-            if (state.isFullscreen) {
-                MacUtil.updateFullScreenButtons(window)
-            }
+        applyTitleBar = { height, titleBarState ->
             titleBar.putProperty("controls.rtl", isRtl)
             titleBar.height = height.value
             JBR.getWindowDecorations().setCustomTitleBar(window, titleBar)
 
-            if (state.isFullscreen && newFullscreenControls) {
+            if (titleBarState.isFullscreen && newFullscreenControls) {
                 if (isRtl) {
                     PaddingValues(end = 80.dp)
                 } else {
@@ -107,6 +104,11 @@ internal fun DecoratedWindowScope.MacOSTitleBar(
                 }
             } else {
                 PaddingValues(start = titleBar.leftInset.dp, end = titleBar.rightInset.dp)
+            }
+        },
+        onPlace = {
+            if (state.isFullscreen) {
+                MacUtil.updateFullScreenButtons(window)
             }
         },
         content = content,
