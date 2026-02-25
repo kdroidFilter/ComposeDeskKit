@@ -3,6 +3,7 @@ package io.github.kdroidfilter.nucleus.window.material
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,10 @@ private const val HOVER_STATE_ALPHA = 0.08f
 private const val PRESSED_STATE_ALPHA = 0.12f
 private const val CLOSE_PRESSED_ALPHA = 0.7f
 private const val DARK_LUMINANCE_THRESHOLD = 0.5f
+
+// Windows standard close button colors (same in light and dark modes)
+private val WindowsCloseButtonHoveredBackground = Color(0xFFE81123)
+private val WindowsCloseButtonPressedBackground = Color(0xFFF1707A)
 
 private val isKde =
     Platform.Current == Platform.Linux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
@@ -56,8 +61,8 @@ internal fun rememberMaterialTitleBarStyle(colorScheme: ColorScheme): TitleBarSt
                     fullscreenControlButtonsBackground = colorScheme.surface,
                     titlePaneButtonHoveredBackground = colorScheme.onSurface.copy(alpha = HOVER_STATE_ALPHA),
                     titlePaneButtonPressedBackground = colorScheme.onSurface.copy(alpha = PRESSED_STATE_ALPHA),
-                    titlePaneCloseButtonHoveredBackground = colorScheme.error,
-                    titlePaneCloseButtonPressedBackground = colorScheme.error.copy(alpha = CLOSE_PRESSED_ALPHA),
+                    titlePaneCloseButtonHoveredBackground = if (Platform.Current == Platform.Windows) WindowsCloseButtonHoveredBackground else colorScheme.error,
+                    titlePaneCloseButtonPressedBackground = if (Platform.Current == Platform.Windows) WindowsCloseButtonPressedBackground else colorScheme.error.copy(alpha = CLOSE_PRESSED_ALPHA),
                 ),
             metrics =
                 TitleBarMetrics(
