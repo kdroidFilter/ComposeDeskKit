@@ -9,6 +9,8 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
         google()
+        maven("https://www.jetbrains.com/intellij-repository/releases")
+        maven("https://www.jetbrains.com/intellij-repository/snapshots")
     }
 }
 
@@ -40,4 +42,5 @@ include(":decorated-window-core")
 include(":decorated-window-jbr")
 include(":decorated-window-jni")
 include(":decorated-window-material")
+include(":jewel-sample")
 includeBuild("plugin-build")
