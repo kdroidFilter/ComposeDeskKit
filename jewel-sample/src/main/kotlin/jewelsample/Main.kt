@@ -1,6 +1,8 @@
 package jewelsample
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.key.Key
 import java.io.File
@@ -13,7 +15,11 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.application
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.window.DecoratedWindow
+import io.github.kdroidfilter.nucleus.window.DecoratedWindowDefaults
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowColors
+import io.github.kdroidfilter.nucleus.window.styling.DecoratedWindowStyle
+import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 import jewelsample.view.TitleBarView
 import jewelsample.viewmodel.MainViewModel
 import jewelsample.viewmodel.MainViewModel.currentView
@@ -83,7 +89,14 @@ fun main() {
             styling = ComponentStyling.default(),
             swingCompatMode = MainViewModel.swingCompat,
         ) {
-            NucleusDecoratedWindowTheme(isDark = isDark) {
+            val jewelWindowStyle = jewelDecoratedWindowStyle(isDark)
+            val jewelTitleBarStyle = jewelTitleBarStyle(isDark)
+
+            NucleusDecoratedWindowTheme(
+                isDark = isDark,
+                windowStyle = jewelWindowStyle,
+                titleBarStyle = jewelTitleBarStyle,
+            ) {
                 DecoratedWindow(
                     onCloseRequest = { exitApplication() },
                     title = "Jewel standalone sample",
@@ -126,6 +139,69 @@ private fun processKeyShortcuts(keyEvent: KeyEvent, onNavigateTo: (String) -> Un
 
         else -> false
     }
+}
+
+@Suppress("MagicNumber")
+@Composable
+private fun jewelDecoratedWindowStyle(isDark: Boolean): DecoratedWindowStyle {
+    val borderColor = JewelTheme.globalColors.borders.normal
+    return DecoratedWindowDefaults.run { if (isDark) darkWindowStyle() else lightWindowStyle() }.copy(
+        colors = DecoratedWindowColors(
+            border = borderColor,
+            borderInactive = borderColor.copy(alpha = 0.5f),
+        ),
+    )
+}
+
+@Suppress("MagicNumber")
+@Composable
+private fun jewelTitleBarStyle(isDark: Boolean): TitleBarStyle {
+    val background = JewelTheme.globalColors.panelBackground
+    val contentColor = JewelTheme.contentColor
+    val borderColor = JewelTheme.globalColors.borders.normal
+    val defaults = DecoratedWindowDefaults.run { if (isDark) darkTitleBarStyle() else lightTitleBarStyle() }
+
+    val hoverOverlay = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f)
+    val pressOverlay = if (isDark) Color.White.copy(alpha = 0.2f) else Color.Black.copy(alpha = 0.2f)
+    val inactiveBackground = if (isDark) {
+        background.darken(0.15f)
+    } else {
+        background.lighten(0.3f)
+    }
+
+    return defaults.copy(
+        colors = defaults.colors.copy(
+            background = background,
+            inactiveBackground = inactiveBackground,
+            content = contentColor,
+            border = borderColor,
+            fullscreenControlButtonsBackground = background,
+            titlePaneButtonHoveredBackground = hoverOverlay,
+            titlePaneButtonPressedBackground = pressOverlay,
+            iconButtonHoveredBackground = hoverOverlay,
+            iconButtonPressedBackground = pressOverlay,
+        ),
+    )
+}
+
+@Suppress("MagicNumber")
+private fun Color.darken(fraction: Float): Color {
+    return Color(
+        red = red * (1f - fraction),
+        green = green * (1f - fraction),
+        blue = blue * (1f - fraction),
+        alpha = alpha,
+    )
+}
+
+@Suppress("MagicNumber")
+private fun Color.lighten(fraction: Float): Color {
+    return Color(
+        red = red + (1f - red) * fraction,
+        green = green + (1f - green) * fraction,
+        blue = blue + (1f - blue) * fraction,
+        alpha = alpha,
+    )
 }
 
 @Suppress("SameParameterValue")
