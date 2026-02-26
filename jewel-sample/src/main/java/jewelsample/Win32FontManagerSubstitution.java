@@ -14,7 +14,7 @@ import com.oracle.svm.core.annotate.TargetClass;
  * This substitution replaces the native method with a pure-Java implementation
  * that returns the Windows fonts directory directly.
  */
-@TargetClass(className = "sun.awt.Win32FontManager")
+@TargetClass(className = "sun.awt.Win32FontManager", onlyWith = IsWindows.class)
 final class Target_sun_awt_Win32FontManager {
 
     @Substitute

@@ -34,13 +34,6 @@
       ]
     },
     {
-      "type": "com.sun.java.accessibility.internal.AccessBridge",
-      "allDeclaredConstructors": true,
-      "allDeclaredMethods": true,
-      "allDeclaredFields": true,
-      "jniAccessible": true
-    },
-    {
       "type": "com.sun.crypto.provider.AESCipher$General",
       "methods": [
         {
@@ -4689,9 +4682,6 @@
     },
     {
       "bundle": "com.sun.swing.internal.plaf.basic.resources.basic"
-    },
-    {
-      "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
     },
     {
       "bundle": "sun.awt.resources.awt"
