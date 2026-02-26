@@ -2633,6 +2633,9 @@
       "glob": "nucleus/native/linux-x64/libnucleus_linux_theme.so"
     },
     {
+      "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
+    },
+    {
       "glob": "nucleus/window/icons/linux/gnome/close.svg"
     },
     {
