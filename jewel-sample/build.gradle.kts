@@ -107,6 +107,7 @@ nucleus.application {
     }
 
     nativeDistributions {
+        modules("jdk.accessibility", "java.net.http")
         compressionLevel = CompressionLevel.Maximum
         targetFormats(TargetFormat.Dmg, TargetFormat.Nsis, TargetFormat.Deb)
 
