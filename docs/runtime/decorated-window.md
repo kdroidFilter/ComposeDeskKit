@@ -193,10 +193,6 @@ val myTitleBarStyle = TitleBarStyle(
         inactiveBackground = MyTheme.colors.surfaceDim,
         content = MyTheme.colors.onSurface,
         border = MyTheme.colors.outline,
-        titlePaneButtonHoveredBackground = MyTheme.colors.onSurface.copy(alpha = 0.08f),
-        titlePaneButtonPressedBackground = MyTheme.colors.onSurface.copy(alpha = 0.12f),
-        titlePaneCloseButtonHoveredBackground = MyTheme.colors.error,
-        titlePaneCloseButtonPressedBackground = MyTheme.colors.error.copy(alpha = 0.7f),
     ),
     metrics = TitleBarMetrics(height = 40.dp),
     icons = TitleBarIcons(), // null = use platform defaults
@@ -232,10 +228,6 @@ Controls the title bar appearance:
 | `colors.content` | Default content color (exposed via `LocalContentColor`) |
 | `colors.border` | Bottom border of the title bar |
 | `colors.fullscreenControlButtonsBackground` | Background for macOS fullscreen traffic lights |
-| `colors.titlePaneButtonHoveredBackground` | Hover background for min/max buttons |
-| `colors.titlePaneButtonPressedBackground` | Press background for min/max buttons |
-| `colors.titlePaneCloseButtonHoveredBackground` | Hover background for close button |
-| `colors.titlePaneCloseButtonPressedBackground` | Press background for close button |
 | `metrics.height` | Title bar height (default 40.dp) |
 | `metrics.gradientStartX` / `gradientEndX` | Gradient range (see below) |
 | `icons` | Custom `Painter` for close/minimize/maximize/restore buttons (null = platform default) |

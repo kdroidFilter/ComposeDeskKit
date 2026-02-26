@@ -23,10 +23,6 @@ data class TitleBarColors(
     val content: Color,
     val border: Color,
     val fullscreenControlButtonsBackground: Color = Color.Unspecified,
-    val titlePaneButtonHoveredBackground: Color,
-    val titlePaneButtonPressedBackground: Color,
-    val titlePaneCloseButtonHoveredBackground: Color,
-    val titlePaneCloseButtonPressedBackground: Color,
     val iconButtonHoveredBackground: Color = Color.Transparent,
     val iconButtonPressedBackground: Color = Color.Transparent,
 ) {

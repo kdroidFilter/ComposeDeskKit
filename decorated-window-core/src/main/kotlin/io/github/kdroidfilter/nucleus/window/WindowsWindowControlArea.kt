@@ -28,6 +28,14 @@ import java.awt.event.WindowEvent
 
 private val WINDOWS_BUTTON_WIDTH = 46.dp
 
+// Fixed Windows-native button colors — never theme-dependent
+private val WindowsButtonHoveredLight = Color(0x1A000000)
+private val WindowsButtonHoveredDark = Color(0x1AFFFFFF)
+private val WindowsButtonPressedLight = Color(0x33000000)
+private val WindowsButtonPressedDark = Color(0x33FFFFFF)
+private val WindowsCloseButtonHovered = Color(0xFFE81123)
+private val WindowsCloseButtonPressed = Color(0xFFF1707A)
+
 @Suppress("FunctionNaming")
 @Composable
 fun TitleBarScope.WindowsWindowControlArea(
@@ -124,11 +132,12 @@ private fun TitleBarScope.WindowsCaptionButton(
     var hovered by remember { mutableStateOf(false) }
     var pressed by remember { mutableStateOf(false) }
 
+    val isDark = LocalIsDarkTheme.current
     val backgroundColor = when {
-        pressed && isCloseButton -> style.colors.titlePaneCloseButtonPressedBackground
-        pressed -> style.colors.titlePaneButtonPressedBackground
-        hovered && isCloseButton -> style.colors.titlePaneCloseButtonHoveredBackground
-        hovered -> style.colors.titlePaneButtonHoveredBackground
+        pressed && isCloseButton -> WindowsCloseButtonPressed
+        pressed -> if (isDark) WindowsButtonPressedDark else WindowsButtonPressedLight
+        hovered && isCloseButton -> WindowsCloseButtonHovered
+        hovered -> if (isDark) WindowsButtonHoveredDark else WindowsButtonHoveredLight
         else -> Color.Transparent
     }
 

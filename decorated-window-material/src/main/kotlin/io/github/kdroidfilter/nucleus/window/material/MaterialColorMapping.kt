@@ -3,7 +3,6 @@ package io.github.kdroidfilter.nucleus.window.material
 import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -19,19 +18,6 @@ import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 
 private const val INACTIVE_BORDER_ALPHA = 0.5f
 private const val DARK_LUMINANCE_THRESHOLD = 0.5f
-
-// Platform-native button colors — never influenced by Material theme
-private val WindowsCloseButtonHoveredBackground = Color(0xFFE81123)
-private val WindowsCloseButtonPressedBackground = Color(0xFFF1707A)
-private val WindowsButtonHoveredBackgroundLight = Color(0x1A000000)
-private val WindowsButtonHoveredBackgroundDark = Color(0x1AFFFFFF)
-private val WindowsButtonPressedBackgroundLight = Color(0x33000000)
-private val WindowsButtonPressedBackgroundDark = Color(0x33FFFFFF)
-
-private val KdeCloseButtonHoveredBackground = Color(0xFFED1515)
-private val KdeCloseButtonPressedBackground = Color(0xFFF44F4F)
-private val GnomeCloseButtonHoveredBackground = Color(0xFFE81123)
-private val GnomeCloseButtonPressedBackground = Color(0xFF2596BE)
 
 private val isKde =
     Platform.Current == Platform.Linux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
@@ -64,18 +50,6 @@ internal fun rememberMaterialTitleBarStyle(colorScheme: ColorScheme): TitleBarSt
                     content = colorScheme.onSurface,
                     border = colorScheme.outlineVariant,
                     fullscreenControlButtonsBackground = colorScheme.surface,
-                    titlePaneButtonHoveredBackground = if (colorScheme.isDark()) WindowsButtonHoveredBackgroundDark else WindowsButtonHoveredBackgroundLight,
-                    titlePaneButtonPressedBackground = if (colorScheme.isDark()) WindowsButtonPressedBackgroundDark else WindowsButtonPressedBackgroundLight,
-                    titlePaneCloseButtonHoveredBackground = when {
-                        Platform.Current == Platform.Windows -> WindowsCloseButtonHoveredBackground
-                        isKde -> KdeCloseButtonHoveredBackground
-                        else -> GnomeCloseButtonHoveredBackground
-                    },
-                    titlePaneCloseButtonPressedBackground = when {
-                        Platform.Current == Platform.Windows -> WindowsCloseButtonPressedBackground
-                        isKde -> KdeCloseButtonPressedBackground
-                        else -> GnomeCloseButtonPressedBackground
-                    },
                 ),
             metrics =
                 TitleBarMetrics(

@@ -81,10 +81,6 @@ object DecoratedWindowDefaults {
                         content = Color(0xFF232629),
                         border = Color(0xFFBDBFC1),
                         fullscreenControlButtonsBackground = Color(0xFFE3E5E7),
-                        titlePaneButtonHoveredBackground = Color(0x1A000000),
-                        titlePaneButtonPressedBackground = Color(0x33000000),
-                        titlePaneCloseButtonHoveredBackground = Color(0xFFED1515),
-                        titlePaneCloseButtonPressedBackground = Color(0xFFF44F4F),
                     )
                 } else {
                     TitleBarColors(
@@ -93,10 +89,6 @@ object DecoratedWindowDefaults {
                         content = Color(0xFF1E1E1E),
                         border = Color(0x1F000006),
                         fullscreenControlButtonsBackground = Color(0xFFF0F0F0),
-                        titlePaneButtonHoveredBackground = Color(0x1A000000),
-                        titlePaneButtonPressedBackground = Color(0x33000000),
-                        titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                        titlePaneCloseButtonPressedBackground = Color(0xFF2596BE),
                     )
                 },
             metrics =
@@ -117,10 +109,6 @@ object DecoratedWindowDefaults {
                         content = Color(0xFFFCFCFC),
                         border = Color(0xFF52565A),
                         fullscreenControlButtonsBackground = Color(0xFF272C31),
-                        titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
-                        titlePaneButtonPressedBackground = Color(0x33FFFFFF),
-                        titlePaneCloseButtonHoveredBackground = Color(0xFFED1515),
-                        titlePaneCloseButtonPressedBackground = Color(0xFFF44F4F),
                     )
                 } else {
                     TitleBarColors(
@@ -129,10 +117,6 @@ object DecoratedWindowDefaults {
                         content = Color(0xFFE0E0E0),
                         border = Color(0x5C000006),
                         fullscreenControlButtonsBackground = Color(0xFF3C3C3C),
-                        titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
-                        titlePaneButtonPressedBackground = Color(0x33FFFFFF),
-                        titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                        titlePaneCloseButtonPressedBackground = Color(0xFF2596BE),
                     )
                 },
             metrics =

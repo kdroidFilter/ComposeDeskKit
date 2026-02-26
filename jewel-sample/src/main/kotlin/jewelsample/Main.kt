@@ -304,8 +304,6 @@ private fun jewelTitleBarStyle(isDark: Boolean): TitleBarStyle {
             content = contentColor,
             border = borderColor,
             fullscreenControlButtonsBackground = background,
-            titlePaneButtonHoveredBackground = hoverOverlay,
-            titlePaneButtonPressedBackground = pressOverlay,
             iconButtonHoveredBackground = hoverOverlay,
             iconButtonPressedBackground = pressOverlay,
         ),

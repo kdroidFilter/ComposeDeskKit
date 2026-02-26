@@ -11,10 +11,6 @@ fun createLinuxTitleBarStyle(style: TitleBarStyle): TitleBarStyle =
         style.copy(
             colors =
                 style.colors.copy(
-                    titlePaneButtonHoveredBackground = Color.Transparent,
-                    titlePaneButtonPressedBackground = Color.Transparent,
-                    titlePaneCloseButtonHoveredBackground = Color.Transparent,
-                    titlePaneCloseButtonPressedBackground = Color.Transparent,
                     iconButtonHoveredBackground = Color.Transparent,
                     iconButtonPressedBackground = Color.Transparent,
                 ),
