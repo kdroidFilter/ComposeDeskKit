@@ -166,11 +166,31 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                     val v3 = versionParts.getOrElse(2) { 0 }
                     val v4 = versionParts.getOrElse(3) { 0 }
 
+                    // Generate DPI-aware application manifest
+                    val manifestFile = File(rcDir, "dpiaware.manifest")
+                    manifestFile.writeText(
+                        """
+                        |<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                        |<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"
+                        |          xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+                        |  <asmv3:application>
+                        |    <asmv3:windowsSettings>
+                        |      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/PM</dpiAware>
+                        |      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2,PerMonitor</dpiAwareness>
+                        |    </asmv3:windowsSettings>
+                        |  </asmv3:application>
+                        |</assembly>
+                        """.trimMargin(),
+                    )
+
                     val rcContent = buildString {
                         if (winIconFile.isPresent) {
                             appendLine("1 ICON \"${winIconFile.get().asFile.absolutePath.replace("\\", "\\\\")}\"")
                             appendLine()
                         }
+                        // Embed DPI-aware manifest (RT_MANIFEST = 24)
+                        appendLine("1 24 \"${manifestFile.absolutePath.replace("\\", "\\\\")}\"")
+                        appendLine()
                         appendLine("1 VERSIONINFO")
                         appendLine("FILEVERSION $v1,$v2,$v3,$v4")
                         appendLine("PRODUCTVERSION $v1,$v2,$v3,$v4")

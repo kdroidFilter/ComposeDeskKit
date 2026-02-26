@@ -102,6 +102,7 @@ fun main(args: Array<String>) {
     // Linux HiDPI: detect the native scale factor (GSettings, GDK_SCALE, Xft.dpi)
     // and apply it before AWT initialises, mirroring JetBrains Runtime's approach.
     // Only applied when not already overridden by the user or native-image bootstrap.
+    // Windows HiDPI is handled via the DPI-aware manifest embedded in the native-image exe.
     if (System.getProperty("sun.java2d.uiScale") == null) {
         val scale = getLinuxNativeScaleFactor()
         if (scale > 0.0) System.setProperty("sun.java2d.uiScale", scale.toString())
