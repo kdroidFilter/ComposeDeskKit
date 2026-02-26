@@ -96,7 +96,7 @@ object DecoratedWindowDefaults {
                         titlePaneButtonHoveredBackground = Color(0x1A000000),
                         titlePaneButtonPressedBackground = Color(0x33000000),
                         titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                        titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFB71119),
                     )
                 },
             metrics =
@@ -132,7 +132,7 @@ object DecoratedWindowDefaults {
                         titlePaneButtonHoveredBackground = Color(0x1AFFFFFF),
                         titlePaneButtonPressedBackground = Color(0x33FFFFFF),
                         titlePaneCloseButtonHoveredBackground = Color(0xFFE81123),
-                        titlePaneCloseButtonPressedBackground = Color(0xFFF1707A),
+                        titlePaneCloseButtonPressedBackground = Color(0xFFB71119),
                     )
                 },
             metrics =
