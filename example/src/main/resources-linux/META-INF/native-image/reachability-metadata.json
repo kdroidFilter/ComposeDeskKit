@@ -1412,6 +1412,28 @@
       "type": "org.jetbrains.skiko.SkiaLayer$1"
     },
     {
+      "type": "sun.awt.AWTAccessor",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getComponentAccessor",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.awt.AWTAccessor$ComponentAccessor",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "getPeer",
+          "parameterTypes": [
+            "java.awt.Component"
+          ]
+        }
+      ]
+    },
+    {
       "type": "sun.awt.SunHints",
       "jniAccessible": true,
       "fields": [
@@ -1512,6 +1534,12 @@
         },
         {
           "name": "numLockMask"
+        }
+      ],
+      "methods": [
+        {
+          "name": "getDisplay",
+          "parameterTypes": []
         }
       ]
     },
@@ -2630,10 +2658,10 @@
       "glob": "libskiko-linux-x64.so.sha256"
     },
     {
-      "glob": "nucleus/native/linux-x64/libnucleus_linux_theme.so"
+      "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
     },
     {
-      "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
+      "glob": "nucleus/native/linux-x64/libnucleus_linux_theme.so"
     },
     {
       "glob": "nucleus/window/icons/linux/gnome/close.svg"
