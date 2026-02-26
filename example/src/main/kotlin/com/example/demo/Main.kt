@@ -60,6 +60,7 @@ import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
@@ -96,6 +97,14 @@ fun main(args: Array<String>) {
         try {
             System.loadLibrary("fontmanager")
         } catch (_: Throwable) { }
+    }
+
+    // Linux HiDPI: detect the native scale factor (GSettings, GDK_SCALE, Xft.dpi)
+    // and apply it before AWT initialises, mirroring JetBrains Runtime's approach.
+    // Only applied when not already overridden by the user or native-image bootstrap.
+    if (System.getProperty("sun.java2d.uiScale") == null) {
+        val scale = getLinuxNativeScaleFactor()
+        if (scale > 0.0) System.setProperty("sun.java2d.uiScale", scale.toString())
     }
 
     DeepLinkHandler.register(args) { uri ->

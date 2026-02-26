@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":aot-runtime"))
     implementation(project(":updater-runtime"))
     implementation(project(":darkmode-detector"))
+    implementation(project(":linux-hidpi"))
     implementation(project(":decorated-window-material"))
     implementation(project(":decorated-window-jni"))
 }
