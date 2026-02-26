@@ -19,6 +19,15 @@
       "type": "androidx.compose.ui.scene.skia.WindowSkiaLayerComponent$contentComponent$1"
     },
     {
+      "type": "coil3.RealImageLoader"
+    },
+    {
+      "type": "coil3.compose.internal.DeferredDispatchCoroutineDispatcher"
+    },
+    {
+      "type": "coil3.network.ktor3.internal.KtorNetworkFetcherServiceLoaderTarget"
+    },
+    {
       "type": "com.intellij.openapi.diagnostic.Logger"
     },
     {
@@ -116,6 +125,9 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "java.awt.Image"
     },
     {
       "type": "java.awt.Rectangle",
@@ -477,6 +489,9 @@
       ]
     },
     {
+      "type": "java.io.InputStream"
+    },
+    {
       "type": "java.io.OutputStream",
       "jniAccessible": true,
       "methods": [
@@ -569,6 +584,9 @@
       ]
     },
     {
+      "type": "java.nio.file.Files"
+    },
+    {
       "type": "java.util.Iterator",
       "jniAccessible": true,
       "methods": [
@@ -581,6 +599,9 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "java.util.List"
     },
     {
       "type": "java.util.concurrent.ScheduledThreadPoolExecutor"
@@ -1437,6 +1458,13 @@
         },
         {
           "name": "trace",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.Throwable"
+          ]
+        },
+        {
+          "name": "warn",
           "parameterTypes": [
             "java.lang.String",
             "java.lang.Throwable"
@@ -2452,6 +2480,18 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "sun.security.provider.SHA2$SHA256",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.text.resources.cldr.FormatData"
     }
   ],
   "resources": [
@@ -2459,7 +2499,22 @@
       "glob": "/fonts/inter/Inter-Bold.ttf"
     },
     {
+      "glob": "/fonts/inter/Inter-Italic.ttf"
+    },
+    {
       "glob": "/fonts/inter/Inter-Regular.ttf"
+    },
+    {
+      "glob": "/fonts/inter/Inter-SemiBold.ttf"
+    },
+    {
+      "glob": "/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
+    },
+    {
+      "glob": "META-INF/services/coil3.util.FetcherServiceLoaderTarget"
+    },
+    {
+      "glob": "META-INF/services/io.ktor.client.HttpClientEngineContainer"
     },
     {
       "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
@@ -2474,16 +2529,61 @@
       "glob": "META-INF/services/javax.xml.transform.TransformerFactory"
     },
     {
+      "glob": "META-INF/services/javax.xml.xpath.XPathFactory"
+    },
+    {
       "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
     },
     {
       "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
     },
     {
+      "glob": "com/intellij/ide/ui/laf/icons/intellij/checkBoxSelectedHovered.svg"
+    },
+    {
       "glob": "expui/actions/addFile.svg"
     },
     {
+      "glob": "expui/actions/addFile_dark.svg"
+    },
+    {
       "glob": "expui/actions/buildAutoReloadChanges.svg"
+    },
+    {
+      "glob": "expui/actions/buildAutoReloadChanges_dark.svg"
+    },
+    {
+      "glob": "expui/build/taskGroup.svg"
+    },
+    {
+      "glob": "expui/build/taskGroup@20x20.svg"
+    },
+    {
+      "glob": "expui/build/taskGroup@20x20_dark.svg"
+    },
+    {
+      "glob": "expui/build/taskGroup_dark.svg"
+    },
+    {
+      "glob": "expui/build/taskGroup_stroke.svg"
+    },
+    {
+      "glob": "expui/fileTypes/java.svg"
+    },
+    {
+      "glob": "expui/fileTypes/javaScript.svg"
+    },
+    {
+      "glob": "expui/fileTypes/javaScript_dark.svg"
+    },
+    {
+      "glob": "expui/fileTypes/java_dark.svg"
+    },
+    {
+      "glob": "expui/general/add.svg"
+    },
+    {
+      "glob": "expui/general/add_dark.svg"
     },
     {
       "glob": "expui/general/chevronDown.svg"
@@ -2498,7 +2598,13 @@
       "glob": "expui/general/chevronDownHovered.svg"
     },
     {
+      "glob": "expui/general/chevronDownHovered_dark.svg"
+    },
+    {
       "glob": "expui/general/chevronDownPressed.svg"
+    },
+    {
+      "glob": "expui/general/chevronDownPressed_dark.svg"
     },
     {
       "glob": "expui/general/chevronDown_dark.svg"
@@ -2508,6 +2614,63 @@
     },
     {
       "glob": "expui/general/chevronRight.svg"
+    },
+    {
+      "glob": "expui/general/chevronRightFocused.svg"
+    },
+    {
+      "glob": "expui/general/chevronRightFocused_dark.svg"
+    },
+    {
+      "glob": "expui/general/chevronRightHovered.svg"
+    },
+    {
+      "glob": "expui/general/chevronRightHovered_dark.svg"
+    },
+    {
+      "glob": "expui/general/chevronRight_dark.svg"
+    },
+    {
+      "glob": "expui/general/close.svg"
+    },
+    {
+      "glob": "expui/general/closeSmall.svg"
+    },
+    {
+      "glob": "expui/general/closeSmall_dark.svg"
+    },
+    {
+      "glob": "expui/general/close_dark.svg"
+    },
+    {
+      "glob": "expui/general/copy.svg"
+    },
+    {
+      "glob": "expui/general/copy_dark.svg"
+    },
+    {
+      "glob": "expui/general/delete.svg"
+    },
+    {
+      "glob": "expui/general/delete_dark.svg"
+    },
+    {
+      "glob": "expui/general/paste.svg"
+    },
+    {
+      "glob": "expui/general/paste_dark.svg"
+    },
+    {
+      "glob": "expui/general/refresh.svg"
+    },
+    {
+      "glob": "expui/general/refresh_dark.svg"
+    },
+    {
+      "glob": "expui/general/search.svg"
+    },
+    {
+      "glob": "expui/general/search_dark.svg"
     },
     {
       "glob": "expui/ide/externalLink.svg"
@@ -2522,13 +2685,55 @@
       "glob": "expui/ide/externalLink_dark.svg"
     },
     {
+      "glob": "expui/inline/inlineSettings.svg"
+    },
+    {
+      "glob": "expui/inline/inlineSettings_dark.svg"
+    },
+    {
       "glob": "expui/inline/matchCase.svg"
+    },
+    {
+      "glob": "expui/inline/matchCase_dark.svg"
+    },
+    {
+      "glob": "expui/status/error.svg"
+    },
+    {
+      "glob": "expui/status/error_dark.svg"
+    },
+    {
+      "glob": "expui/status/info.svg"
+    },
+    {
+      "glob": "expui/status/info_dark.svg"
+    },
+    {
+      "glob": "expui/status/success.svg"
+    },
+    {
+      "glob": "expui/status/success_dark.svg"
+    },
+    {
+      "glob": "expui/status/warning.svg"
+    },
+    {
+      "glob": "expui/status/warning_dark.svg"
     },
     {
       "glob": "fonts/inter/Inter-Bold.ttf"
     },
     {
+      "glob": "fonts/inter/Inter-Italic.ttf"
+    },
+    {
       "glob": "fonts/inter/Inter-Regular.ttf"
+    },
+    {
+      "glob": "fonts/inter/Inter-SemiBold.ttf"
+    },
+    {
+      "glob": "fonts/jetbrains-mono/JetBrainsMono-Regular.ttf"
     },
     {
       "glob": "icons/components/banners.svg"
@@ -2789,6 +2994,9 @@
       "glob": "icons/darkTheme@20x20_dark.svg"
     },
     {
+      "glob": "icons/darkThemeSelected_dark.svg"
+    },
+    {
       "glob": "icons/github.svg"
     },
     {
@@ -2798,10 +3006,28 @@
       "glob": "icons/jewel-logo.svg"
     },
     {
+      "glob": "icons/jewel-logo_dark.svg"
+    },
+    {
+      "glob": "icons/jewel-logo_stroke.svg"
+    },
+    {
+      "glob": "icons/kotlin.svg"
+    },
+    {
+      "glob": "icons/kotlin_dark.svg"
+    },
+    {
+      "glob": "icons/lightTheme.svg"
+    },
+    {
       "glob": "icons/lightTheme@20x20.svg"
     },
     {
       "glob": "icons/lightThemeSelected.svg"
+    },
+    {
+      "glob": "icons/lightTheme_dark.svg"
     },
     {
       "glob": "icons/lightWithLightHeaderTheme.svg"
@@ -2810,10 +3036,28 @@
       "glob": "icons/lightWithLightHeaderTheme@20x20.svg"
     },
     {
+      "glob": "icons/lightWithLightHeaderThemeSelected.svg"
+    },
+    {
+      "glob": "icons/lightWithLightHeaderTheme_dark.svg"
+    },
+    {
+      "glob": "icons/markdown/extensions/github/alerts/alert-warning.svg"
+    },
+    {
+      "glob": "icons/markdown/extensions/github/alerts/alert-warning_dark.svg"
+    },
+    {
       "glob": "icons/markdown@20x20.svg"
     },
     {
+      "glob": "icons/markdown@20x20_dark.svg"
+    },
+    {
       "glob": "icons/meetNewUi@20x20.svg"
+    },
+    {
+      "glob": "icons/meetNewUi@20x20_dark.svg"
     },
     {
       "glob": "icons/structure@20x20.svg"
@@ -2822,13 +3066,52 @@
       "glob": "icons/structure@20x20_dark.svg"
     },
     {
+      "glob": "icons/sunny.svg"
+    },
+    {
+      "glob": "icons/sunny_dark.svg"
+    },
+    {
       "glob": "icons/systemTheme.svg"
+    },
+    {
+      "glob": "icons/systemTheme_dark.svg"
+    },
+    {
+      "glob": "language/go.svg"
+    },
+    {
+      "glob": "language/go_dark.svg"
     },
     {
       "glob": "language/python.svg"
     },
     {
+      "glob": "language/python_dark.svg"
+    },
+    {
+      "glob": "language/ruby.svg"
+    },
+    {
+      "glob": "language/ruby_dark.svg"
+    },
+    {
+      "glob": "language/rust.svg"
+    },
+    {
+      "glob": "language/rust_dark.svg"
+    },
+    {
       "glob": "libskiko-linux-x64.so.sha256"
+    },
+    {
+      "glob": "messages/JewelIntUIBundle.properties"
+    },
+    {
+      "glob": "messages/JewelIntUIBundle_fr.properties"
+    },
+    {
+      "glob": "messages/JewelIntUIBundle_fr_FR.properties"
     },
     {
       "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
@@ -2936,10 +3219,25 @@
       "glob": "org/slf4j/impl/StaticLoggerBinder.class"
     },
     {
+      "glob": "readme/jewel-logo.svg"
+    },
+    {
       "glob": "themes/expUI/icons/dark/checkBox.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/checkBoxDisabled.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBoxDisabled_dark.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBoxSelected.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBoxSelected_dark.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBox_dark.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/radio.svg"
@@ -2948,7 +3246,16 @@
       "glob": "themes/expUI/icons/dark/radioDisabled.svg"
     },
     {
+      "glob": "themes/expUI/icons/dark/radioDisabled_dark.svg"
+    },
+    {
       "glob": "themes/expUI/icons/dark/radioSelected.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/radioSelected_dark.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/radio_dark.svg"
     },
     {
       "module": "java.desktop",
@@ -2986,6 +3293,9 @@
     },
     {
       "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
+    },
+    {
+      "bundle": "messages.JewelIntUIBundle"
     },
     {
       "bundle": "sun.awt.resources.awt"
