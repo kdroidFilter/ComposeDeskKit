@@ -47,6 +47,9 @@ dependencies {
 
     // Jewel's StandalonePlatformCursorController uses JNA at runtime
     implementation(libs.jna.jpms)
+
+    // GraalVM SVM annotations for Font.createFont substitution (compile-only)
+    compileOnly("org.graalvm.nativeimage:svm:25.0.0")
 }
 
 java {
