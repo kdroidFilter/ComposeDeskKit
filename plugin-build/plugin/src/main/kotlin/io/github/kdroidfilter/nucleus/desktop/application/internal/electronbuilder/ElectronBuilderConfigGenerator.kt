@@ -87,6 +87,7 @@ internal class ElectronBuilderConfigGenerator {
                     startupWMClass = startupWMClass,
                     linuxIconOverride = linuxIconOverride,
                     linuxAfterInstallTemplate = linuxAfterInstallTemplate,
+                    executableName = executableName,
                 )
         }
 
@@ -468,11 +469,13 @@ internal class ElectronBuilderConfigGenerator {
         startupWMClass: String?,
         linuxIconOverride: File?,
         linuxAfterInstallTemplate: File?,
+        executableName: String?,
     ) {
         yaml.appendLine("linux:")
         yaml.appendLine("  target:")
         yaml.appendLine("    - target: ${targetFormat.electronBuilderTarget}")
         yaml.appendLine("      arch: ${currentArch.id}")
+        appendIfNotNull(yaml, "  executableName", executableName)
         val linuxIcon =
             linuxIconOverride ?: distributions.linux.iconFile.orNull
                 ?.asFile

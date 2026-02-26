@@ -4,6 +4,9 @@
       "type": "android.os.Build"
     },
     {
+      "type": "androidx.compose.ui.awt.ComposeDialog"
+    },
+    {
       "type": "androidx.compose.ui.awt.ComposeWindow"
     },
     {
@@ -19,10 +22,7 @@
       "type": "androidx.compose.ui.scene.skia.WindowSkiaLayerComponent$contentComponent$1"
     },
     {
-      "type": "com.intellij.openapi.diagnostic.Logger"
-    },
-    {
-      "type": "com.sun.org.apache.xalan.internal.xsltc.trax.TransformerFactoryImpl",
+      "type": "com.sun.crypto.provider.AESCipher$General",
       "methods": [
         {
           "name": "<init>",
@@ -31,10 +31,85 @@
       ]
     },
     {
+      "type": "com.sun.crypto.provider.ARCFOURCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.ChaCha20Cipher$ChaCha20Poly1305",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DESCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DESedeCipher",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.DHParameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.GaloisCounterMode$AESGCM",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.crypto.provider.TlsMasterSecretGenerator",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.java.swing.plaf.gtk.GTKLookAndFeel",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.sun.java.swing.plaf.gtk.resources.gtk"
+    },
+    {
       "type": "com.sun.swing.internal.plaf.basic.resources.basic"
     },
     {
-      "type": "com.sun.swing.internal.plaf.metal.resources.metal"
+      "type": "com.sun.swing.internal.plaf.synth.resources.synth"
     },
     {
       "type": "java.awt.AlphaComposite",
@@ -108,9 +183,28 @@
       ]
     },
     {
+      "type": "java.awt.Desktop$Action",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "BROWSE"
+        },
+        {
+          "name": "MAIL"
+        },
+        {
+          "name": "OPEN"
+        }
+      ]
+    },
+    {
       "type": "java.awt.GraphicsEnvironment",
       "jniAccessible": true,
       "methods": [
+        {
+          "name": "getLocalGraphicsEnvironment",
+          "parameterTypes": []
+        },
         {
           "name": "isHeadless",
           "parameterTypes": []
@@ -273,47 +367,6 @@
       ]
     },
     {
-      "type": "java.awt.image.BufferedImage",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "colorModel"
-        },
-        {
-          "name": "imageType"
-        },
-        {
-          "name": "raster"
-        }
-      ],
-      "methods": [
-        {
-          "name": "getRGB",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int",
-            "int[]",
-            "int",
-            "int"
-          ]
-        },
-        {
-          "name": "setRGB",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int",
-            "int[]",
-            "int",
-            "int"
-          ]
-        }
-      ]
-    },
-    {
       "type": "java.awt.image.ColorModel",
       "jniAccessible": true,
       "fields": [
@@ -373,9 +426,6 @@
           "name": "allgrayopaque"
         },
         {
-          "name": "colorData"
-        },
-        {
           "name": "map_size"
         },
         {
@@ -383,96 +433,6 @@
         },
         {
           "name": "transparent_index"
-        }
-      ]
-    },
-    {
-      "type": "java.awt.image.Raster",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "dataBuffer"
-        },
-        {
-          "name": "height"
-        },
-        {
-          "name": "minX"
-        },
-        {
-          "name": "minY"
-        },
-        {
-          "name": "numBands"
-        },
-        {
-          "name": "numDataElements"
-        },
-        {
-          "name": "sampleModel"
-        },
-        {
-          "name": "sampleModelTranslateX"
-        },
-        {
-          "name": "sampleModelTranslateY"
-        },
-        {
-          "name": "width"
-        }
-      ]
-    },
-    {
-      "type": "java.awt.image.SampleModel",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "height"
-        },
-        {
-          "name": "width"
-        }
-      ],
-      "methods": [
-        {
-          "name": "getPixels",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int",
-            "int[]",
-            "java.awt.image.DataBuffer"
-          ]
-        },
-        {
-          "name": "setPixels",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int",
-            "int[]",
-            "java.awt.image.DataBuffer"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "java.awt.image.SinglePixelPackedSampleModel",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "bitMasks"
-        },
-        {
-          "name": "bitOffsets"
-        },
-        {
-          "name": "bitSizes"
-        },
-        {
-          "name": "maxBitSize"
         }
       ]
     },
@@ -499,6 +459,12 @@
       "jniAccessible": true,
       "methods": [
         {
+          "name": "<init>",
+          "parameterTypes": [
+            "boolean"
+          ]
+        },
+        {
           "name": "booleanValue",
           "parameterTypes": []
         },
@@ -518,6 +484,18 @@
           "name": "<init>",
           "parameterTypes": [
             "float"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "java.lang.Integer",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "int"
           ]
         }
       ]
@@ -569,6 +547,28 @@
       ]
     },
     {
+      "type": "java.security.AlgorithmParametersSpi"
+    },
+    {
+      "type": "java.security.KeyStoreSpi"
+    },
+    {
+      "type": "java.util.ArrayList",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "add",
+          "parameterTypes": [
+            "java.lang.Object"
+          ]
+        },
+        {
+          "name": "clear",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "java.util.Iterator",
       "jniAccessible": true,
       "methods": [
@@ -586,18 +586,7 @@
       "type": "java.util.concurrent.ScheduledThreadPoolExecutor"
     },
     {
-      "type": "javax.swing.plaf.basic.BasicPanelUI",
-      "methods": [
-        {
-          "name": "createUI",
-          "parameterTypes": [
-            "javax.swing.JComponent"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "javax.swing.plaf.metal.MetalRootPaneUI",
+      "type": "javax.swing.plaf.synth.SynthLookAndFeel",
       "methods": [
         {
           "name": "createUI",
@@ -1212,9 +1201,6 @@
       ]
     },
     {
-      "type": "org.jetbrains.skia.paragraph.TextBox[]"
-    },
-    {
       "type": "org.jetbrains.skia.shaper.BidiRun",
       "jniAccessible": true,
       "fields": [
@@ -1426,58 +1412,6 @@
       "type": "org.jetbrains.skiko.SkiaLayer$1"
     },
     {
-      "type": "org.slf4j.Logger",
-      "methods": [
-        {
-          "name": "info",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        },
-        {
-          "name": "trace",
-          "parameterTypes": [
-            "java.lang.String",
-            "java.lang.Throwable"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "org.slf4j.LoggerFactory",
-      "methods": [
-        {
-          "name": "getLogger",
-          "parameterTypes": [
-            "java.lang.String"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "sun.awt.AWTAccessor",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "getComponentAccessor",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "sun.awt.AWTAccessor$ComponentAccessor",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "getPeer",
-          "parameterTypes": [
-            "java.awt.Component"
-          ]
-        }
-      ]
-    },
-    {
       "type": "sun.awt.SunHints",
       "jniAccessible": true,
       "fields": [
@@ -1536,6 +1470,18 @@
       "type": "sun.awt.X11.XContentWindow"
     },
     {
+      "type": "sun.awt.X11.XDesktopPeer",
+      "jniAccessible": true,
+      "fields": [
+        {
+          "name": "supportedActions"
+        }
+      ]
+    },
+    {
+      "type": "sun.awt.X11.XDialogPeer"
+    },
+    {
       "type": "sun.awt.X11.XErrorHandlerUtil",
       "jniAccessible": true,
       "methods": [
@@ -1566,12 +1512,6 @@
         },
         {
           "name": "numLockMask"
-        }
-      ],
-      "methods": [
-        {
-          "name": "getDisplay",
-          "parameterTypes": []
         }
       ]
     },
@@ -1620,44 +1560,6 @@
       "fields": [
         {
           "name": "pData"
-        }
-      ]
-    },
-    {
-      "type": "sun.awt.image.BufImgSurfaceData$ICMColorData",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "pData"
-        }
-      ],
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "sun.awt.image.IntegerComponentRaster",
-      "jniAccessible": true,
-      "fields": [
-        {
-          "name": "data"
-        },
-        {
-          "name": "dataOffsets"
-        },
-        {
-          "name": "pixelStride"
-        },
-        {
-          "name": "scanlineStride"
-        },
-        {
-          "name": "type"
         }
       ]
     },
@@ -1731,26 +1633,6 @@
           "parameterTypes": [
             "int"
           ]
-        }
-      ]
-    },
-    {
-      "type": "sun.font.FontUtilities",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "debugFonts",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "sun.font.FreetypeFontScaler",
-      "jniAccessible": true,
-      "methods": [
-        {
-          "name": "invalidateScaler",
-          "parameterTypes": []
         }
       ]
     },
@@ -1905,6 +1787,16 @@
         },
         {
           "name": "strokeHint"
+        }
+      ]
+    },
+    {
+      "type": "sun.java2d.SunGraphicsEnvironment",
+      "jniAccessible": true,
+      "methods": [
+        {
+          "name": "isDisplayLocal",
+          "parameterTypes": []
         }
       ]
     },
@@ -2434,6 +2326,42 @@
       ]
     },
     {
+      "type": "sun.security.pkcs12.PKCS12KeyStore",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.DSA$SHA224withDSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.DSA$SHA256withDSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "sun.security.provider.NativePRNG",
       "methods": [
         {
@@ -2452,15 +2380,237 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "sun.security.provider.SHA2$SHA224",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA2$SHA256",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA5$SHA384",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.SHA5$SHA512",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.provider.X509Factory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.PSSParameters",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAKeyFactory$Legacy",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSAPSSSignature",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.rsa.RSASignature$SHA224withRSA",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.KeyManagerFactoryImpl$SunX509",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.SSLContextImpl$DefaultSSLContext",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityInfoAccessExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.AuthorityKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.BasicConstraintsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CRLDistributionPointsExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.CertificatePoliciesExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.KeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.NetscapeCertTypeExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.PrivateKeyUsageExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.SubjectAlternativeNameExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sun.security.x509.SubjectKeyIdentifierExtension",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "java.lang.Boolean",
+            "java.lang.Object"
+          ]
+        }
+      ]
     }
   ],
   "resources": [
-    {
-      "glob": "/fonts/inter/Inter-Bold.ttf"
-    },
-    {
-      "glob": "/fonts/inter/Inter-Regular.ttf"
-    },
     {
       "glob": "META-INF/services/java.awt.im.spi.InputMethodDescriptor"
     },
@@ -2468,370 +2618,16 @@
       "glob": "META-INF/services/java.net.spi.InetAddressResolverProvider"
     },
     {
-      "glob": "META-INF/services/java.nio.charset.spi.CharsetProvider"
+      "glob": "META-INF/services/java.net.spi.URLStreamHandlerProvider"
     },
     {
-      "glob": "META-INF/services/javax.xml.transform.TransformerFactory"
+      "glob": "META-INF/services/java.nio.channels.spi.SelectorProvider"
     },
     {
       "glob": "META-INF/services/kotlinx.coroutines.internal.MainDispatcherFactory"
     },
     {
-      "glob": "META-INF/services/org.slf4j.spi.SLF4JServiceProvider"
-    },
-    {
-      "glob": "expui/actions/addFile.svg"
-    },
-    {
-      "glob": "expui/actions/buildAutoReloadChanges.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownDisabled_dark.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownHovered.svg"
-    },
-    {
-      "glob": "expui/general/chevronDownPressed.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown_dark.svg"
-    },
-    {
-      "glob": "expui/general/chevronDown_stroke.svg"
-    },
-    {
-      "glob": "expui/general/chevronRight.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled.svg"
-    },
-    {
-      "glob": "expui/ide/externalLinkDisabled_dark.svg"
-    },
-    {
-      "glob": "expui/ide/externalLink_dark.svg"
-    },
-    {
-      "glob": "expui/inline/matchCase.svg"
-    },
-    {
-      "glob": "fonts/inter/Inter-Bold.ttf"
-    },
-    {
-      "glob": "fonts/inter/Inter-Regular.ttf"
-    },
-    {
-      "glob": "icons/components/banners.svg"
-    },
-    {
-      "glob": "icons/components/banners@20x20.svg"
-    },
-    {
-      "glob": "icons/components/banners@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/banners_dark.svg"
-    },
-    {
-      "glob": "icons/components/borders.svg"
-    },
-    {
-      "glob": "icons/components/borders@20x20.svg"
-    },
-    {
-      "glob": "icons/components/borders@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/borders_dark.svg"
-    },
-    {
-      "glob": "icons/components/brush.svg"
-    },
-    {
-      "glob": "icons/components/brush@20x20.svg"
-    },
-    {
-      "glob": "icons/components/brush@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/brush_dark.svg"
-    },
-    {
-      "glob": "icons/components/button.svg"
-    },
-    {
-      "glob": "icons/components/button@20x20.svg"
-    },
-    {
-      "glob": "icons/components/button@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/button_dark.svg"
-    },
-    {
-      "glob": "icons/components/checkBox.svg"
-    },
-    {
-      "glob": "icons/components/checkBox@20x20.svg"
-    },
-    {
-      "glob": "icons/components/checkBox@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/checkBox_dark.svg"
-    },
-    {
-      "glob": "icons/components/comboBox.svg"
-    },
-    {
-      "glob": "icons/components/comboBox@20x20.svg"
-    },
-    {
-      "glob": "icons/components/comboBox@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/comboBox_dark.svg"
-    },
-    {
-      "glob": "icons/components/links.svg"
-    },
-    {
-      "glob": "icons/components/links@20x20.svg"
-    },
-    {
-      "glob": "icons/components/links@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/links_dark.svg"
-    },
-    {
-      "glob": "icons/components/menu.svg"
-    },
-    {
-      "glob": "icons/components/menu@20x20.svg"
-    },
-    {
-      "glob": "icons/components/menu@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/menu_dark.svg"
-    },
-    {
-      "glob": "icons/components/progressbar.svg"
-    },
-    {
-      "glob": "icons/components/progressbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/progressbar@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/progressbar_dark.svg"
-    },
-    {
-      "glob": "icons/components/radioButton.svg"
-    },
-    {
-      "glob": "icons/components/radioButton@20x20.svg"
-    },
-    {
-      "glob": "icons/components/radioButton@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/radioButton_dark.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/scrollbar_dark.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl@20x20.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/segmentedControl_dark.svg"
-    },
-    {
-      "glob": "icons/components/slider.svg"
-    },
-    {
-      "glob": "icons/components/slider@20x20.svg"
-    },
-    {
-      "glob": "icons/components/slider@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/slider_dark.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout@20x20.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/splitLayout_dark.svg"
-    },
-    {
-      "glob": "icons/components/tabs.svg"
-    },
-    {
-      "glob": "icons/components/tabs@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tabs@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/tabs_dark.svg"
-    },
-    {
-      "glob": "icons/components/textArea.svg"
-    },
-    {
-      "glob": "icons/components/textArea@20x20.svg"
-    },
-    {
-      "glob": "icons/components/textArea@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/textArea_dark.svg"
-    },
-    {
-      "glob": "icons/components/textField.svg"
-    },
-    {
-      "glob": "icons/components/textField@20x20.svg"
-    },
-    {
-      "glob": "icons/components/textField@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/textField_dark.svg"
-    },
-    {
-      "glob": "icons/components/toolbar.svg"
-    },
-    {
-      "glob": "icons/components/toolbar@20x20.svg"
-    },
-    {
-      "glob": "icons/components/toolbar@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/toolbar_dark.svg"
-    },
-    {
-      "glob": "icons/components/tooltip.svg"
-    },
-    {
-      "glob": "icons/components/tooltip@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tooltip@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/tooltip_dark.svg"
-    },
-    {
-      "glob": "icons/components/tree.svg"
-    },
-    {
-      "glob": "icons/components/tree@20x20.svg"
-    },
-    {
-      "glob": "icons/components/tree@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/tree_dark.svg"
-    },
-    {
-      "glob": "icons/components/typography.svg"
-    },
-    {
-      "glob": "icons/components/typography@20x20.svg"
-    },
-    {
-      "glob": "icons/components/typography@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/components/typography_dark.svg"
-    },
-    {
-      "glob": "icons/darkTheme.svg"
-    },
-    {
-      "glob": "icons/darkTheme@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/github.svg"
-    },
-    {
-      "glob": "icons/github_dark.svg"
-    },
-    {
-      "glob": "icons/jewel-logo.svg"
-    },
-    {
-      "glob": "icons/lightTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/lightThemeSelected.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme.svg"
-    },
-    {
-      "glob": "icons/lightWithLightHeaderTheme@20x20.svg"
-    },
-    {
-      "glob": "icons/markdown@20x20.svg"
-    },
-    {
-      "glob": "icons/meetNewUi@20x20.svg"
-    },
-    {
-      "glob": "icons/structure@20x20.svg"
-    },
-    {
-      "glob": "icons/structure@20x20_dark.svg"
-    },
-    {
-      "glob": "icons/systemTheme.svg"
-    },
-    {
-      "glob": "language/python.svg"
-    },
-    {
       "glob": "libskiko-linux-x64.so.sha256"
-    },
-    {
-      "glob": "nucleus/native/linux-x64/libnucleus_linux_jni.so"
     },
     {
       "glob": "nucleus/native/linux-x64/libnucleus_linux_theme.so"
@@ -2933,22 +2729,8 @@
       "glob": "nucleus/window/icons/linux/gnome/restore_dark.svg"
     },
     {
-      "glob": "org/slf4j/impl/StaticLoggerBinder.class"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBox.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/checkBoxDisabled.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radio.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radioDisabled.svg"
-    },
-    {
-      "glob": "themes/expUI/icons/dark/radioSelected.svg"
+      "module": "java.desktop",
+      "glob": "com/sun/java/swing/plaf/gtk/resources/gtk_fr_FR.properties"
     },
     {
       "module": "java.desktop",
@@ -2956,36 +2738,20 @@
     },
     {
       "module": "java.desktop",
-      "glob": "com/sun/swing/internal/plaf/metal/resources/metal_fr_FR.properties"
+      "glob": "com/sun/swing/internal/plaf/synth/resources/synth_fr_FR.properties"
     },
     {
       "module": "java.desktop",
       "glob": "sun/awt/resources/awt_fr_FR.properties"
     },
     {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/Encodings.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr.properties"
-    },
-    {
-      "module": "java.xml",
-      "glob": "com/sun/org/apache/xml/internal/serializer/XMLEntities_fr_FR.properties"
-    },
-    {
-      "bundle": "com.sun.org.apache.xml.internal.serializer.XMLEntities"
+      "bundle": "com.sun.java.swing.plaf.gtk.resources.gtk"
     },
     {
       "bundle": "com.sun.swing.internal.plaf.basic.resources.basic"
     },
     {
-      "bundle": "com.sun.swing.internal.plaf.metal.resources.metal"
+      "bundle": "com.sun.swing.internal.plaf.synth.resources.synth"
     },
     {
       "bundle": "sun.awt.resources.awt"

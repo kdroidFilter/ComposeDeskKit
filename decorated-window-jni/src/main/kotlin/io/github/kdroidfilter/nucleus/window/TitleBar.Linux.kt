@@ -15,7 +15,9 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
+import io.github.kdroidfilter.nucleus.window.utils.linux.JniLinuxWindowBridge
 import java.awt.Frame
+import java.awt.MouseInfo
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("FunctionNaming")
@@ -25,6 +27,86 @@ internal fun DecoratedWindowScope.LinuxTitleBar(
     gradientStartColor: Color = Color.Unspecified,
     style: TitleBarStyle,
     content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit = {},
+) {
+    if (JniLinuxWindowBridge.isLoaded) {
+        NativeLinuxTitleBar(modifier, gradientStartColor, style, content)
+    } else {
+        FallbackLinuxTitleBar(modifier, gradientStartColor, style, content)
+    }
+}
+
+// Native title bar: uses JNI to send _NET_WM_MOVERESIZE for native WM drag.
+// Double-click to maximize is handled in Compose.
+@OptIn(ExperimentalComposeUiApi::class)
+@Suppress("FunctionNaming")
+@Composable
+private fun DecoratedWindowScope.NativeLinuxTitleBar(
+    modifier: Modifier,
+    gradientStartColor: Color,
+    style: TitleBarStyle,
+    content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
+) {
+    val linuxStyle = createLinuxTitleBarStyle(style)
+    val viewConfig = LocalViewConfiguration.current
+    var lastPressTime = 0L
+
+    TitleBarImpl(
+        modifier = modifier,
+        gradientStartColor = gradientStartColor,
+        style = linuxStyle,
+        applyTitleBar = { _, _ ->
+            if (LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE) {
+                PaddingValues(end = 4.dp)
+            } else {
+                PaddingValues(0.dp)
+            }
+        },
+        backgroundContent = {
+            Spacer(
+                modifier = Modifier.fillMaxSize()
+                    .onPointerEvent(PointerEventType.Press, PointerEventPass.Main) {
+                        if (
+                            this.currentEvent.button == PointerButton.Primary &&
+                            this.currentEvent.changes.any { !it.isConsumed }
+                        ) {
+                            val now = System.currentTimeMillis()
+                            val elapsed = now - lastPressTime
+                            if (elapsed in viewConfig.doubleTapMinTimeMillis..viewConfig.doubleTapTimeoutMillis) {
+                                // Double-click: toggle maximize
+                                if (state.isMaximized) {
+                                    window.extendedState = Frame.NORMAL
+                                } else {
+                                    window.extendedState = Frame.MAXIMIZED_BOTH
+                                }
+                            } else {
+                                // Single press: initiate native WM move
+                                val mouseLocation = MouseInfo.getPointerInfo()?.location
+                                if (mouseLocation != null) {
+                                    JniLinuxWindowBridge.nativeStartWindowMove(
+                                        window, mouseLocation.x, mouseLocation.y, 1,
+                                    )
+                                }
+                            }
+                            lastPressTime = now
+                        }
+                    },
+            )
+        },
+    ) { currentState ->
+        WindowControlArea(window, currentState, linuxStyle)
+        content(currentState)
+    }
+}
+
+// Fallback title bar: Compose-based drag and double-click (no native lib).
+@OptIn(ExperimentalComposeUiApi::class)
+@Suppress("FunctionNaming")
+@Composable
+private fun DecoratedWindowScope.FallbackLinuxTitleBar(
+    modifier: Modifier,
+    gradientStartColor: Color,
+    style: TitleBarStyle,
+    content: @Composable TitleBarScope.(DecoratedWindowState) -> Unit,
 ) {
     val linuxStyle = createLinuxTitleBarStyle(style)
     val viewConfig = LocalViewConfiguration.current
