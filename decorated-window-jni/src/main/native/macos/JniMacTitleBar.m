@@ -37,10 +37,49 @@ static void removeDragView(NSWindow *window);
 
 // Custom NSView that hosts replacement traffic-light buttons in the content view
 // during fullscreen, mirroring JBR's AWTButtonsView.
-@interface NucleusButtonsView : NSView
+// Buttons are hidden by default and revealed on hover (standard macOS fullscreen
+// behavior — the menu bar and traffic lights only appear when the cursor moves
+// to the top of the screen).
+@interface NucleusButtonsView : NSView {
+    NSTrackingArea *_hoverTrackingArea;
+    BOOL _mouseInside;
+}
 @end
 
 @implementation NucleusButtonsView
+
+- (void)updateTrackingAreas {
+    [super updateTrackingAreas];
+    if (_hoverTrackingArea) {
+        [self removeTrackingArea:_hoverTrackingArea];
+    }
+    // Use inVisibleRect so the tracking area auto-adjusts on resize/scroll
+    _hoverTrackingArea = [[NSTrackingArea alloc]
+        initWithRect:NSZeroRect
+             options:(NSTrackingMouseEnteredAndExited |
+                      NSTrackingActiveAlways |
+                      NSTrackingInVisibleRect)
+               owner:self
+            userInfo:nil];
+    [self addTrackingArea:_hoverTrackingArea];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+    _mouseInside = YES;
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+        ctx.duration = 0.2;
+        self.animator.alphaValue = 1.0;
+    }];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+    _mouseInside = NO;
+    [NSAnimationContext runAnimationGroup:^(NSAnimationContext *ctx) {
+        ctx.duration = 0.3;
+        self.animator.alphaValue = 0.0;
+    }];
+}
+
 @end
 
 // ─── Fullscreen observer ────────────────────────────────────────────────────────
@@ -294,12 +333,18 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     // Create container
     NucleusButtonsView *container = [[NucleusButtonsView alloc] init];
 
-    // Position the container (non-flipped: y=0 is at the bottom)
+    // Position the container (non-flipped: y=0 is at the bottom).
+    // The container extends to the very top of the content view so
+    // that its tracking area catches the cursor as it approaches the
+    // top of the screen (standard macOS fullscreen reveal behavior).
     NSView *parent = window.contentView;
     CGFloat h = origClose.superview.frame.size.height;
-    CGFloat y = parent.frame.size.height - h - (titleBarHeight - h) / 2.0;
-    [container setFrame:NSMakeRect(kFullscreenButtonsX, y,
-                                   kFullscreenButtonsWidth - kFullscreenButtonsX, h)];
+    CGFloat buttonY = parent.frame.size.height - h - (titleBarHeight - h) / 2.0;
+    CGFloat containerBottom = buttonY;
+    CGFloat containerTop = parent.frame.size.height;
+    [container setFrame:NSMakeRect(kFullscreenButtonsX, containerBottom,
+                                   kFullscreenButtonsWidth - kFullscreenButtonsX,
+                                   containerTop - containerBottom)];
 
     NSUInteger masks = [window styleMask];
 
@@ -323,6 +368,9 @@ static void installFullScreenButtons(NSWindow *window, float titleBarHeight) {
     [miniButton setAction:@selector(performMiniaturize:)];
     [zoomButton setTarget:window];
     [zoomButton setAction:@selector(toggleFullScreen:)];
+
+    // Start hidden — revealed on hover (standard macOS fullscreen behavior)
+    [container setAlphaValue:0.0];
 
     [parent addSubview:container];
 
@@ -355,10 +403,13 @@ static void updateFullScreenButtonsPosition(NSWindow *window) {
     NSNumber *storedHeight = objc_getAssociatedObject(window, &kTitleBarHeightKey);
     float titleBarHeight = storedHeight ? [storedHeight floatValue] : kMinHeightForFullSize;
 
-    CGFloat h = origParent ? origParent.frame.size.height : container.frame.size.height;
-    CGFloat y = parent.frame.size.height - h - (titleBarHeight - h) / 2.0;
-    [container setFrame:NSMakeRect(kFullscreenButtonsX, y,
-                                   kFullscreenButtonsWidth - kFullscreenButtonsX, h)];
+    CGFloat h = origParent ? origParent.frame.size.height : kMinHeightForFullSize;
+    CGFloat buttonY = parent.frame.size.height - h - (titleBarHeight - h) / 2.0;
+    CGFloat containerBottom = buttonY;
+    CGFloat containerTop = parent.frame.size.height;
+    [container setFrame:NSMakeRect(kFullscreenButtonsX, containerBottom,
+                                   kFullscreenButtonsWidth - kFullscreenButtonsX,
+                                   containerTop - containerBottom)];
 }
 
 // ─── _adjustWindowToScreen swizzle ──────────────────────────────────────────────

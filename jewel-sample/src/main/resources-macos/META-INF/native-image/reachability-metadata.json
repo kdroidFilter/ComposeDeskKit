@@ -2517,15 +2517,6 @@
           "parameterTypes": [
             "sun.lwawt.macosx.NSEvent"
           ]
-        },
-        {
-          "name": "deliverResize",
-          "parameterTypes": [
-            "int",
-            "int",
-            "int",
-            "int"
-          ]
         }
       ]
     },
@@ -2678,6 +2669,12 @@
     },
     {
       "glob": "expui/general/chevronDown_stroke@2x.svg"
+    },
+    {
+      "glob": "expui/general/chevronRight.svg"
+    },
+    {
+      "glob": "expui/general/chevronRight@2x.svg"
     },
     {
       "glob": "expui/inline/matchCase.svg"
@@ -3004,6 +3001,12 @@
       "glob": "icons/systemTheme@2x.svg"
     },
     {
+      "glob": "language/python.svg"
+    },
+    {
+      "glob": "language/python@2x.svg"
+    },
+    {
       "glob": "libskiko-macos-arm64.dylib.sha256"
     },
     {
@@ -3020,6 +3023,12 @@
     },
     {
       "glob": "themes/expUI/icons/dark/checkBox@2x.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBoxDisabled.svg"
+    },
+    {
+      "glob": "themes/expUI/icons/dark/checkBoxDisabled@2x.svg"
     },
     {
       "glob": "themes/expUI/icons/dark/radio.svg"
