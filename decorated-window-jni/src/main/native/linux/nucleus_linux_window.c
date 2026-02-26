@@ -174,12 +174,33 @@ Java_io_github_kdroidfilter_nucleus_window_utils_linux_JniLinuxWindowBridge_nati
     /* Acquire AWT lock — required before any direct Xlib call on AWT's Display */
     if (!awtLock(env)) return JNI_FALSE;
 
+    /* Determine the root window */
+    Window rootWindow = XDefaultRootWindow(display);
+
+    /*
+     * Query the REAL root coordinates via XQueryPointer.
+     * Java's MouseInfo.getPointerInfo().location returns logical (scaled)
+     * coordinates on HiDPI screens, but _NET_WM_MOVERESIZE requires
+     * physical X11 root-window coordinates. XQueryPointer always returns
+     * unscaled physical pixels, which is exactly what the WM expects.
+     */
+    Window queryRoot, queryChild;
+    int physRootX, physRootY, winX, winY;
+    unsigned int mask;
+    Bool queryOk = XQueryPointer(display, rootWindow,
+                                 &queryRoot, &queryChild,
+                                 &physRootX, &physRootY,
+                                 &winX, &winY, &mask);
+
+    if (!queryOk) {
+        /* Fallback to the (possibly scaled) coordinates from Java */
+        physRootX = rootX;
+        physRootY = rootY;
+    }
+
     /* Release AWT's pointer and keyboard grabs so the WM can take over */
     XUngrabPointer(display, CurrentTime);
     XUngrabKeyboard(display, CurrentTime);
-
-    /* Determine the root window */
-    Window rootWindow = XDefaultRootWindow(display);
 
     /* Intern the atom */
     Atom wmMoveResize = XInternAtom(display, "_NET_WM_MOVERESIZE", False);
@@ -191,8 +212,8 @@ Java_io_github_kdroidfilter_nucleus_window_utils_linux_JniLinuxWindowBridge_nati
     event.xclient.window = xWindow;
     event.xclient.message_type = wmMoveResize;
     event.xclient.format = 32;
-    event.xclient.data.l[0] = rootX;                       /* x_root */
-    event.xclient.data.l[1] = rootY;                       /* y_root */
+    event.xclient.data.l[0] = physRootX;                    /* x_root (physical) */
+    event.xclient.data.l[1] = physRootY;                    /* y_root (physical) */
     event.xclient.data.l[2] = _NET_WM_MOVERESIZE_MOVE;     /* direction */
     event.xclient.data.l[3] = button;                       /* X11 button (1=left) */
     event.xclient.data.l[4] = 1;                            /* source indication: application */
