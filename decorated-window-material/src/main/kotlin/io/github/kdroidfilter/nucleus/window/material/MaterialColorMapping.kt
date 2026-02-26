@@ -18,14 +18,20 @@ import io.github.kdroidfilter.nucleus.window.styling.TitleBarMetrics
 import io.github.kdroidfilter.nucleus.window.styling.TitleBarStyle
 
 private const val INACTIVE_BORDER_ALPHA = 0.5f
-private const val HOVER_STATE_ALPHA = 0.08f
-private const val PRESSED_STATE_ALPHA = 0.12f
-private const val CLOSE_PRESSED_ALPHA = 0.7f
 private const val DARK_LUMINANCE_THRESHOLD = 0.5f
 
-// Windows standard close button colors (same in light and dark modes)
+// Platform-native button colors — never influenced by Material theme
 private val WindowsCloseButtonHoveredBackground = Color(0xFFE81123)
 private val WindowsCloseButtonPressedBackground = Color(0xFFF1707A)
+private val WindowsButtonHoveredBackgroundLight = Color(0x1A000000)
+private val WindowsButtonHoveredBackgroundDark = Color(0x1AFFFFFF)
+private val WindowsButtonPressedBackgroundLight = Color(0x33000000)
+private val WindowsButtonPressedBackgroundDark = Color(0x33FFFFFF)
+
+private val KdeCloseButtonHoveredBackground = Color(0xFFED1515)
+private val KdeCloseButtonPressedBackground = Color(0xFFF44F4F)
+private val GnomeCloseButtonHoveredBackground = Color(0xFFE81123)
+private val GnomeCloseButtonPressedBackground = Color(0xFF2596BE)
 
 private val isKde =
     Platform.Current == Platform.Linux && LinuxDesktopEnvironment.Current == LinuxDesktopEnvironment.KDE
@@ -49,7 +55,6 @@ internal fun rememberMaterialTitleBarStyle(colorScheme: ColorScheme): TitleBarSt
         colorScheme.surface,
         colorScheme.onSurface,
         colorScheme.outlineVariant,
-        colorScheme.error,
     ) {
         TitleBarStyle(
             colors =
@@ -59,10 +64,18 @@ internal fun rememberMaterialTitleBarStyle(colorScheme: ColorScheme): TitleBarSt
                     content = colorScheme.onSurface,
                     border = colorScheme.outlineVariant,
                     fullscreenControlButtonsBackground = colorScheme.surface,
-                    titlePaneButtonHoveredBackground = colorScheme.onSurface.copy(alpha = HOVER_STATE_ALPHA),
-                    titlePaneButtonPressedBackground = colorScheme.onSurface.copy(alpha = PRESSED_STATE_ALPHA),
-                    titlePaneCloseButtonHoveredBackground = if (Platform.Current == Platform.Windows) WindowsCloseButtonHoveredBackground else colorScheme.error,
-                    titlePaneCloseButtonPressedBackground = if (Platform.Current == Platform.Windows) WindowsCloseButtonPressedBackground else colorScheme.error.copy(alpha = CLOSE_PRESSED_ALPHA),
+                    titlePaneButtonHoveredBackground = if (colorScheme.isDark()) WindowsButtonHoveredBackgroundDark else WindowsButtonHoveredBackgroundLight,
+                    titlePaneButtonPressedBackground = if (colorScheme.isDark()) WindowsButtonPressedBackgroundDark else WindowsButtonPressedBackgroundLight,
+                    titlePaneCloseButtonHoveredBackground = when {
+                        Platform.Current == Platform.Windows -> WindowsCloseButtonHoveredBackground
+                        isKde -> KdeCloseButtonHoveredBackground
+                        else -> GnomeCloseButtonHoveredBackground
+                    },
+                    titlePaneCloseButtonPressedBackground = when {
+                        Platform.Current == Platform.Windows -> WindowsCloseButtonPressedBackground
+                        isKde -> KdeCloseButtonPressedBackground
+                        else -> GnomeCloseButtonPressedBackground
+                    },
                 ),
             metrics =
                 TitleBarMetrics(
