@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogState
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -59,6 +60,7 @@ import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.updater.NucleusUpdater
 import io.github.kdroidfilter.nucleus.updater.UpdateResult
 import io.github.kdroidfilter.nucleus.updater.provider.GitHubProvider
+import io.github.kdroidfilter.nucleus.hidpi.getLinuxNativeScaleFactor
 import io.github.kdroidfilter.nucleus.window.TitleBarScope
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedDialog
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
@@ -71,10 +73,41 @@ import kotlin.system.exitProcess
 
 private const val AOT_TRAINING_DURATION_MS = 45_000L
 
+private val isNativeImage = System.getProperty("org.graalvm.nativeimage.imagecode") != null
+
 private val deepLinkUri = mutableStateOf<URI?>(null)
 
 @Suppress("LongMethod")
 fun main(args: Array<String>) {
+    if (isNativeImage) {
+        // Metal L&F avoids loading platform-specific modules unsupported in native image
+        System.setProperty("swing.defaultlaf", "javax.swing.plaf.metal.MetalLookAndFeel")
+        // Set java.home to the executable's dir so Skiko can find jawt (lib/ on macOS/Linux, bin/ on Windows)
+        val execDir = File(ProcessHandle.current().info().command().orElse("")).parentFile?.absolutePath ?: "."
+        System.setProperty("java.home", execDir)
+        // Ensure the native libraries next to the executable (fontmanager, freetype, awt, etc.) are
+        // discoverable. After overriding java.home, the default java.library.path may only include
+        // <java.home>/bin, missing the DLLs in the executable's root directory.
+        val sep = File.pathSeparator
+        System.setProperty("java.library.path", "$execDir$sep$execDir${File.separator}bin")
+
+        // Force early initialization of the charset subsystem and fontmanager native library
+        // to avoid "InternalError: platform encoding not initialized" at runtime.
+        java.nio.charset.Charset.defaultCharset()
+        try {
+            System.loadLibrary("fontmanager")
+        } catch (_: Throwable) { }
+    }
+
+    // Linux HiDPI: detect the native scale factor (GSettings, GDK_SCALE, Xft.dpi)
+    // and apply it before AWT initialises, mirroring JetBrains Runtime's approach.
+    // Only applied when not already overridden by the user or native-image bootstrap.
+    // Windows HiDPI is handled via the DPI-aware manifest embedded in the native-image exe.
+    if (System.getProperty("sun.java2d.uiScale") == null) {
+        val scale = getLinuxNativeScaleFactor()
+        if (scale > 0.0) System.setProperty("sun.java2d.uiScale", scale.toString())
+    }
+
     DeepLinkHandler.register(args) { uri ->
         deepLinkUri.value = uri
     }
@@ -128,7 +161,7 @@ fun main(args: Array<String>) {
 
             MaterialTheme(colorScheme = colorScheme) {
                 MaterialDecoratedWindow(
-                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center)),
+                    state = rememberWindowState(position = WindowPosition.Aligned(Alignment.Center), placement = WindowPlacement.Maximized),
                     onCloseRequest = ::exitApplication,
                     title = "Nucleus Demo",
                 ) {
