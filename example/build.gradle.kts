@@ -70,9 +70,6 @@ nucleus.application {
                 }
             )
         )
-        macOS {
-            cStubsSrc.set(layout.projectDirectory.file("src/main/c/cursor_stub.c"))
-        }
     }
 
     nativeDistributions {

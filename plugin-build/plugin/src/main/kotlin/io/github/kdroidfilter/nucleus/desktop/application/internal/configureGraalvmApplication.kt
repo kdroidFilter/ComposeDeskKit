@@ -129,22 +129,49 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
     val imageName = graalvm.imageName.orElse(packageNameProvider)
     val binaryName = imageName.map { executableName(it) }
 
-    // macOS: compile C stubs
+    // macOS: compile C stubs (built-in stub unless user overrides via cStubsSrc)
     val compileStubs =
-        if (currentOS == OS.MacOS && graalvm.macOS.cStubsSrc.isPresent) {
-            tasks.register<Exec>(
+        if (currentOS == OS.MacOS) {
+            tasks.register<DefaultTask>(
                 taskNameAction = "compile",
                 taskNameObject = "graalvmStubs",
             ) {
                 description = "Compile C stubs for symbols referenced by AWT flat-namespace dylibs"
 
-                val src = graalvm.macOS.cStubsSrc.get().asFile
                 val outFile = appTmpDir.map { it.file("graalvm/cursor_stub.o") }
-
-                inputs.file(src)
                 outputs.file(outFile)
 
-                commandLine("clang", "-c", src.absolutePath, "-o", outFile.get().asFile.absolutePath)
+                // Track the user-provided source as an input only when it is set;
+                // otherwise the stub is generated at execution time and has no
+                // file-system input to declare.
+                if (graalvm.macOS.cStubsSrc.isPresent) {
+                    inputs.file(graalvm.macOS.cStubsSrc)
+                }
+
+                doLast {
+                    val srcFile = if (graalvm.macOS.cStubsSrc.isPresent) {
+                        graalvm.macOS.cStubsSrc.get().asFile
+                    } else {
+                        // Generate the default no-op stub in the temp dir.
+                        val generated = appTmpDir.get().file("graalvm/cursor_stub.c").asFile
+                        generated.parentFile.mkdirs()
+                        generated.writeText(
+                            """
+                            /* Stub for the removed java.awt.Cursor.finalizeImpl() native method.
+                               libawt.dylib was compiled with -flat_namespace and references this symbol.
+                               A no-op stub exports the symbol so dyld can satisfy the reference at load time. */
+                            void Java_java_awt_Cursor_finalizeImpl(void) {}
+                            """.trimIndent(),
+                        )
+                        generated
+                    }
+
+                    outFile.get().asFile.parentFile.mkdirs()
+                    val process = ProcessBuilder("clang", "-c", srcFile.absolutePath, "-o", outFile.get().asFile.absolutePath)
+                        .inheritIO()
+                        .start()
+                    check(process.waitFor() == 0) { "clang failed compiling $srcFile" }
+                }
             }
         } else {
             null
