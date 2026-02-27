@@ -50,6 +50,12 @@ tasks.processResources {
     dependsOn(buildNativeMacOs)
 }
 
+tasks.configureEach {
+    if (name == "sourcesJar") {
+        dependsOn(buildNativeMacOs)
+    }
+}
+
 mavenPublishing {
     coordinates("io.github.kdroidfilter", "nucleus.decorated-window-jbr", publishVersion)
 
