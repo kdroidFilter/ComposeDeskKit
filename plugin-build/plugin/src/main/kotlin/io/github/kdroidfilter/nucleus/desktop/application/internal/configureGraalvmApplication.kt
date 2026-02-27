@@ -58,6 +58,10 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
     val packageUberJar = project.tasks.named(uberJarTaskName, Jar::class.java)
 
     // ── runWithNativeAgent ──
+    // Agent writes to a temp dir, then automatically merges into the real config
+    // without overwriting manually enriched entries (e.g. allDeclaredFields).
+
+    val agentTempDir = appTmpDir.map { it.dir("graalvm/agentOutput") }
 
     val runWithNativeAgent =
         tasks.register<JavaExec>(
@@ -82,17 +86,41 @@ internal fun JvmApplicationContext.configureGraalvmApplication() {
                         !arg.startsWith("-D$APP_RESOURCES_DIR=")
                 })
 
-                val configDir = if (nativeImageConfigDir.isPresent) {
-                    nativeImageConfigDir.get().asFile.absolutePath
-                } else {
-                    project.layout.projectDirectory
-                        .dir("src/main/resources/META-INF/native-image")
-                        .asFile.absolutePath
-                }
-                add("-agentlib:native-image-agent=config-output-dir=$configDir")
+                val tempDir = agentTempDir.get().asFile.apply { mkdirs() }.absolutePath
+                add("-agentlib:native-image-agent=config-output-dir=$tempDir")
             }
 
             args = app.args
+
+            // After the agent finishes, merge results into the real config
+            doLast {
+                val targetDir = if (nativeImageConfigDir.isPresent) {
+                    nativeImageConfigDir.get().asFile
+                } else {
+                    project.layout.projectDirectory
+                        .dir("src/main/resources/META-INF/native-image")
+                        .asFile
+                }
+                val agentDir = agentTempDir.get().asFile
+
+                mergeReachabilityMetadata(agentDir, targetDir)
+
+                // Also merge individual config files the agent may produce
+                listOf(
+                    "reflect-config.json",
+                    "jni-config.json",
+                    "resource-config.json",
+                    "proxy-config.json",
+                    "serialization-config.json",
+                ).forEach { fileName ->
+                    mergeJsonArrayConfig(
+                        agentFile = File(agentDir, fileName),
+                        targetFile = File(targetDir, fileName),
+                    )
+                }
+
+                logger.lifecycle("Native-image agent config merged into: $targetDir")
+            }
         }
 
     // ── Platform-specific pre-compile tasks ──

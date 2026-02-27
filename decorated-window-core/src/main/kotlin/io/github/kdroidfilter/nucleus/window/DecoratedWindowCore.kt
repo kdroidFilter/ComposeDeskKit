@@ -23,6 +23,8 @@ import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import androidx.compose.ui.window.FrameWindowScope
@@ -30,6 +32,7 @@ import androidx.compose.ui.window.WindowPlacement
 import io.github.kdroidfilter.nucleus.core.runtime.LinuxDesktopEnvironment
 import io.github.kdroidfilter.nucleus.window.internal.insideBorder
 import io.github.kdroidfilter.nucleus.window.styling.LocalDecoratedWindowStyle
+import java.awt.ComponentOrientation
 import java.awt.Frame
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
@@ -300,7 +303,21 @@ fun FrameWindowScope.DecoratedWindowBody(
             Modifier
         }
 
-    CompositionLocalProvider(LocalTitleBarInfo provides TitleBarInfo(title, icon)) {
+    // Detect platform layout direction from JVM locale so that RTL locales
+    // (Hebrew, Arabic, …) automatically mirror the title bar and content.
+    // Compose Desktop does not propagate java.util.Locale into LocalLayoutDirection.
+    val platformLayoutDirection = remember {
+        if (ComponentOrientation.getOrientation(java.util.Locale.getDefault()).isLeftToRight) {
+            LayoutDirection.Ltr
+        } else {
+            LayoutDirection.Rtl
+        }
+    }
+
+    CompositionLocalProvider(
+        LocalTitleBarInfo provides TitleBarInfo(title, icon),
+        LocalLayoutDirection provides platformLayoutDirection,
+    ) {
         Layout(
             content = {
                 val scope =

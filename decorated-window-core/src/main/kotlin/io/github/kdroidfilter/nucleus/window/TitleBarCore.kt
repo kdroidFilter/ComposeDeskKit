@@ -151,22 +151,40 @@ class TitleBarMeasurePolicy(
             return layout(width = constraints.minWidth, height = constraints.minHeight) {}
         }
 
-        var occupiedSpaceHorizontally = 0
-
         var maxSpaceVertically = constraints.minHeight
         val contentConstraints = constraints.copy(minWidth = 0, minHeight = 0)
-        val measuredPlaceable = mutableListOf<Pair<Measurable, Placeable>>()
 
+        // Two-pass measurement: End items are measured independently so they
+        // don't reduce the available width for Start/Center items.  This keeps
+        // behaviour consistent with JBR where native caption buttons reserve
+        // space via padding insets rather than Compose item measurement.
+        val endMeasurables = mutableListOf<Pair<Measurable, Placeable>>()
+        val otherMeasurables = mutableListOf<Pair<Measurable, Placeable>>()
+
+        // Pass 1 – measure End-aligned items among themselves
+        var endOccupied = 0
         for (it in measurables) {
-            val placeable = it.measure(contentConstraints.offset(horizontal = -occupiedSpaceHorizontally))
-            if (constraints.maxWidth < occupiedSpaceHorizontally + placeable.width) {
-                break
-            }
-            occupiedSpaceHorizontally += placeable.width
+            val alignment = (it.parentData as? TitleBarChildDataNode)?.horizontalAlignment
+            if (alignment != Alignment.End) continue
+            val placeable = it.measure(contentConstraints.offset(horizontal = -endOccupied))
+            endOccupied += placeable.width
             maxSpaceVertically = max(maxSpaceVertically, placeable.height)
-            measuredPlaceable += it to placeable
+            endMeasurables += it to placeable
         }
 
+        // Pass 2 – measure non-End items with full available width
+        var otherOccupied = 0
+        for (it in measurables) {
+            val alignment = (it.parentData as? TitleBarChildDataNode)?.horizontalAlignment
+            if (alignment == Alignment.End) continue
+            val placeable = it.measure(contentConstraints.offset(horizontal = -otherOccupied))
+            if (constraints.maxWidth < otherOccupied + placeable.width) break
+            otherOccupied += placeable.width
+            maxSpaceVertically = max(maxSpaceVertically, placeable.height)
+            otherMeasurables += it to placeable
+        }
+
+        val measuredPlaceable = endMeasurables + otherMeasurables
         val boxHeight = maxSpaceVertically
 
         val contentPadding = applyTitleBar(boxHeight.toDp(), state)
@@ -174,9 +192,7 @@ class TitleBarMeasurePolicy(
         val leftInset = contentPadding.calculateLeftPadding(layoutDirection).roundToPx()
         val rightInset = contentPadding.calculateRightPadding(layoutDirection).roundToPx()
 
-        occupiedSpaceHorizontally += leftInset
-        occupiedSpaceHorizontally += rightInset
-
+        val occupiedSpaceHorizontally = endOccupied + otherOccupied + leftInset + rightInset
         val boxWidth = maxOf(constraints.minWidth, occupiedSpaceHorizontally)
 
         return layout(boxWidth, boxHeight) {
