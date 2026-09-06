@@ -644,6 +644,7 @@ private class ResponsivenessProbe(
         driver.click(fixture.center(Region.Native))
         converge("$moment: a click on the embed gives it native focus") { probe.hasNativeFocus() }
         converge("$moment: the field drops Compose focus once the embed has the keyboard") { !fixture.fieldFocused }
+        if (!driver.typesIntoNative) return
         val fieldNow = fixture.fieldText
         val second = nextLetter()
         driver.type(second)

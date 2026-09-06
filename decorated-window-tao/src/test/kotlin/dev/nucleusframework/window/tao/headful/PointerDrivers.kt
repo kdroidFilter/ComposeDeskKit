@@ -36,6 +36,9 @@ internal interface PointerDriver {
     /** Whether a press on an embedded native widget reaches the widget itself. */
     val reachesNative: Boolean
 
+    /** Whether a key typed while the embed holds the keyboard reaches the widget itself. */
+    val typesIntoNative: Boolean
+
     suspend fun moveTo(contentPx: Offset)
 
     suspend fun press(button: Int = TaoMouseButton.LEFT)
@@ -71,6 +74,11 @@ internal class SyntheticPointerDriver(
     // has none. AppKit and Win32 synthesise a real event from the position.
     override val reachesNative: Boolean = Platform.Current != Platform.Linux
 
+    // Win32 delivers keys to the focused HWND itself, so a key dispatched
+    // into the Tao window enters above the child and never reaches it. The
+    // AppKit host forwards to the first responder either way.
+    override val typesIntoNative: Boolean = reachesNative && Platform.Current != Platform.Windows
+
     override suspend fun moveTo(contentPx: Offset) = window.pointerMove(contentPx)
 
     override suspend fun press(button: Int) = window.pointerPress(button)
@@ -101,6 +109,7 @@ internal class RobotPointerDriver(
 ) : PointerDriver {
     override val name: String = "robot"
     override val reachesNative: Boolean = true
+    override val typesIntoNative: Boolean = true
 
     override suspend fun moveTo(contentPx: Offset) {
         val (x, y) = screenPoint(contentPx)

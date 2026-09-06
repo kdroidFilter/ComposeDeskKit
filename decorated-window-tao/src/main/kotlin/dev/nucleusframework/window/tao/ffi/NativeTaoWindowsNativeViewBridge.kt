@@ -89,6 +89,31 @@ internal object NativeTaoWindowsNativeViewBridge {
         dy: Float,
     )
 
+    /**
+     * Hands Win32 keyboard focus back to [parentHwnd] when a descendant (an
+     * embedded child) holds it, and returns whether it did. Called after a
+     * press Compose kept, so the keyboard follows the click.
+     */
+    @JvmStatic
+    external fun nativeClaimKeyboardForCompose(parentHwnd: Long): Boolean
+
+    /**
+     * The mouse buttons this thread's queue holds down, as a mask: bit 0
+     * left, bit 1 right, bit 2 middle. The truth behind a release a child
+     * HWND captured and Compose never saw.
+     */
+    @JvmStatic
+    external fun nativeQueryPointerButtons(): Int
+
+    /**
+     * Takes the mouse capture back from an embedded child of [parentHwnd],
+     * and returns whether it had one. A child that captures on a forwarded
+     * press would otherwise keep every later mouse message, leaving the whole
+     * Compose window unable to see the pointer.
+     */
+    @JvmStatic
+    external fun nativeReleaseChildCapture(parentHwnd: Long): Boolean
+
     // ── Diagnostics for the headful suite ─────────────────────────────
 
     /**
