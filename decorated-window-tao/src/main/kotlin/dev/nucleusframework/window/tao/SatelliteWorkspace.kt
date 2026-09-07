@@ -44,6 +44,12 @@ public class SatelliteEntry internal constructor(
     title: String,
     initialPlacement: SatellitePlacement,
     isOpen: Boolean,
+    /**
+     * The sides this satellite may be docked on. Every other side is neither
+     * offered to a drag nor accepted by [SatelliteWorkspace.dock]; empty means
+     * the satellite only ever floats. Declared with [Satellite].
+     */
+    public val dockSides: Set<DockSide> = DockSide.entries.toSet(),
 ) {
     /** Human-readable title, shown by the default header. */
     public var title: String by mutableStateOf(title)
@@ -71,9 +77,18 @@ public class SatelliteEntry internal constructor(
     /** `true` while the satellite is open and declared, i.e. a [DockLayout] would show its panel. */
     internal val isShown: Boolean get() = isOpen && content != null
 
-    /** The side [SatelliteScope.dock] targets when none is given: the last docked side. */
+    /**
+     * The side [SatelliteScope.dock] targets when none is given: the last
+     * docked side — to begin with the declared one, else the right side when
+     * [dockSides] allows it, else the first side it allows.
+     */
     public var preferredDockSide: DockSide by
-        mutableStateOf((initialPlacement as? SatellitePlacement.Docked)?.side ?: DockSide.Right)
+        mutableStateOf(
+            (initialPlacement as? SatellitePlacement.Docked)?.side
+                ?: DockSide.Right.takeIf { it in dockSides }
+                ?: dockSides.firstOrNull()
+                ?: DockSide.Right,
+        )
         internal set
 
     /**
@@ -374,6 +389,9 @@ public class SatelliteWorkspace(
      * floating window. A side with no [dockExtent] of its own yet is seeded
      * with it, so the panel keeps the width it had wherever it lands. The
      * weight is kept across a move between docks and remembered with the rank.
+     *
+     * A side the satellite was not declared for ([SatelliteEntry.dockSides])
+     * is refused: nothing changes.
      */
     public fun dock(
         id: String,
@@ -382,6 +400,7 @@ public class SatelliteWorkspace(
         host: TaoWindow? = null,
     ) {
         val entry = entryMap[id] ?: return
+        if (side !in entry.dockSides) return
         val current = entry.placement
         val extent = dockSeedExtent(entry, side)
         if (current is SatellitePlacement.Floating) entry.lastFloating = currentFloating(entry, current)
@@ -554,6 +573,13 @@ public class SatelliteWorkspace(
         draggedScreenRectPx: Rect,
         pointerScreenPx: Offset,
     ): DockTarget? = zoneOf { it.dockHitTest(draggedScreenRectPx, pointerScreenPx, DockZoneWidth) }
+
+    /** [dockTargetAt] for the satellite [entry]: a zone on a side it may not dock on is no target for it. */
+    internal fun dockTargetFor(
+        entry: SatelliteEntry,
+        draggedScreenRectPx: Rect,
+        pointerScreenPx: Offset,
+    ): DockTarget? = dockTargetAt(draggedScreenRectPx, pointerScreenPx)?.takeIf { it.side in entry.dockSides }
 
     private inline fun zoneOf(hitTest: (HostGeometry) -> DockHit?): DockTarget? {
         val hit =
@@ -752,12 +778,17 @@ public class SatelliteWorkspace(
         title: String,
         initialPlacement: SatellitePlacement,
         initiallyOpen: Boolean,
+        dockSides: Set<DockSide> = DockSide.entries.toSet(),
     ): SatelliteEntry {
         entryMap[id]?.let {
             it.title = title
             return it
         }
-        val entry = SatelliteEntry(id, title, initialPlacement, initiallyOpen)
+        require((initialPlacement as? SatellitePlacement.Docked)?.side?.let { it in dockSides } != false) {
+            "satellite '$id' is declared docked on ${(initialPlacement as SatellitePlacement.Docked).side}, " +
+                "a side its dockSides $dockSides do not allow"
+        }
+        val entry = SatelliteEntry(id, title, initialPlacement, initiallyOpen, dockSides)
         if (initialPlacement is SatellitePlacement.Docked) entry.dockHost = owner
         entryMap[id] = entry
         pendingRestore.remove(id)?.let { apply(entry, it) }
@@ -786,6 +817,9 @@ public class SatelliteWorkspace(
                 entry.windowState.reanchor()
             }
             is SatellitePlacement.Docked -> {
+                // A snapshot written before the declaration changed may name a
+                // side the satellite no longer docks on: its placement is left as it is.
+                if (placement.side !in entry.dockSides) return
                 val current = entry.placement
                 if (current is SatellitePlacement.Floating) entry.lastFloating = currentFloating(entry, current)
                 entry.placement = placement

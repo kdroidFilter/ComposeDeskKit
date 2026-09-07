@@ -72,7 +72,7 @@ private class FloatingDragSession(
         origin.move(topLeft.x.toWindowCoordinate(), topLeft.y.toWindowCoordinate())
         // From the window, not the pointer: the palette is what the user sees
         // moving, so the zone its edge has reached is the one to preview.
-        workspace.dockPreview = workspace.dockTargetAt(Rect(topLeft, windowSizePx()), pointer)
+        workspace.dockPreview = workspace.dockTargetFor(entry, Rect(topLeft, windowSizePx()), pointer)
     }
 
     override fun end(pointerScreenPx: Offset) {
@@ -112,7 +112,7 @@ private class DockedDragSession(
         // From the ghost, not the pointer: it is the thing on screen standing
         // in for the panel, so the zone its edge has reached is the one to
         // preview — the same rule as for a floating palette's window.
-        workspace.dockPreview = workspace.dockTargetAt(ghost, pointer)?.takeIf { it != own }
+        workspace.dockPreview = workspace.dockTargetFor(entry, ghost, pointer)?.takeIf { it != own }
         // Follows the pointer for the whole gesture, including over a dock
         // zone: the panel is out of the layout as soon as the drag starts, and
         // seeing it hover is what makes the tear-out read.
@@ -125,7 +125,7 @@ private class DockedDragSession(
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         val drop = pointer
-        val target = workspace.dockTargetAt(ghostRectPx(), drop)?.takeIf { it != own }
+        val target = workspace.dockTargetFor(entry, ghostRectPx(), drop)?.takeIf { it != own }
         cancel()
         when {
             target != null -> workspace.dropAt(entry.id, target)

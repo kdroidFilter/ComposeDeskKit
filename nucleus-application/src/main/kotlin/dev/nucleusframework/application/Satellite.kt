@@ -12,6 +12,7 @@ import androidx.compose.runtime.ComposableOpenTarget
 import androidx.compose.ui.UiComposable
 import dev.nucleusframework.application.internal.TaoSatelliteWorkspaceAdapter
 import dev.nucleusframework.window.tao.DefaultSatelliteHeader
+import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.SatellitePlacement
 import dev.nucleusframework.window.tao.SatelliteScope
 import dev.nucleusframework.window.tao.SatelliteWorkspace
@@ -46,6 +47,8 @@ import dev.nucleusframework.window.tao.SatelliteWorkspace
  * the windows that joined. `rememberSatelliteWorkspace`, `JoinSatelliteWorkspace`
  * and `DockLayout` are used as-is from `decorated-window-tao`.
  *
+ * @param dockSides the sides the satellite may be docked on; the others are
+ *   never offered nor accepted. Empty: a floating-only palette.
  * @param nativeContextMenu whether text fields in the floating window get the
  *   native context menu, as for [SatelliteWindow].
  */
@@ -58,6 +61,7 @@ public fun NucleusApplicationScope.Satellite(
     title: String,
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
+    dockSides: Set<DockSide> = DockSide.entries.toSet(),
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -73,6 +77,7 @@ public fun NucleusApplicationScope.Satellite(
                 title = title,
                 initialPlacement = initialPlacement,
                 initiallyOpen = initiallyOpen,
+                dockSides = dockSides,
                 resizable = resizable,
                 hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
                 nativeContextMenu = nativeContextMenu,
@@ -95,6 +100,7 @@ public fun Satellite(
     title: String,
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
+    dockSides: Set<DockSide> = DockSide.entries.toSet(),
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -107,6 +113,7 @@ public fun Satellite(
         title = title,
         initialPlacement = initialPlacement,
         initiallyOpen = initiallyOpen,
+        dockSides = dockSides,
         resizable = resizable,
         hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
         nativeContextMenu = nativeContextMenu,

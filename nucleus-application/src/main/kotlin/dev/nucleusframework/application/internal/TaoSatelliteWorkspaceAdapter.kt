@@ -5,6 +5,7 @@ import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import dev.nucleusframework.application.TaoNucleusApplicationScope
 import dev.nucleusframework.application.internal.TaoSatelliteWindowAdapter.NucleusSatelliteScene
+import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.SatellitePlacement
 import dev.nucleusframework.window.tao.SatelliteScope
 import dev.nucleusframework.window.tao.SatelliteWorkspace
@@ -26,6 +27,7 @@ internal object TaoSatelliteWorkspaceAdapter {
         title: String,
         initialPlacement: SatellitePlacement,
         initiallyOpen: Boolean,
+        dockSides: Set<DockSide>,
         resizable: Boolean,
         hideWhileOwnerFullscreenOrMaximized: Boolean,
         nativeContextMenu: Boolean,
@@ -41,6 +43,7 @@ internal object TaoSatelliteWorkspaceAdapter {
                 title = title,
                 initialPlacement = initialPlacement,
                 initiallyOpen = initiallyOpen,
+                dockSides = dockSides,
                 resizable = resizable,
                 hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
                 compositionLocalContext = outerLocals,

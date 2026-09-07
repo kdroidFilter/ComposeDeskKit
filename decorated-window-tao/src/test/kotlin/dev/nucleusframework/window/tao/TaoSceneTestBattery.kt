@@ -759,6 +759,27 @@ public object TaoSceneTestBattery {
         run("SatelliteWorkspaceTest: docking a floating satellite seeds the side extent and hosts it in the owner") {
             SatelliteWorkspaceTest().`docking a floating satellite seeds the side extent and hosts it in the owner`()
         }
+        run("SatelliteDockSidesTest: dock refuses a side the satellite was not declared for") {
+            SatelliteDockSidesTest().`dock refuses a side the satellite was not declared for`()
+        }
+        run(
+            "SatelliteDockSidesTest: floating-only never docks, the preferred side follows the declaration",
+        ) {
+            SatelliteDockSidesTest()
+                .`floating-only never docks, the preferred side follows the declaration`()
+        }
+        run("SatelliteDockSidesTest: a declared docked placement must name an allowed side") {
+            SatelliteDockSidesTest().`a declared docked placement must name an allowed side`()
+        }
+        run(
+            "SatelliteDockSidesTest: a refused side is not hinted nor previewed, a release there keeps it floating",
+        ) {
+            SatelliteDockSidesTest()
+                .`a refused side is not hinted nor previewed, a release there keeps it floating`()
+        }
+        run("SatelliteDockSidesTest: a snapshot naming a refused side leaves the placement alone") {
+            SatelliteDockSidesTest().`a snapshot naming a refused side leaves the placement alone`()
+        }
         run("SatelliteDockRankTest: dock order inserts at that rank and keeps the side contiguous") {
             SatelliteDockRankTest().`dock order inserts at that rank and keeps the side contiguous`()
         }

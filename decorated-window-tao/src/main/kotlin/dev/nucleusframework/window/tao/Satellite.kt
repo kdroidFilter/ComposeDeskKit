@@ -142,6 +142,11 @@ internal class SatelliteScopeImpl(
  * @param title shown by the default [header] and as the floating window title.
  * @param initialPlacement where the satellite starts on first declaration.
  * @param initiallyOpen whether it is shown on first declaration.
+ * @param dockSides the sides the satellite may be docked on: the others are
+ *   neither offered while it is dragged nor accepted by
+ *   [SatelliteWorkspace.dock]. Empty makes it a floating-only palette. Fixed
+ *   on first declaration, like the placement; a docked [initialPlacement]
+ *   must name one of them.
  * @param resizable whether the floating window can be resized by the user.
  * @param hideWhileOwnerFullscreenOrMaximized hide the floating window while
  *   the owner fills the screen; see [SatelliteWindow].
@@ -164,6 +169,7 @@ public fun ApplicationScope.Satellite(
     title: String,
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
+    dockSides: Set<DockSide> = DockSide.entries.toSet(),
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     compositionLocalContext: CompositionLocalContext? = null,
@@ -173,7 +179,7 @@ public fun ApplicationScope.Satellite(
     header: @Composable @UiComposable SatelliteScope.() -> Unit = { DefaultSatelliteHeader() },
     content: @Composable @UiComposable SatelliteScope.() -> Unit,
 ) {
-    val entry = remember(workspace, id) { workspace.register(id, title, initialPlacement, initiallyOpen) }
+    val entry = remember(workspace, id) { workspace.register(id, title, initialPlacement, initiallyOpen, dockSides) }
     val scope = remember(entry) { SatelliteScopeImpl(workspace, entry, isDocked = false) }
     // Published as snapshot state so the DockLayout hosting the panel picks up
     // a new lambda without this composable knowing where the panel lives.
@@ -445,7 +451,7 @@ public fun SatelliteScope.DefaultSatelliteHeader() {
             HeaderAction("Float", colors.content) { undock() }
             HeaderAction("Close", colors.content) { close() }
         } else {
-            HeaderAction("Dock", colors.content) { dock() }
+            if (satellite.dockSides.isNotEmpty()) HeaderAction("Dock", colors.content) { dock() }
         }
     }
 }

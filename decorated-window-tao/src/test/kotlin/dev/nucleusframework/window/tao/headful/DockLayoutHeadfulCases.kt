@@ -2,6 +2,7 @@ package dev.nucleusframework.window.tao.headful
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,9 @@ import kotlin.math.abs
  *     neighbours it left, on a layered and on a split side alike;
  * 12. a layer dragged by its header over the outer half of the outermost
  *     layer previews the first rank and lands there, nothing rebuilt;
+ * 14. a palette declared for three sides is never offered the fourth: the
+ *     top strip is neither hinted nor published, a release there leaves it
+ *     floating, and a direct dock on that side is refused;
  * 13. on a split side a panel dropped on its own rank stays, dropped on the
  *     first half of the first panel becomes the first, and the closed one in
  *     the middle keeps its rank.
@@ -71,7 +75,133 @@ internal object DockLayoutHeadfulCases {
             aPanelDockedAgainReturnsToTheRankItLeft(),
             aLayerDraggedOverTheOutermostOneBecomesTheFirst(),
             aSplitPanelDroppedOnItsStackTakesTheRankUnderThePointer(),
+            aPaletteIsNeverOfferedASideItWasNotDeclaredFor(),
         )
+
+    // ── 14. dockSides ────────────────────────────────────────────────────
+
+    /**
+     * A palette declared for three sides only: the top is neither hinted nor
+     * published as a zone, a direct `dock(Top)` is refused, a release with the
+     * palette's top edge in the top strip leaves it floating — and the left
+     * side, which it *was* declared for, still takes it.
+     *
+     * Nothing else is docked, so the only thing that could light up is an
+     * edge of the layout itself.
+     */
+    private fun aPaletteIsNeverOfferedASideItWasNotDeclaredFor(): TaoWindowTestCase {
+        val notTop = setOf(DockSide.Left, DockSide.Right, DockSide.Bottom)
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(
+                            INSPECTOR,
+                            SatellitePlacement.Floating(
+                                positioner = workspaceRightEdgePositioner(),
+                                size = workspaceSatelliteSize(),
+                            ),
+                            dockSides = notTop,
+                        ),
+                    ),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout a palette is never offered a side it was not declared for",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                awaitUntil("owner window mapped") { bounds() != null }
+                awaitUntil("the inspector floats") {
+                    fixture.floatingWindows.value[INSPECTOR]?.hasRealFramePx() == true
+                }
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                val workspace = fixture.workspace
+                val inspector = requireNotNull(workspace.satellite(INSPECTOR))
+                val floating = requireNotNull(fixture.floatingWindows.value[INSPECTOR])
+                val layout = awaitDockLayout(workspace, window)
+                val zonePx = SatelliteWorkspace.DockZoneWidth.value * window.scaleFactor
+                check(
+                    hintedSides(inspector, window, workspace.satellites) ==
+                        listOf(DockSide.Left, DockSide.Right, DockSide.Bottom),
+                ) { "the top is offered: ${hintedSides(inspector, window, workspace.satellites)}" }
+
+                // A direct dock on the top is refused outright.
+                workspace.dock(INSPECTOR, DockSide.Top)
+                settle()
+                check(inspector.placement is SatellitePlacement.Floating) {
+                    "dock(Top) was not refused: ${inspector.placement}"
+                }
+
+                // Read live: the first release moves the window, so the second
+                // grab has to be taken where the palette is by then.
+                fun grabNow(): Pair<Offset, Offset> {
+                    val frame = requireNotNull(floating.outerBoundsPx())
+                    val inset = Offset(frame[2] / 2f, HEADER_GRAB_Y_DP * floating.scaleFactor)
+                    return Offset(frame[0].toFloat(), frame[1].toFloat()) + inset to inset
+                }
+                val outer = requireNotNull(floating.outerBoundsPx())
+                val paletteSize = Size(outer[2].toFloat(), outer[3].toFloat())
+                val (grab, grabInset) = grabNow()
+
+                // Top edge inside the top strip, the palette clear of the
+                // three sides it *may* dock on, so the top is the only edge it
+                // has reached and a preview could only come from there.
+                val paletteTopLeft = Offset(layout.center.x - paletteSize.width / 2f, layout.top + EDGE_INSET_PX)
+                val atTop = paletteTopLeft + grabInset
+                val session =
+                    requireNotNull(workspace.beginDrag(INSPECTOR, SatelliteDragOrigin.FloatingWindow(floating), grab))
+                awaitUntil("the layout published its drop zones") {
+                    workspace.dockHostGeometry(window)?.zoneBoundsInWindowPx?.isNotEmpty() == true
+                }
+                val zones = requireNotNull(workspace.dockHostGeometry(window)?.zoneBoundsInWindowPx)
+                check(!zones.containsKey(DockSide.Top)) { "the top zone is published: $zones" }
+                check(
+                    paletteTopLeft.x - layout.left > zonePx &&
+                        layout.right - (paletteTopLeft.x + paletteSize.width) > zonePx &&
+                        layout.bottom - (paletteTopLeft.y + paletteSize.height) > zonePx,
+                ) { "the palette also reaches a side it may dock on: layout=$layout palette=$paletteSize" }
+                session.update(atTop)
+                check(workspace.dockPreview == null) {
+                    "a zone is previewed for a palette aimed at the top: ${workspace.dockPreview} — " +
+                        "layout=$layout paletteTopLeft=$paletteTopLeft pointer=$atTop zones=$zones"
+                }
+                session.end(atTop)
+                settle()
+                check(inspector.placement is SatellitePlacement.Floating) {
+                    "released on the top strip, the palette docked: ${inspector.placement}"
+                }
+                check(fixture.floatingWindows.value[INSPECTOR] != null) { "the floating window is gone" }
+
+                // The left side, which it was declared for, still works.
+                val (grabAgain, insetAgain) = grabNow()
+                val atLeft =
+                    Offset(layout.left + EDGE_INSET_PX, layout.center.y - paletteSize.height / 2f) + insetAgain
+                val second =
+                    requireNotNull(
+                        workspace.beginDrag(INSPECTOR, SatelliteDragOrigin.FloatingWindow(floating), grabAgain),
+                    )
+                // A new session starts with the zones of the last one cleared.
+                awaitUntil("the layout published its drop zones again") {
+                    workspace.dockHostGeometry(window)?.zoneBoundsInWindowPx?.isNotEmpty() == true
+                }
+                second.update(atLeft)
+                check(workspace.dockPreview == DockTarget(window, DockSide.Left)) {
+                    "the left zone is not previewed: ${workspace.dockPreview} — " +
+                        "layout=$layout pointer=$atLeft grab=$grabAgain " +
+                        "frame=${floating.outerBoundsPx()?.toList()}"
+                }
+                second.end(atLeft)
+                awaitDockedBodies(fixture, INSPECTOR)
+                check(near(panel(fixture, INSPECTOR).left, 0f, LAYOUT_TOLERANCE_PX * 2)) {
+                    "not docked on the left: ${panel(fixture, INSPECTOR)}"
+                }
+            },
+        )
+    }
 
     // ── 12. reorder a layered side by dragging ───────────────────────────
 
@@ -101,6 +231,9 @@ internal object DockLayoutHeadfulCases {
                 awaitDockedBodies(fixture, TREE, TOC, NOTES)
                 val scale = window.scaleFactor
                 val layout = awaitDockLayout(workspace, window)
+                // The panels are in window px, the layout rect in screen px.
+                val client = requireNotNull(workspace.dockHostGeometry(window)?.clientOriginPx())
+                val layoutInWindow = layout.translate(-client)
                 val tree = panel(fixture, TREE)
                 val notesBefore = panel(fixture, NOTES)
                 // The header strip is the grip; a docked panel of another
@@ -123,7 +256,7 @@ internal object DockLayoutHeadfulCases {
                         ),
                     )
                 // The outer half of the outermost layer: rank 0.
-                val target = toScreen(fixture, Offset(tree.left + tree.width * OUTER_HALF, layout.center.y))
+                val target = toScreen(fixture, Offset(tree.left + tree.width * OUTER_HALF, layoutInWindow.center.y))
                 val expected = DockTarget(window, DockSide.Right, 0)
 
                 if (robotPressAndDrag(grab, target, scale) != null) {
@@ -149,8 +282,8 @@ internal object DockLayoutHeadfulCases {
                 val treeAfter = panel(fixture, TREE)
                 val toc = panel(fixture, TOC)
                 check(
-                    near(notes.right, layout.right, LAYOUT_TOLERANCE_PX * 2),
-                ) { "the notes are not at the edge: $notes vs $layout" }
+                    near(notes.right, layoutInWindow.right, LAYOUT_TOLERANCE_PX * 2),
+                ) { "the notes are not at the edge: $notes vs $layoutInWindow" }
                 check(
                     near(treeAfter.right, notes.left, SPLITTER_TOLERANCE_PX) &&
                         near(toc.right, treeAfter.left, SPLITTER_TOLERANCE_PX),

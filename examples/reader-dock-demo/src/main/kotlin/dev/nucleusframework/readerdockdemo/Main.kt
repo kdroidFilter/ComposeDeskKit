@@ -129,6 +129,7 @@ fun main() =
                     title = pane.title,
                     initialPlacement = pane.home,
                     initiallyOpen = pane.openAtStart,
+                    dockSides = ReaderDockSides,
                     header = { PaneHeader(reader.style) },
                 ) {
                     Surface(Modifier.fillMaxSize(), color = colors.surface) { PaneContent(pane) }

@@ -15,6 +15,13 @@ enum class ReaderStyle {
     Islands,
 }
 
+/**
+ * Where a pane may be docked: anywhere but the top. The reader's top is its
+ * activity bar and the text's own header; a pane dragged there is refused,
+ * and the top strip never lights up.
+ */
+val ReaderDockSides: Set<DockSide> = setOf(DockSide.Left, DockSide.Right, DockSide.Bottom)
+
 /** One pane of the reader: a satellite with a home in the dock. */
 enum class Pane(
     val id: String,

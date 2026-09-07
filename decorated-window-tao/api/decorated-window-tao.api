@@ -194,8 +194,8 @@ public final class dev/nucleusframework/window/tao/ComposableSingletons$NativeVi
 public final class dev/nucleusframework/window/tao/ComposableSingletons$SatelliteKt {
 	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$SatelliteKt;
 	public fun <init> ()V
-	public final fun getLambda$1206832291$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
-	public final fun getLambda$660144339$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-780840243$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
+	public final fun getLambda$-884347139$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class dev/nucleusframework/window/tao/ComposableSingletons$TabStripKt {
@@ -504,6 +504,7 @@ public abstract interface class dev/nucleusframework/window/tao/SatelliteDragSes
 public final class dev/nucleusframework/window/tao/SatelliteEntry {
 	public static final field $stable I
 	public final fun getDockHost ()Ldev/nucleusframework/window/tao/TaoWindow;
+	public final fun getDockSides ()Ljava/util/Set;
 	public final fun getId ()Ljava/lang/String;
 	public final fun getPlacement ()Ldev/nucleusframework/window/tao/SatellitePlacement;
 	public final fun getPreferredDockSide ()Ldev/nucleusframework/window/tao/DockSide;
@@ -515,7 +516,7 @@ public final class dev/nucleusframework/window/tao/SatelliteEntry {
 
 public final class dev/nucleusframework/window/tao/SatelliteKt {
 	public static final fun DefaultSatelliteHeader (Ldev/nucleusframework/window/tao/SatelliteScope;Landroidx/compose/runtime/Composer;I)V
-	public static final fun Satellite (Ldev/nucleusframework/window/tao/ApplicationScope;Ldev/nucleusframework/window/tao/SatelliteWorkspace;Ljava/lang/String;Ljava/lang/String;Ldev/nucleusframework/window/tao/SatellitePlacement;ZZZLandroidx/compose/runtime/CompositionLocalContext;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
+	public static final fun Satellite (Ldev/nucleusframework/window/tao/ApplicationScope;Ldev/nucleusframework/window/tao/SatelliteWorkspace;Ljava/lang/String;Ljava/lang/String;Ldev/nucleusframework/window/tao/SatellitePlacement;ZLjava/util/Set;ZZLandroidx/compose/runtime/CompositionLocalContext;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;III)V
 	public static final fun satelliteDragHandle (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/SatelliteScope;)Landroidx/compose/ui/Modifier;
 }
 

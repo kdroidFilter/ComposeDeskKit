@@ -169,7 +169,8 @@ private fun ZoneRect(
  * is alone there, since dropping it back is a no-op and offering it would
  * promise a move that does not happen. With other panels on that side it is
  * a target again — the panel can be dropped at another rank among them.
- * Dragged from another window, or floating, every side is a real target.
+ * Dragged from another window, or floating, every side is a real target —
+ * among the sides the satellite was declared for ([SatelliteEntry.dockSides]).
  * [satellites] are the workspace's, to tell a lone panel from a stack.
  */
 internal fun hintedSides(
@@ -186,7 +187,7 @@ internal fun hintedSides(
                     it.dockHost === host &&
                     (it.placement as? SatellitePlacement.Docked)?.side == own
             }
-    return if (alone) DockSide.entries.filter { it != own } else DockSide.entries
+    return DockSide.entries.filter { it in dragged.dockSides && !(alone && it == own) }
 }
 
 /** The smallest rect containing both. */

@@ -48,6 +48,7 @@ internal class DockPanelSpec(
     val id: String,
     val placement: SatellitePlacement,
     val open: Boolean = true,
+    val dockSides: Set<DockSide> = DockSide.entries.toSet(),
 )
 
 /**
@@ -192,6 +193,7 @@ internal class DockLayoutFixture(
                     title = "Panel ${spec.id}",
                     initialPlacement = spec.placement,
                     initiallyOpen = spec.open,
+                    dockSides = spec.dockSides,
                 ) { PanelBody(spec.id) }
             }
         }
