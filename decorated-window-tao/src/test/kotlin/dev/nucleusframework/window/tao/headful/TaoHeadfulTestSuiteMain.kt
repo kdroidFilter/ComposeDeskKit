@@ -389,6 +389,7 @@ public object TaoHeadfulTestSuiteMain {
             DockLayoutHeadfulCases.all() +
             DockLayoutMonkeyHeadfulCases.all() +
             TabWorkspaceHeadfulCases.all() +
+            TabStripMotionHeadfulCases.all() +
             TabWorkspaceLifecycleHeadfulCases.all() +
             TabWorkspaceMotionHeadfulCases.all() +
             TabWorkspaceMouseHeadfulCases.all() +

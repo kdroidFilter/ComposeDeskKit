@@ -164,7 +164,6 @@ public fun ApplicationScope.TabWindows(
             TabGhostCard(ghost.tab.title)
         }
     }
-
     val currentOnLastClosed = rememberUpdatedState(onLastWindowClosed)
 
     // The groups to compose, mirrored out of the workspace by an effect rather
@@ -197,7 +196,14 @@ public fun ApplicationScope.TabWindows(
 
     for (group in groups) {
         key(group.id) {
-            TabWindow(workspace, group, compositionLocalContext, strip, windowContentWrapper, windowBodyWrapper)
+            TabWindow(
+                workspace,
+                group,
+                compositionLocalContext,
+                strip,
+                windowContentWrapper,
+                windowBodyWrapper,
+            )
         }
     }
 }

@@ -127,7 +127,7 @@ internal fun Modifier.screenDragHandle(
             val currentBeginTransfer by rememberUpdatedState(beginTransfer)
             return@composed Modifier
                 .pointerHoverIcon(if (isDragging()) draggingIcon else idleIcon)
-                .transferDragHandle(key, window) { currentBeginTransfer(window) }
+                .transferDragHandle(key, window, begin = { currentBeginTransfer(window) })
         }
         val containerSize = LocalWindowInfo.current.containerSize
         var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }

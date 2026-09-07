@@ -1010,6 +1010,9 @@ public object TaoSceneTestBattery {
             TransferDragTest().`the hotspot follows the grab point into the reduced picture of a region`()
         }
 
+        run("TabWorkspaceTest: a right-to-left strip resolves its insertion indices from the right") {
+            TabWorkspaceTest().`a right-to-left strip resolves its insertion indices from the right`()
+        }
         run("TabWorkspaceTest: the first tab opens a window and the next ones join it") {
             TabWorkspaceTest().`the first tab opens a window and the next ones join it`()
         }

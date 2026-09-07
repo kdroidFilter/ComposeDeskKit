@@ -21,6 +21,9 @@ import kotlin.math.abs
  *     strip and above the tab body, and neither a selection change nor a
  *     tear-off rebuilds it.
  *
+ * The strip's motion — carrying a tab, the neighbours stepping aside, tabs
+ * opening and closing — lives in [TabStripMotionHeadfulCases].
+ *
  * The edge cases — abrupt pointer jumps, a backing-scale change, minimize,
  * maximize, interrupted gestures — live in [TabWorkspaceStressHeadfulCases].
  *
@@ -37,16 +40,6 @@ internal object TabWorkspaceHeadfulCases {
             theWindowBodyWrapperHoldsTheWindowsOwnChrome(),
         )
 
-    /**
-     * Chrome that belongs to the window rather than to a tab: the strip stays
-     * the top of the window, the app's `windowBodyWrapper` sits under it with
-     * the tab body inside, and it is built once per window — a selection
-     * change and a tear-off leave it standing, while a second window gets its
-     * own.
-     *
-     * That is what lets an app hang a whole `DockLayout` there, as
-     * `examples/reader-dock-demo` does.
-     */
     private fun theWindowBodyWrapperHoldsTheWindowsOwnChrome(): TaoWindowTestCase {
         val fixture = TabWorkspaceFixture(initialTitles = listOf("Alpha", "Beta"))
         return TaoWindowTestCase(
@@ -435,4 +428,28 @@ internal object TabWorkspaceHeadfulCases {
             },
         )
     }
+
+    /** One frame at 60 Hz: long enough for the reorder to be laid out, far from the animation's end. */
+    private const val ONE_FRAME_MILLIS = 24L
+
+    /** Comfortably past [dev.nucleusframework.window.tao.TabReorderAnimation]. */
+    private const val REORDER_SETTLE_MILLIS = 400L
+
+    /** Just inside a slot's leading edge: the index before that tab. */
+    private const val EDGE_PROBE_PX = 4f
+
+    /** Below the strip: the window's body, where a dragged tab is out of the strip's hands. */
+    private const val OUT_OF_STRIP_PX = 60f
+
+    /** Inside a tab's trailing edge, where the stock strip puts its close button. */
+    private const val CLOSE_BUTTON_INSET_PX = 12f
+
+    /** Far enough for the carried tab's leading edge to pass one neighbour's centre. */
+    private const val CARRY_SLOTS = 0.8f
+
+    /** A spring settles within a pixel; anything larger is a wrong number, not a rounding. */
+    private const val MOTION_TOLERANCE_PX = 2f
+
+    /** Below this a tab is too narrow for the case to mean anything. */
+    private const val MIN_TAB_WIDTH_PX = 40f
 }

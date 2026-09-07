@@ -35,6 +35,9 @@ import kotlin.math.abs
  *     its owner is maximized, and never publishes an owner offset it cannot
  *     know;
  *  6. tabs the same way: no record tears off, a record merges back;
+ *  9. the strip's own gesture: a tab carried along its strip reorders with no
+ *     screen coordinate at all, and leaving the strip hands the drag to the
+ *     platform's session, which is what lets another window preview the drop;
  *  8. chrome is told the compositor places its window, the title bar reserves
  *     the caption strip for the compositor's move and the app's slot is
  *     composed inside it, and a satellite drag reports itself as carried by
@@ -57,7 +60,86 @@ internal object WaylandWorkspaceHeadfulCases {
             tabTransferDragTearsOffAndMergesBack(),
             aTransferDropResolvesARankAndReorders(),
             chromeIsToldTheCompositorPlacesTheWindow(),
+            theStripReordersAndDefersItsDrops(),
         )
+
+    /**
+     * The gesture a compositor-placed window *can* carry, on real windows.
+     *
+     * Reordering asks nothing of the screen: the strip is handed the travel in
+     * its own coordinates and answers with the place the tab would take. A
+     * release clear of the strip cannot be hit-tested — every toplevel reports
+     * a fake origin here — so the drop is deferred, and the window the
+     * compositor hands the pointer to next is the one that resolves it: into
+     * its strip, or into a window of its own. Nothing claims it and the tab is
+     * torn off, which is what a release over the desktop has always done.
+     */
+    private fun theStripReordersAndDefersItsDrops(): TaoWindowTestCase {
+        val fixture = TabWorkspaceFixture(initialTitles = listOf("Alpha", "Beta", "Gamma"))
+        return TaoWindowTestCase(
+            name = "native Wayland: the strip reorders without the screen and lets go when the tab leaves it",
+            skip = ::waylandSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            applicationContent = { with(fixture) { Windows() } },
+            driver = {
+                val first = awaitTabWindowsInWindow(fixture, "Alpha", "Beta", "Gamma")
+                val workspace = fixture.workspace
+                val group = requireNotNull(fixture.groupOf("Alpha"))
+                check(!first.canPlaceOnScreen) { "case premise: the window must be compositor-placed" }
+                check(workspace.beginDrag(fixture.tabId("Gamma"), stripOrigin(first), Offset.Zero) == null) {
+                    "the screen-space drag started on a window the app cannot place"
+                }
+
+                // ── a reorder, with nothing but window coordinates ──
+                val motion = requireNotNull(workspace.motionOf(group)) { "the strip published no motion" }
+                val gamma = fixture.tabId("Gamma")
+                val beta = fixture.tabId("Beta")
+                val alpha = fixture.tabId("Alpha")
+                val slot = requireNotNull(motion.slotOf(gamma))
+                val driver = SyntheticPointerDriver(first)
+                driver.moveTo(slot.center)
+                driver.press()
+                driver.moveTo(slot.center + Offset(-SLOP_PX, 0f))
+                driver.moveTo(slot.center + Offset(-slot.width * CARRY_FRACTION, 0f))
+                awaitUntil("the strip shows the tab landing before its neighbour") {
+                    workspace.dropPreview?.let { it.group === group && it.index == 1 } == true
+                }
+                check(workspace.dragGhost == null) { "a ghost window on a compositor-placed surface" }
+                driver.release()
+                awaitUntil("the reorder is applied once the tab has slid home") {
+                    group.ids == listOf(alpha, gamma, beta)
+                }
+
+                // ── leaving the strip hands the gesture to the platform ──
+                //
+                // The strip lets go the moment the pointer is out of it: from
+                // there the drag is the platform's own session, which is what
+                // gives every *other* window the pointer in its coordinates —
+                // the only way a compositor-placed client can preview a drop
+                // it does not own. The session itself is the compositor's to
+                // start, so what is asserted here is the strip's half: it
+                // stops carrying, and the tab is where it was.
+                val gammaSlot = requireNotNull(motion.slotOf(gamma))
+                driver.moveTo(gammaSlot.center)
+                driver.press()
+                driver.moveTo(gammaSlot.center + Offset(0f, SLOP_PX))
+                driver.moveTo(gammaSlot.center + Offset(0f, OUT_OF_STRIP_PX))
+                awaitUntil("the strip let go of the tab it was carrying") { motion.held == null }
+                driver.release()
+                // Released with nothing under it, the platform session leaves
+                // the tab a window of its own — the tear-out a void release has
+                // always been, now reached through the session that also gives
+                // another window the drop preview.
+                awaitUntil("the tab left the strip it was dragged out of") {
+                    !group.ids.contains(gamma) && workspace.tab(gamma) != null
+                }
+                check(workspace.dragGhost == null) { "a ghost window on a compositor-placed surface" }
+                check(group.ids == listOf(alpha, beta)) { "the tabs left behind are not in order: ${group.ids}" }
+            },
+        )
+    }
 
     /**
      * The other half of the X11 case in `DockLayoutHeadfulCases`: here the
@@ -462,4 +544,13 @@ internal object WaylandWorkspaceHeadfulCases {
 
     /** A point past the left strip and well short of the 310 dp of layers on the right, in a 520 dp layout. */
     private const val CONTENT_PROBE_DP = 100f
+
+    /** Past Compose's touch slop, so the gesture is a drag and not a click. */
+    private const val SLOP_PX = 24f
+
+    /** Far enough along the strip for the carried tab's edge to cross its neighbour's centre. */
+    private const val CARRY_FRACTION = 0.8f
+
+    /** Below the strip: the window's body, where a released tab is out of the strip's hands. */
+    private const val OUT_OF_STRIP_PX = 120f
 }

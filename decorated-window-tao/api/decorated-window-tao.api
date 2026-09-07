@@ -202,7 +202,7 @@ public final class dev/nucleusframework/window/tao/ComposableSingletons$Satellit
 public final class dev/nucleusframework/window/tao/ComposableSingletons$TabStripKt {
 	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$TabStripKt;
 	public fun <init> ()V
-	public final fun getLambda$577364127$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-2032640526$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
 }
 
 public final class dev/nucleusframework/window/tao/ComposableSingletons$TabWindowsKt {
@@ -796,9 +796,16 @@ public final class dev/nucleusframework/window/tao/TabScope$DefaultImpls {
 	public static fun select (Ldev/nucleusframework/window/tao/TabScope;)V
 }
 
-public final class dev/nucleusframework/window/tao/TabStripKt {
-	public static final fun TabStrip (Ldev/nucleusframework/window/tao/TabStripScope;Landroidx/compose/ui/Modifier;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+public final class dev/nucleusframework/window/tao/TabStripAnimationKt {
+	public static final fun getTabReorderAnimation ()Landroidx/compose/animation/core/AnimationSpec;
+}
+
+public final class dev/nucleusframework/window/tao/TabStripDragKt {
 	public static final fun tabDragHandle (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TabWorkspace;Ldev/nucleusframework/window/tao/TabEntry;)Landroidx/compose/ui/Modifier;
+}
+
+public final class dev/nucleusframework/window/tao/TabStripKt {
+	public static final fun TabStrip (Ldev/nucleusframework/window/tao/TabStripScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
 	public static final fun tabSlot (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TabWindowGroup;I)Landroidx/compose/ui/Modifier;
 	public static final fun tabStripGeometry (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TabWorkspace;Ldev/nucleusframework/window/tao/TabWindowGroup;)Landroidx/compose/ui/Modifier;
 }

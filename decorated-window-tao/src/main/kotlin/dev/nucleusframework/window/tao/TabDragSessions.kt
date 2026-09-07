@@ -108,6 +108,7 @@ private class TabWindowDragSession(
         // whole time; only another window's strip is a target, and the search
         // has to look *past* its own rather than stop at it.
         workspace.dropPreview = workspace.dropTargetAt(pointer, exclude = entry, excludeGroup = entry.group)
+        workspace.dragPointerScreenPx = pointer
     }
 
     override fun end(pointerScreenPx: Offset) {
@@ -137,14 +138,22 @@ private class TabTearOffDragSession(
     /** The source window's px-per-dp, carried to the ghost and the new window. */
     private val scaleFactor: Float,
 ) : TabDragSessionBase(workspace) {
+    private val velocity = HorizontalVelocity()
+
     override fun update(pointerScreenPx: Offset) {
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
-        workspace.dropPreview = workspace.dropTargetAt(pointer, exclude = entry)
-        // Follows the pointer for the whole gesture, including over a strip:
-        // the tab is out of its strip as soon as the drag starts, and seeing it
-        // hover is what makes the tear-out read.
-        workspace.dragGhost = TabDragGhost(entry, Rect(pointer - grabOffsetPx, tabSizePx), scaleFactor)
+        workspace.dragVelocityPxPerSecond = velocity.sample(pointer.x)
+        val target = workspace.dropTargetAt(pointer, exclude = entry)
+        workspace.dropPreview = target
+        workspace.dragPointerScreenPx = pointer
+        // Over its own strip the tab has not left: the strip holds it under the
+        // pointer and its neighbours make room, the way a browser's do. Over
+        // another window's strip, or clear of every strip, it *is* leaving —
+        // and seeing it hover is what makes the move and the tear-out read.
+        val inOwnStrip = target != null && target.group === entry.group
+        workspace.dragGhost =
+            if (inOwnStrip) null else TabDragGhost(entry, Rect(pointer - grabOffsetPx, tabSizePx), scaleFactor)
     }
 
     override fun end(pointerScreenPx: Offset) {
@@ -152,14 +161,65 @@ private class TabTearOffDragSession(
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         val drop = pointer
         val target = workspace.dropTargetAt(drop, exclude = entry)
+        val group = entry.group
+        // Read before the release clears the drag: the slide home starts with
+        // the speed the pointer had, so a flick carries through.
+        val speed = workspace.dragVelocityPxPerSecond
         cancel()
         if (target != null) {
-            workspace.move(entry.id, target.group, target.index)
+            if (target.group === group && group != null) {
+                // Inside its own strip: the strip slides the tab into its new
+                // place and applies the reorder itself, so nothing jumps.
+                workspace.pendingReorder = TabReorderSettle(entry, group, target.index, speed)
+            } else {
+                workspace.move(entry.id, target.group, target.index)
+            }
             return
         }
         // A window the size of the one it came from, with the grabbed tab
         // still under the pointer: the strip lands where the ghost was.
         workspace.tearOff(entry.id, Rect(drop - grabOffsetPx, windowSizePx), scaleFactor)
+    }
+}
+
+/**
+ * How fast the pointer is travelling along one axis, from the samples the
+ * session is fed: the strip hands it to the spring that slides a released tab
+ * home, so a flick carries through and a slow move does not overshoot.
+ *
+ * Smoothed over the last samples rather than taken from the last pair: one
+ * pointer report can land a millisecond after the one before it and read as
+ * thousands of px per second.
+ */
+private class HorizontalVelocity {
+    private var lastX = Float.NaN
+    private var lastNanos = 0L
+    private var smoothed = 0f
+
+    fun sample(x: Float): Float {
+        val now = System.nanoTime()
+        val elapsed = now - lastNanos
+        if (!lastX.isNaN() && elapsed in 1..MAX_GAP_NANOS) {
+            val instant = (x - lastX) / (elapsed / NANOS_PER_SECOND)
+            smoothed = smoothed * (1f - SMOOTHING) + instant * SMOOTHING
+        } else if (lastX.isNaN() || elapsed > MAX_GAP_NANOS) {
+            // A first sample, or a pause long enough that the pointer has
+            // stopped: no speed to carry.
+            smoothed = 0f
+        }
+        lastX = x
+        lastNanos = now
+        return smoothed
+    }
+
+    private companion object {
+        const val NANOS_PER_SECOND = 1_000_000_000f
+
+        /** Longer than this between samples and the pointer was at rest, not travelling. */
+        const val MAX_GAP_NANOS = 100_000_000L
+
+        /** How much of the newest sample the estimate takes: enough to follow a flick, not a jitter. */
+        const val SMOOTHING = 0.4f
     }
 }
 

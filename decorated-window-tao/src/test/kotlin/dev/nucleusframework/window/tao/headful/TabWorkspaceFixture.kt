@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
@@ -23,7 +24,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
@@ -31,6 +34,7 @@ import dev.nucleusframework.window.tao.ApplicationScope
 import dev.nucleusframework.window.tao.LocalTaoWindow
 import dev.nucleusframework.window.tao.Tab
 import dev.nucleusframework.window.tao.TabDragOrigin
+import dev.nucleusframework.window.tao.TabStrip
 import dev.nucleusframework.window.tao.TabWindowGroup
 import dev.nucleusframework.window.tao.TabWindows
 import dev.nucleusframework.window.tao.TabWorkspace
@@ -55,6 +59,8 @@ internal class TabWorkspaceFixture(
      * drops should have to reason about.
      */
     private val fileDropTargets: Boolean = false,
+    /** The direction the strip is composed in: a right-to-left app lays its tabs out from the right. */
+    private val layoutDirection: LayoutDirection = LayoutDirection.Ltr,
 ) {
     val workspace = TabWorkspace(defaultWindowSize = windowSize)
 
@@ -197,6 +203,9 @@ internal class TabWorkspaceFixture(
             onLastWindowClosed = {
                 lastWindowClosed.value = true
                 lastWindowClosedCount.value++
+            },
+            strip = {
+                CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) { TabStrip() }
             },
             // The app's window-level chrome: a strip of its own above the tab
             // body, recording where it landed and how many times it was built,
@@ -345,6 +354,37 @@ internal suspend fun TaoWindowTestScope.awaitTabWindows(
     awaitUntil("the strip published its slots") {
         val group = fixture.workspace.groups.firstOrNull() ?: return@awaitUntil false
         fixture.stripRectPx(group) != null && group.slotsInWindowPx.size >= group.ids.size
+    }
+    settle(SETTLE_AFTER_MAP_MILLIS)
+    return requireNotNull(
+        fixture.workspace.groups
+            .first()
+            .window,
+    )
+}
+
+/**
+ * [awaitTabWindows] without the screen half: waits for the window, the body
+ * and the strip's slots *in the window*, which is all a compositor-placed
+ * surface publishes.
+ */
+internal suspend fun TaoWindowTestScope.awaitTabWindowsInWindow(
+    fixture: TabWorkspaceFixture,
+    vararg titles: String,
+): TaoWindow {
+    awaitUntil("case window mapped") { bounds() != null }
+    awaitUntil("every tab declared") { titles.all { fixture.workspace.tab(fixture.tabId(it)) != null } }
+    awaitUntil("a tab window is mapped with a real size") {
+        fixture.workspace.groups
+            .firstOrNull()
+            ?.window
+            ?.hasRealFramePx() == true
+    }
+    awaitUntil("the selected tab's body is composed") { fixture.composedBodies.value > 0 }
+    awaitUntil("the strip published its slots in the window") {
+        val group = fixture.workspace.groups.firstOrNull() ?: return@awaitUntil false
+        val strip = fixture.workspace.stripGeometry(group)?.layoutBoundsInWindowPx
+        strip?.isEmpty == false && group.slotsInWindowPx.size >= group.ids.size
     }
     settle(SETTLE_AFTER_MAP_MILLIS)
     return requireNotNull(

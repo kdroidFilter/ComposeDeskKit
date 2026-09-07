@@ -37,6 +37,32 @@ class TabWorkspaceTest {
     // ── Declaration and placement ────────────────────────────────────────
 
     @Test
+    fun `a right-to-left strip resolves its insertion indices from the right`() {
+        val workspace = TabWorkspace()
+        val group = workspace.rtlStrip()
+
+        // Slots run from high x to low: "a" is the rightmost tab.
+        // Right of every midpoint is the first place; left of every one, the last.
+        assertEquals(0, workspace.insertionIndex(group, 295f, exclude = null))
+        assertEquals(1, workspace.insertionIndex(group, 205f, exclude = null))
+        assertEquals(2, workspace.insertionIndex(group, 105f, exclude = null))
+        assertEquals(3, workspace.insertionIndex(group, 5f, exclude = null))
+        // The dragged tab's own slot is not counted, so the index it would land
+        // at is the one it already has.
+        assertEquals(0, workspace.insertionIndex(group, 295f, exclude = workspace.tab("a")))
+        assertEquals(1, workspace.insertionIndex(group, 105f, exclude = workspace.tab("b")))
+    }
+
+    /** Three placed tabs, laid out right to left: "a" at 200..300, "b" at 100..200, "c" at 0..100. */
+    private fun TabWorkspace.rtlStrip(): TabWindowGroup {
+        for (id in listOf("a", "b", "c")) register(id, id.uppercase(), groupId = null)
+        val group = requireNotNull(groups.firstOrNull())
+        group.slotsInWindowPx =
+            listOf(Rect(200f, 0f, 300f, 40f), Rect(100f, 0f, 200f, 40f), Rect(0f, 0f, 100f, 40f))
+        return group
+    }
+
+    @Test
     fun `the first tab opens a window and the next ones join it`() {
         val workspace = TabWorkspace()
 

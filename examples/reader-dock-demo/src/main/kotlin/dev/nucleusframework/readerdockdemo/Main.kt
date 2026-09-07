@@ -118,7 +118,14 @@ fun main() =
         ReaderTheme(colors) {
             TabWindows(
                 workspace = reader.tabs,
-                strip = { ReaderTabStrip(onNewBook = reader::openBook) },
+                // Right to left, like the rest of the reader: the first sefer
+                // is the rightmost tab and the "+" follows the last one
+                // leftwards, and the strip animates the same way.
+                strip = {
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                        ReaderTabStrip(onNewBook = reader::openBook)
+                    }
+                },
                 windowWrapper = { content ->
                     WindowBackground(colors.background)
                     WindowAppearance(if (dark) WindowAppearanceMode.Dark else WindowAppearanceMode.Light)
