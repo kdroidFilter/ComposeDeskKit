@@ -27,11 +27,14 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,20 +42,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.rememberWindowState
-import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.Satellite
+import dev.nucleusframework.application.Tab
+import dev.nucleusframework.application.TabWindows
 import dev.nucleusframework.application.nucleusApplication
 import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
 import dev.nucleusframework.window.WindowAppearance
 import dev.nucleusframework.window.WindowAppearanceMode
 import dev.nucleusframework.window.WindowBackground
-import dev.nucleusframework.window.WindowScaffold
-import dev.nucleusframework.window.material.MaterialTitleBar
 import dev.nucleusframework.window.material.rememberMaterialTitleBarStyle
 import dev.nucleusframework.window.material.rememberMaterialWindowStyle
 import dev.nucleusframework.window.styling.LocalDecoratedWindowStyle
@@ -60,6 +60,8 @@ import dev.nucleusframework.window.styling.LocalTitleBarStyle
 import dev.nucleusframework.window.tao.DockLayout
 import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.JoinSatelliteWorkspace
+import dev.nucleusframework.window.tao.TabWindowGroup
+import dev.nucleusframework.window.tao.TabWorkspace
 
 private val DarkColors =
     darkColorScheme(
@@ -82,7 +84,8 @@ private val LightColors =
     )
 
 /**
- * A right-to-left book reader built entirely from satellites.
+ * A right-to-left book reader whose seforim are tabs and whose every pane is a
+ * satellite — the two multi-window archetypes composed.
  *
  * The pane tree of a classic split-pane reader — books | contents | notes on
  * the right, the text in the middle with the translation beside it, the
@@ -90,10 +93,21 @@ private val LightColors =
  * so its three panes are three columns each with its own width and splitter,
  * and the side order puts the right side first so the commentaries stop at it
  * and run under the translation. The dividers are the reader's own 1 dp lines
- * with a 5 dp grip; the headers are the reader's own 32 dp hover strips; the
- * *Islands* style turns every pane into a rounded card. And because every pane
- * is a satellite, each can be torn out into a window of its own and dropped
- * back — that is the only thing the split panes could not do.
+ * with a 5 dp grip; the headers are the reader's own hover strips; the
+ * *Islands* style turns every pane into a rounded card.
+ *
+ * On top of that, `TabWindows` owns the windows and each sefer is a `Tab`. The
+ * strip is the top of the window; everything below it — the two activity bars
+ * and the dock — is the reader's own chrome, hung on `windowBodyWrapper`. The
+ * **dock belongs to the window** and the tabs change what it holds: the text
+ * in the middle is the selected sefer, and every pane draws that same sefer.
+ * Tear a tab out and the new window arrives with a dock of its own, so two
+ * seforim are read side by side, each with its own pane widths, its own
+ * commentaries, its own layout to save and restore. Nothing about a tab change
+ * creates or destroys a panel — see [ReaderState].
+ *
+ * The books pane is the other half of the tie: clicking a sefer there selects
+ * its tab, and the tab strip's "+" opens another.
  */
 fun main() =
     nucleusApplication {
@@ -101,62 +115,133 @@ fun main() =
         val dark = isSystemInDarkMode()
         val colors = if (dark) DarkColors else LightColors
 
-        DecoratedWindow(
-            onCloseRequest = ::exitApplication,
-            title = "Reader",
-            state = rememberWindowState(width = WINDOW_W_DP.dp, height = WINDOW_H_DP.dp),
-            minimumSize = DpSize(MIN_W_DP.dp, MIN_H_DP.dp),
-        ) {
-            JoinSatelliteWorkspace(reader.workspace)
-            ReaderTheme(colors) {
-                WindowBackground(colors.background)
-                WindowAppearance(if (dark) WindowAppearanceMode.Dark else WindowAppearanceMode.Light)
-                WindowScaffold(titleBar = { MaterialTitleBar { Text("Reader") } }) { padding ->
-                    Surface(Modifier.fillMaxSize().padding(padding), color = colors.background) {
-                        ReaderBody(reader)
+        ReaderTheme(colors) {
+            TabWindows(
+                workspace = reader.tabs,
+                strip = { ReaderTabStrip(onNewBook = reader::openBook) },
+                windowWrapper = { content ->
+                    WindowBackground(colors.background)
+                    WindowAppearance(if (dark) WindowAppearanceMode.Dark else WindowAppearanceMode.Light)
+                    // This window joins its own pane workspace, once, for as
+                    // long as it lives: that is what keeps a tab change from
+                    // touching the dock at all.
+                    reader.tabs.groupOf(nucleusWindow.unsafe.taoWindow)?.let {
+                        JoinSatelliteWorkspace(reader.panesOfWindow(it.id))
                     }
+                    Surface(Modifier.fillMaxSize(), color = colors.background) { content() }
+                },
+                // Under the tab strip, which stays at the very top of the
+                // window: the dock and the activity bars belong to the window,
+                // the text between them is whichever sefer the strip selected.
+                windowBodyWrapper = { body ->
+                    val group = reader.tabs.groupOf(nucleusWindow.unsafe.taoWindow)
+                    if (group == null) body() else ReaderBody(reader, group) { body() }
+                },
+                onLastWindowClosed = ::exitApplication,
+            )
+
+            // Every sefer, declared once: the workspace decides which window
+            // shows it, and the panes of that window draw it.
+            for (book in reader.books) {
+                key(book.id) {
+                    Tab(reader.tabs, id = book.id, title = book.title) { BookText(reader, book) }
+                    DropClosedTab(reader, book.id)
                 }
             }
-        }
 
-        // Every pane, declared once at application scope; the workspace decides
-        // whether it is a panel of the dock or a window of its own.
-        ReaderTheme(colors) {
-            for (pane in Pane.entries) {
-                Satellite(
-                    workspace = reader.workspace,
-                    id = pane.id,
-                    title = pane.title,
-                    initialPlacement = pane.home,
-                    initiallyOpen = pane.openAtStart,
-                    dockSides = if (pane.fixed) ReaderFixedDockSides else ReaderDockSides,
-                    floatable = !pane.fixed,
-                    reorderable = !pane.fixed,
-                    header = { PaneHeader(reader.style) },
-                    // Only reserved where the compositor owns the window move;
-                    // elsewhere the whole bar drags the pane and this is not composed.
-                    floatingCaption = { PaneMoveAffordance() },
-                ) {
-                    Surface(Modifier.fillMaxSize(), color = colors.surface) { PaneContent(pane) }
-                }
+            // One dock of panes per reader window, declared at application
+            // scope so they are not tied to whichever sefer is showing.
+            for (group in rememberTabGroups(reader.tabs)) {
+                key(group.id) { WindowPanes(reader, group, colors) }
             }
         }
     }
 
-/** The reader: its two activity bars around the dock layout, all right-to-left. */
+/**
+ * The tab windows, mirrored out of the workspace through an effect: the groups
+ * are created by `Tab`, declared after this list is read, and Compose drops an
+ * invalidation aimed at a scope it has just composed.
+ */
 @Composable
-private fun ReaderBody(reader: ReaderState) {
+private fun rememberTabGroups(workspace: TabWorkspace): List<TabWindowGroup> {
+    var groups by remember(workspace) { mutableStateOf(workspace.groups.toList()) }
+    LaunchedEffect(workspace) {
+        snapshotFlow { workspace.groups.toList() }.collect { groups = it }
+    }
+    return groups
+}
+
+/**
+ * The panes of one reader window: one satellite per [Pane], declared against
+ * that window's workspace and drawing whichever sefer the window is showing.
+ *
+ * The entries are per window so a tab change creates and destroys nothing —
+ * only the content changes, and what the reader remembers per book lives in
+ * [ReaderState.stateOf].
+ */
+@Composable
+private fun WindowPanes(
+    reader: ReaderState,
+    group: TabWindowGroup,
+    colors: ColorScheme,
+) {
+    val workspace = reader.panesOfWindow(group.id)
+    DisposableEffect(reader, group.id) {
+        onDispose { reader.forgetWindow(group.id) }
+    }
+    // The selected tab of *this* window, resolved back to the sefer. The tab id
+    // is the book id, which is what ties the two archetypes together without
+    // either knowing about the other.
+    val book = reader.tabs.selectedTab(group)?.let { reader.book(it.id) }
+
+    ReaderTheme(colors) {
+        for (pane in Pane.entries) {
+            Satellite(
+                workspace = workspace,
+                id = pane.idIn(group.id),
+                title = pane.title,
+                initialPlacement = pane.home,
+                initiallyOpen = pane.openAtStart,
+                dockSides = if (pane.fixed) ReaderFixedDockSides else ReaderDockSides,
+                floatable = !pane.fixed,
+                reorderable = !pane.fixed,
+                header = { PaneHeader(reader.style) },
+                // Only reserved where the compositor owns the window move;
+                // elsewhere the whole bar drags the pane and this is not composed.
+                floatingCaption = { PaneMoveAffordance() },
+            ) {
+                Surface(Modifier.fillMaxSize(), color = colors.surface) {
+                    PaneContent(reader, pane, book)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One reader window: its two activity bars around the dock layout, all
+ * right-to-left, with the selected sefer's text as the dock's content.
+ */
+@Composable
+private fun ReaderBody(
+    reader: ReaderState,
+    group: TabWindowGroup,
+    text: @Composable () -> Unit,
+) {
+    val workspace = reader.panesOfWindow(group.id)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Row(Modifier.fillMaxSize()) {
             // Start bar: at the right edge in RTL, toggling the navigation panes.
             ActivityBar {
                 for (pane in listOf(Pane.Tree, Pane.Toc, Pane.Notes)) {
-                    BarButton(pane.title.take(1), selected = reader.isOpen(pane)) { reader.toggle(pane) }
+                    BarButton(pane.title.take(1), selected = reader.isOpen(group.id, pane)) {
+                        reader.toggle(group.id, pane)
+                    }
                 }
             }
             VerticalDivider()
             DockLayout(
-                workspace = reader.workspace,
+                workspace = workspace,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
                 // The navigation runs the full height on the right; the
                 // commentaries run under the text and the translation, not
@@ -167,30 +252,40 @@ private fun ReaderBody(reader: ReaderState) {
                 splitter = { ReaderSplitter(reader.style) },
                 panel = { body -> PaneCard(reader.style) { body() } },
             ) {
-                PaneCard(reader.style) { TextColumn() }
+                PaneCard(reader.style) { text() }
             }
             VerticalDivider()
-            // End bar: the content panes and the style switch.
+            // End bar: the content panes, the style switch, the layout of this window.
             ActivityBar {
                 for (pane in listOf(Pane.Targum, Pane.Comments, Pane.Sources)) {
-                    BarButton(pane.title.take(1), selected = reader.isOpen(pane)) { reader.toggle(pane) }
+                    BarButton(pane.title.take(1), selected = reader.isOpen(group.id, pane)) {
+                        reader.toggle(group.id, pane)
+                    }
                 }
                 Spacer(Modifier.height(BAR_GAP_DP.dp))
                 BarButton("◫", selected = reader.style == ReaderStyle.Islands) {
                     reader.style = if (reader.style == ReaderStyle.Islands) ReaderStyle.Classic else ReaderStyle.Islands
                 }
                 Spacer(Modifier.weight(1f))
-                BarButton("S", selected = false) { reader.saveLayout() }
-                BarButton("R", selected = reader.savedLayout != null) { reader.restoreLayout() }
-                BarButton("⟲", selected = false) { reader.resetLayout() }
+                BarButton("S", selected = false) { reader.saveLayout(group.id) }
+                BarButton("R", selected = reader.savedLayout(group.id) != null) { reader.restoreLayout(group.id) }
+                BarButton("⟲", selected = false) { reader.resetLayout(group.id) }
             }
         }
     }
 }
 
-/** The main text: the document, with a breadcrumb strip under it. */
+/**
+ * A sefer's text: the tab's own body, so it is composed in whichever window
+ * shows the tab and its scroll position follows it there.
+ */
 @Composable
-private fun TextColumn() {
+private fun BookText(
+    reader: ReaderState,
+    book: Book,
+) {
+    val state = reader.stateOf(book.id)
+    val chapter = state.chapter.coerceIn(book.chapters.indices)
     Column(Modifier.fillMaxSize()) {
         val scroll = rememberScrollState()
         Column(
@@ -201,7 +296,7 @@ private fun TextColumn() {
                 .padding(TEXT_PADDING_DP.dp),
             verticalArrangement = Arrangement.spacedBy(TEXT_GAP_DP.dp),
         ) {
-            Text("בראשית", fontSize = TITLE_SP.sp, fontWeight = FontWeight.Bold)
+            Text("${book.title} · ${book.chapters[chapter]}", fontSize = TITLE_SP.sp, fontWeight = FontWeight.Bold)
             repeat(VERSES) { index ->
                 Text(
                     "פסוק ${index + 1} — ${SAMPLE_TEXT.repeat(1 + index % 3)}",
@@ -217,7 +312,7 @@ private fun TextColumn() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "תנ״ך  ›  תורה  ›  בראשית  ›  פרק א",
+                "תנ״ך  ›  ${book.title}  ›  ${book.chapters[chapter]}",
                 fontSize = BREADCRUMB_SP.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -225,30 +320,86 @@ private fun TextColumn() {
     }
 }
 
-/** A pane's body: a list the user can scroll, whose position survives dock and undock. */
+/**
+ * A pane's body, for the sefer its window is showing: the books pane lists
+ * every open sefer and selects its tab, the contents pane lists the sefer's
+ * chapters, the rest list what they hold for the chapter in view.
+ */
 @Composable
-private fun PaneContent(pane: Pane) {
+private fun PaneContent(
+    reader: ReaderState,
+    pane: Pane,
+    book: Book?,
+) {
+    if (book == null) {
+        Box(Modifier.fillMaxSize().padding(PANE_PADDING_DP.dp), contentAlignment = Alignment.Center) {
+            Text("אין ספר פתוח", fontSize = TEXT_SP.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    val state = reader.stateOf(book.id)
     val scroll = rememberScrollState()
-    var selected by rememberSaveable { mutableIntStateOf(-1) }
     Column(
         Modifier.fillMaxSize().verticalScroll(scroll).padding(PANE_PADDING_DP.dp),
         verticalArrangement = Arrangement.spacedBy(ITEM_GAP_DP.dp),
     ) {
-        repeat(ITEMS) { index ->
-            val chosen = selected == index
-            Text(
-                text = "${pane.title} ${index + 1}",
-                fontSize = TEXT_SP.sp,
-                color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(ITEM_CORNER_DP.dp))
-                        .background(if (chosen) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent)
-                        .clickable { selected = index }
-                        .padding(ITEM_PADDING_DP.dp),
-            )
+        when (pane) {
+            // Every sefer of the app: clicking one brings its tab to the front.
+            Pane.Tree ->
+                for (candidate in reader.books) {
+                    PaneItem(candidate.title, selected = candidate.id == book.id) { reader.show(candidate.id) }
+                }
+            // The chapters of this sefer; the text follows the choice.
+            Pane.Toc ->
+                book.chapters.forEachIndexed { index, name ->
+                    PaneItem(name, selected = index == state.chapter) { state.chapter = index }
+                }
+            else ->
+                repeat(ITEMS) { index ->
+                    val label = "${pane.title} ${book.chapters[
+                        state.chapter.coerceIn(
+                            book.chapters.indices,
+                        ),
+                    ]}·${index + 1}"
+                    PaneItem(label, selected = state.selected(pane) == index) { state.select(pane, index) }
+                }
         }
+    }
+}
+
+@Composable
+private fun PaneItem(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = label,
+        fontSize = TEXT_SP.sp,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(ITEM_CORNER_DP.dp))
+                .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent)
+                .clickable(onClick = onClick)
+                .padding(ITEM_PADDING_DP.dp),
+    )
+}
+
+/**
+ * Keeps the sefer list in step with the tab workspace: closing a tab is a
+ * workspace call, and a book still declared once its tab is gone would be
+ * registered again and hosted nowhere.
+ */
+@Composable
+private fun DropClosedTab(
+    reader: ReaderState,
+    id: String,
+) {
+    val closed = reader.tabs.tab(id) == null
+    LaunchedEffect(closed) {
+        if (closed) reader.forget(id)
     }
 }
 
@@ -289,9 +440,11 @@ private fun BarButton(
 }
 
 /**
- * Material colours plus the window-chrome styles derived from them, per
- * window scene — and once more around the satellites, whose floating windows
- * get it through the bridged locals.
+ * Material colours plus the window-chrome styles derived from them.
+ *
+ * Established once, above the windows: the workspaces open them, and these
+ * locals are bridged into every scene they create — the tab strips in the
+ * title bars and the floating panes' own scenes included.
  */
 @Composable
 private fun ReaderTheme(
@@ -307,10 +460,6 @@ private fun ReaderTheme(
     }
 }
 
-private const val WINDOW_W_DP = 1280
-private const val WINDOW_H_DP = 820
-private const val MIN_W_DP = 640
-private const val MIN_H_DP = 420
 private const val BAR_W_DP = 48
 private const val BAR_GAP_DP = 8
 private const val BAR_BUTTON_DP = 36
@@ -327,5 +476,5 @@ private const val PANE_PADDING_DP = 8
 private const val ITEM_GAP_DP = 2
 private const val ITEM_PADDING_DP = 6
 private const val ITEM_CORNER_DP = 6
-private const val ITEMS = 60
+private const val ITEMS = 40
 private const val SAMPLE_TEXT = "בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ. "

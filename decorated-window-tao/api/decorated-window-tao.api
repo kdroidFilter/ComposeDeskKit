@@ -208,8 +208,9 @@ public final class dev/nucleusframework/window/tao/ComposableSingletons$TabStrip
 public final class dev/nucleusframework/window/tao/ComposableSingletons$TabWindowsKt {
 	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$TabWindowsKt;
 	public fun <init> ()V
-	public final fun getLambda$1323285147$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
-	public final fun getLambda$328928826$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-1651313828$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
+	public final fun getLambda$560415099$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$761178795$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
 }
 
 public final class dev/nucleusframework/window/tao/D3D11TestTextureProducer : java/lang/AutoCloseable {
@@ -824,7 +825,7 @@ public final class dev/nucleusframework/window/tao/TabWindowGroup {
 
 public final class dev/nucleusframework/window/tao/TabWindowsKt {
 	public static final fun Tab (Ldev/nucleusframework/window/tao/ApplicationScope;Ldev/nucleusframework/window/tao/TabWorkspace;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
-	public static final fun TabWindows (Ldev/nucleusframework/window/tao/ApplicationScope;Ldev/nucleusframework/window/tao/TabWorkspace;Landroidx/compose/runtime/CompositionLocalContext;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
+	public static final fun TabWindows (Ldev/nucleusframework/window/tao/ApplicationScope;Ldev/nucleusframework/window/tao/TabWorkspace;Landroidx/compose/runtime/CompositionLocalContext;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;II)V
 }
 
 public final class dev/nucleusframework/window/tao/TabWorkspace {

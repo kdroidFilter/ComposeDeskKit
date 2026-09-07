@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -19,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowPosition
@@ -61,6 +65,12 @@ internal class TabWorkspaceFixture(
 
     /** Ids in declaration order; a case may add to this to open a tab mid-run. */
     val titles = mutableStateListOf(*initialTitles.toTypedArray())
+
+    /** Bounds of the window-chrome strip the body wrapper draws, per group, in window px. */
+    val bodyWrapperBounds = mutableStateOf<Map<String, Rect>>(emptyMap())
+
+    /** How many times a body wrapper was built, over every window of the run. */
+    val bodyWrapperBuilds = mutableIntStateOf(0)
 
     /**
      * The windows each tab's body is composed in, by tab id, oldest host first.
@@ -187,6 +197,33 @@ internal class TabWorkspaceFixture(
             onLastWindowClosed = {
                 lastWindowClosed.value = true
                 lastWindowClosedCount.value++
+            },
+            // The app's window-level chrome: a strip of its own above the tab
+            // body, recording where it landed and how many times it was built,
+            // so a case can tell "moved" from "rebuilt".
+            windowBodyWrapper = { body ->
+                val id = workspace.groupOf(window)?.id
+                val incarnation = remember { Any() }
+                DisposableEffect(incarnation) {
+                    bodyWrapperBuilds.value++
+                    onDispose { if (id != null) bodyWrapperBounds.value = bodyWrapperBounds.value - id }
+                }
+                Column(Modifier.fillMaxSize()) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(BODY_CHROME_H_DP.dp)
+                            .onGloballyPositioned {
+                                if (id !=
+                                    null
+                                ) {
+                                    bodyWrapperBounds.value =
+                                        bodyWrapperBounds.value + (id to it.boundsInWindow())
+                                }
+                            },
+                    )
+                    Box(Modifier.fillMaxWidth().weight(1f)) { body() }
+                }
             },
         )
         for (title in titles) {
@@ -410,3 +447,6 @@ internal suspend fun TaoWindowTestScope.awaitTabSlots(
             .window,
     )
 }
+
+/** Height of the window-chrome strip the fixture's body wrapper draws above the tab body. */
+internal const val BODY_CHROME_H_DP = 24
