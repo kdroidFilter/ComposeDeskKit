@@ -98,6 +98,24 @@ internal object NativeTaoMacOsNativeViewBridge {
     @JvmStatic
     external fun nativeMakeContentViewFirstResponder(contentNsView: Long)
 
+    /**
+     * Delivers a Tao key event to the window's first responder when that
+     * responder is an embedded native view (or its field editor), not the
+     * Tao content view. Synthetic keys never enter AppKit's responder chain,
+     * so an `NSTextField` that holds first responder would otherwise never
+     * see a letter typed through the in-process driver.
+     *
+     * [type] is a `TaoEventCode` (`KEY_DOWN` / `KEY_UP` / `KEY_TYPED`).
+     * Returns `true` when the embed took the event.
+     */
+    @JvmStatic
+    external fun nativeDispatchKeyToFirstResponder(
+        contentNsView: Long,
+        type: Int,
+        vkCode: Int,
+        codePoint: Int,
+    ): Boolean
+
     // ── Sibling overlay NSView ────────────────────────────────────────
 
     /**
