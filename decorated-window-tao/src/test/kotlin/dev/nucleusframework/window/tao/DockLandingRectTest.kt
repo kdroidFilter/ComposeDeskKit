@@ -266,6 +266,40 @@ class DockDropSlotsTest {
     }
 
     @Test
+    fun `a pinned layer hides the ranks in front of it, for itself and for the others`() {
+        val pinned =
+            workspace.register(
+                "pinned",
+                "pinned",
+                SatellitePlacement.Docked(DockSide.Left, order = 0, extent = 100.dp),
+                initiallyOpen = true,
+                reorderable = false,
+            )
+        pinned.content = {}
+        pinned.dockedBoundsInWindowPx = Rect(20f, 40f, 120f, 640f)
+        // The helper takes layout px; the pinned entry above is set in window px.
+        val movable = docked("movable", DockSide.Left, 1, Rect(100f, 0f, 200f, 600f))
+        state.layeredSides = state.layeredSides + DockSide.Left
+        state.docked = listOf(pinned, movable)
+        state.bandBoundsInWindowPx[DockSide.Left] = Rect(20f, 40f, 1020f, 640f)
+        val strip = state.landingRectPx(DockSide.Left, 60f, joinsStack = false)
+        assertEquals(Rect(200f, 0f, 260f, 600f), strip, "inset behind the two layers")
+
+        // Dragging the movable layer: rank 0 would push the pinned one in, so
+        // it is not on offer — an empty rect keeping the ranks aligned — and
+        // rank 1 covers the whole region, the pinned layer included.
+        assertEquals(
+            listOf(Rect.Zero, Rect(0f, 0f, 260f, 600f)),
+            state.dropSlotsPx(DockSide.Left, strip, dragged = movable),
+        )
+        val zone = DockDropZone(strip, state.dropSlotsPx(DockSide.Left, strip, dragged = movable))
+        assertEquals(1, zone.slotAt(Offset(50f, 300f)), "aimed at the pinned layer, it lands behind it")
+        assertEquals(Rect(98f, 0f, 102f, 600f), state.insertionBarPx(DockSide.Left, movable, 0, 4f))
+        // The pinned layer itself is offered no rank at all.
+        assertEquals(emptyList(), state.dropSlotsPx(DockSide.Left, strip, dragged = pinned))
+    }
+
+    @Test
     fun `the insertion bar sits on the edge between the two ranks`() {
         // Layered right: rank 1 is between the tree (900..1000) and the toc (800..900).
         assertEquals(Rect(898f, 0f, 902f, 600f), state.insertionBarPx(DockSide.Right, null, 1, 4f))

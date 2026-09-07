@@ -52,6 +52,9 @@ import dev.nucleusframework.window.tao.SatelliteWorkspace
  * @param floatable whether the satellite can be a window of its own; `false`
  *   is a fixed panel that cannot be torn out. Requires a docked
  *   [initialPlacement].
+ * @param reorderable whether the user may change its rank on its side;
+ *   `false` pins it to the rank it was declared with. Requires a docked
+ *   [initialPlacement].
  * @param nativeContextMenu whether text fields in the floating window get the
  *   native context menu, as for [SatelliteWindow].
  */
@@ -66,6 +69,7 @@ public fun NucleusApplicationScope.Satellite(
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
     floatable: Boolean = true,
+    reorderable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -83,6 +87,7 @@ public fun NucleusApplicationScope.Satellite(
                 initiallyOpen = initiallyOpen,
                 dockSides = dockSides,
                 floatable = floatable,
+                reorderable = reorderable,
                 resizable = resizable,
                 hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
                 nativeContextMenu = nativeContextMenu,
@@ -107,6 +112,7 @@ public fun Satellite(
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
     floatable: Boolean = true,
+    reorderable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -121,6 +127,7 @@ public fun Satellite(
         initiallyOpen = initiallyOpen,
         dockSides = dockSides,
         floatable = floatable,
+        reorderable = reorderable,
         resizable = resizable,
         hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
         nativeContextMenu = nativeContextMenu,

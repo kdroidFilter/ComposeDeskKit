@@ -50,6 +50,7 @@ internal class DockPanelSpec(
     val open: Boolean = true,
     val dockSides: Set<DockSide> = DockSide.entries.toSet(),
     val floatable: Boolean = true,
+    val reorderable: Boolean = true,
 )
 
 /**
@@ -196,6 +197,7 @@ internal class DockLayoutFixture(
                     initiallyOpen = spec.open,
                     dockSides = spec.dockSides,
                     floatable = spec.floatable,
+                    reorderable = spec.reorderable,
                 ) { PanelBody(spec.id) }
             }
         }

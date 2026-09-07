@@ -259,14 +259,19 @@ internal class DockLayoutState(
      * edge (a layered side) or the start of the band (a split side), the last
      * running through the strip. The [dragged] panel is not counted — its
      * neighbours' centres are the boundaries, so its own region is the rank it
-     * has now. Empty while no other panel is docked there, or one has not been
-     * placed yet: nothing to order against.
+     * has now. Empty while no other panel is docked there, one has not been
+     * placed yet, or [dragged] is pinned to its rank: nothing to order
+     * against. A rank in front of a pinned panel is not on offer either — it
+     * is an empty rect, so the index of a slot is still the rank it stands
+     * for, and the first rank on offer covers the area of the ones dropped.
      */
     fun dropSlotsPx(
         side: DockSide,
         stripPx: Rect,
         dragged: SatelliteEntry?,
     ): List<Rect> {
+        // A pinned panel has one rank and it is not the user's to change.
+        if (dragged != null && !dragged.isReorderable) return emptyList()
         val origin = layoutBoundsInWindowPx.topLeft
         val panels = panelsOn(side).filter { it !== dragged }
         if (panels.isEmpty()) return emptyList()
@@ -296,7 +301,15 @@ internal class DockLayoutState(
                     Rect(region.left, edges[index], region.right, edges[index + 1])
                 }
             }
-        return if (ranksDescend(side)) ascending.asReversed() else ascending
+        val byRank = if (ranksDescend(side)) ascending.asReversed() else ascending
+        // The ranks in front of a pinned panel are not on offer: a drop there
+        // would shift it. They stay in the list — the index of a slot is the
+        // rank it stands for — as empty rects, and the first rank on offer
+        // takes their area, so aiming at a pinned panel lands right behind it,
+        // which is where the drop actually goes.
+        val floor = workspace.pinnedFloor(panels)
+        if (floor <= 0) return byRank
+        return List(floor) { Rect.Zero } + byRank.take(floor + 1).reduce(::unionOf) + byRank.drop(floor + 1)
     }
 
     /**
@@ -326,7 +339,7 @@ internal class DockLayoutState(
 
         fun far(rect: Rect): Float =
             if (alongX) (if (descending) rect.left else rect.right) else (if (descending) rect.top else rect.bottom)
-        val rank = order.coerceIn(0, rects.size)
+        val rank = order.coerceIn(workspace.pinnedFloor(panels), rects.size)
         val at =
             when (rank) {
                 0 -> near(rects.first())

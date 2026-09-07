@@ -725,6 +725,9 @@ public object TaoSceneTestBattery {
         run("DockDropSlotsTest: the pointer picks the slot it is in, else the nearest end") {
             DockDropSlotsTest().`the pointer picks the slot it is in, else the nearest end`()
         }
+        run("DockDropSlotsTest: a pinned layer hides the ranks in front of it, for itself and for the others") {
+            DockDropSlotsTest().`a pinned layer hides the ranks in front of it, for itself and for the others`()
+        }
         run("DockDropSlotsTest: the insertion bar sits on the edge between the two ranks") {
             DockDropSlotsTest().`the insertion bar sits on the edge between the two ranks`()
         }
@@ -774,8 +777,17 @@ public object TaoSceneTestBattery {
         run("SatelliteFixedPanelTest: a snapshot that floats a fixed panel is ignored, but its open state is not") {
             SatelliteFixedPanelTest().`a snapshot that floats a fixed panel is ignored, but its open state is not`()
         }
-        run("SatelliteFixedPanelTest: a fixed panel is still reordered on its own side") {
-            SatelliteFixedPanelTest().`a fixed panel is still reordered on its own side`()
+        run(
+            "SatelliteFixedPanelTest: a pinned panel is offered no rank and its drag changes nothing",
+        ) {
+            SatelliteFixedPanelTest()
+                .`a pinned panel is offered no rank and its drag changes nothing`()
+        }
+        run("SatelliteFixedPanelTest: another panel is docked after the pinned ones, whatever rank it asks for") {
+            SatelliteFixedPanelTest().`another panel is docked after the pinned ones, whatever rank it asks for`()
+        }
+        run("SatelliteFixedPanelTest: a panel that can go nowhere is no drag handle") {
+            SatelliteFixedPanelTest().`a panel that can go nowhere is no drag handle`()
         }
         run("SatelliteDockSidesTest: dock refuses a side the satellite was not declared for") {
             SatelliteDockSidesTest().`dock refuses a side the satellite was not declared for`()

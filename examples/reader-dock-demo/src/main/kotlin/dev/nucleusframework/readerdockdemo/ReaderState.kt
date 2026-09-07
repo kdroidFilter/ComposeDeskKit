@@ -29,9 +29,10 @@ val ReaderFixedDockSides: Set<DockSide> = setOf(DockSide.Right)
  * One pane of the reader: a satellite with a home in the dock.
  *
  * [fixed] is the reader's furniture — the book tree and the table of contents
- * belong on the right of the text and nowhere else: they cannot be torn into a
- * window of their own, nor moved to another side. They can still be hidden,
- * resized, and reordered between themselves.
+ * belong on the right of the text, in that order, and nowhere else: they
+ * cannot be torn into a window of their own, moved to another side, or
+ * reordered, and no other pane can be dropped in front of them. They can
+ * still be hidden and resized.
  */
 enum class Pane(
     val id: String,

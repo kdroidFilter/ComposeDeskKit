@@ -98,9 +98,13 @@ internal data class DockDropZone(
     /**
      * The rank [point] aims at: the slot it is in, else the nearest one, so a
      * pointer past either end of the stack means its first or last rank.
-     * `null` without slots: nothing to order against.
+     * `null` without slots: nothing to order against. An empty slot is a rank
+     * that is not on offer (it would displace a pinned panel) and is skipped.
      */
-    fun slotAt(point: Offset): Int? = slots.indices.minByOrNull { distanceSquaredPx(slots[it], point) }
+    fun slotAt(point: Offset): Int? =
+        slots.indices
+            .filter { !slots[it].isEmpty }
+            .minByOrNull { distanceSquaredPx(slots[it], point) }
 
     private fun distanceSquaredPx(
         rect: Rect,

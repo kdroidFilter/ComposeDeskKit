@@ -165,10 +165,12 @@ private fun ZoneRect(
 
 /**
  * The sides worth hinting while [dragged] is in flight over [host]: every one
- * except the side [dragged] is already docked on **in this window** while it
- * is alone there, since dropping it back is a no-op and offering it would
- * promise a move that does not happen. With other panels on that side it is
- * a target again — the panel can be dropped at another rank among them.
+ * except the side [dragged] is already docked on **in this window** while
+ * there is no other rank for it there — it is alone, or pinned
+ * ([SatelliteEntry.isReorderable]) — since dropping it back is a no-op and
+ * offering it would promise a move that does not happen. With other panels
+ * on that side it is a target again: the panel can be dropped at another
+ * rank among them.
  * Dragged from another window, or floating, every side is a real target —
  * among the sides the satellite was declared for ([SatelliteEntry.dockSides]).
  * [satellites] are the workspace's, to tell a lone panel from a stack.
@@ -187,7 +189,9 @@ internal fun hintedSides(
                     it.dockHost === host &&
                     (it.placement as? SatellitePlacement.Docked)?.side == own
             }
-    return DockSide.entries.filter { it in dragged.dockSides && !(alone && it == own) }
+    // Its own side is a target only while another rank is on offer there.
+    val stuck = alone || !dragged.isReorderable
+    return DockSide.entries.filter { it in dragged.dockSides && !(stuck && it == own) }
 }
 
 /** The smallest rect containing both. */

@@ -151,6 +151,12 @@ internal class SatelliteScopeImpl(
  *   is a fixed panel: no tear-out, [SatelliteWorkspace.undock] refuses it,
  *   the default header offers no Float action, and a drag can only move it
  *   inside the dock. Requires a docked [initialPlacement].
+ * @param reorderable whether the user may change its rank on its side.
+ *   `false` pins it to the rank it was declared with: its own drag is offered
+ *   none, and another panel can be dropped after it but never in front of it.
+ *   Requires a docked [initialPlacement]. With `floatable = false` and a
+ *   single [dockSides], the panel is furniture and its header is not even a
+ *   drag handle.
  * @param resizable whether the floating window can be resized by the user.
  * @param hideWhileOwnerFullscreenOrMaximized hide the floating window while
  *   the owner fills the screen; see [SatelliteWindow].
@@ -175,6 +181,7 @@ public fun ApplicationScope.Satellite(
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
     floatable: Boolean = true,
+    reorderable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     compositionLocalContext: CompositionLocalContext? = null,
@@ -186,7 +193,7 @@ public fun ApplicationScope.Satellite(
 ) {
     val entry =
         remember(workspace, id) {
-            workspace.register(id, title, initialPlacement, initiallyOpen, dockSides, floatable)
+            workspace.register(id, title, initialPlacement, initiallyOpen, dockSides, floatable, reorderable)
         }
     val scope = remember(entry) { SatelliteScopeImpl(workspace, entry, isDocked = false) }
     // Published as snapshot state so the DockLayout hosting the panel picks up
@@ -368,15 +375,25 @@ private fun SatelliteGhostCard(title: String) {
  * still be moved. Custom floating chrome gets the same split for free: it is
  * composed inside that handle.
  *
- * No-op outside a Tao window. Drives [SatelliteWorkspace.beginDrag].
+ * No-op outside a Tao window, and on a satellite a drag could not move
+ * anywhere — fixed to one side, pinned to its rank and alone in the workspace
+ * — rather than leaving a gesture that can only end where it started.
+ *
+ * Drives [SatelliteWorkspace.beginDrag].
  */
 public fun Modifier.satelliteDragHandle(scope: SatelliteScope): Modifier =
-    screenDragHandle(
-        key = scope,
-        isDragging = { scope.workspace.draggedSatellite === scope.satellite },
-        beginTransfer = { window -> scope.workspace.beginTransferDrag(scope.satellite.id, scope.dragOrigin(window)) },
-    ) { window, pointerScreenPx ->
-        scope.workspace.beginDrag(scope.satellite.id, scope.dragOrigin(window), pointerScreenPx)?.asScreenDrag()
+    if (!scope.workspace.canBeDragged(scope.satellite)) {
+        this
+    } else {
+        screenDragHandle(
+            key = scope,
+            isDragging = { scope.workspace.draggedSatellite === scope.satellite },
+            beginTransfer = { window ->
+                scope.workspace.beginTransferDrag(scope.satellite.id, scope.dragOrigin(window))
+            },
+        ) { window, pointerScreenPx ->
+            scope.workspace.beginDrag(scope.satellite.id, scope.dragOrigin(window), pointerScreenPx)?.asScreenDrag()
+        }
     }
 
 private fun SatelliteScope.dragOrigin(window: TaoWindow): SatelliteDragOrigin =

@@ -52,7 +52,7 @@ internal class DockTransferTarget(
     override fun onDrop(event: DragAndDropEvent): Boolean {
         val drag = workspace.transferDrag ?: return false
         val position = event.positionInWindowPx()
-        val zone = zoneAt(position)?.takeIf { it.side in drag.entry.dockSides }
+        val zone = zoneAt(position)?.let { workspace.targetFor(drag.entry, it) }
         val outcome =
             when {
                 zone != null && zone != drag.own -> TransferDrop.Dock(zone)
@@ -90,7 +90,9 @@ internal class DockTransferTarget(
     private fun preview(event: DragAndDropEvent) {
         val drag = workspace.transferDrag ?: return
         workspace.dockPreview =
-            zoneAt(event.positionInWindowPx())?.takeIf { it != drag.own && it.side in drag.entry.dockSides }
+            zoneAt(event.positionInWindowPx())
+                ?.let { workspace.targetFor(drag.entry, it) }
+                ?.takeIf { it != drag.own }
     }
 
     private fun clearPreview() {

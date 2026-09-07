@@ -131,6 +131,7 @@ fun main() =
                     initiallyOpen = pane.openAtStart,
                     dockSides = if (pane.fixed) ReaderFixedDockSides else ReaderDockSides,
                     floatable = !pane.fixed,
+                    reorderable = !pane.fixed,
                     header = { PaneHeader(reader.style) },
                 ) {
                     Surface(Modifier.fillMaxSize(), color = colors.surface) { PaneContent(pane) }

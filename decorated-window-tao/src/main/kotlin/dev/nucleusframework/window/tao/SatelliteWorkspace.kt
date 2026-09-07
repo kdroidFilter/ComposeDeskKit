@@ -56,6 +56,13 @@ public class SatelliteEntry internal constructor(
      * within the dock, and a restore never floats it. Declared with [Satellite].
      */
     public val isFloatable: Boolean = true,
+    /**
+     * Whether the user may change this satellite's rank on its side. `false`
+     * pins it to the rank it was declared with: its own drag offers it none,
+     * and another panel can only be dropped after it, never in front of it.
+     * Declared with [Satellite].
+     */
+    public val isReorderable: Boolean = true,
 ) {
     /** Human-readable title, shown by the default header. */
     public var title: String by mutableStateOf(title)
@@ -397,7 +404,10 @@ public class SatelliteWorkspace(
      * weight is kept across a move between docks and remembered with the rank.
      *
      * A side the satellite was not declared for ([SatelliteEntry.dockSides])
-     * is refused: nothing changes.
+     * is refused: nothing changes. [order] is ignored for a pinned satellite
+     * ([SatelliteEntry.isReorderable] `false`), which keeps its declared
+     * rank, and is pushed past the pinned panels of the side for any other —
+     * a drop can join them but never displace one.
      */
     public fun dock(
         id: String,
@@ -419,7 +429,9 @@ public class SatelliteWorkspace(
                 ?: entry.dockHost?.takeIf { it in members }
                 ?: owner
         entry.placement = SatellitePlacement.Docked(side, order = 0, extent, weight)
-        insertInStack(entry, order ?: remembered?.order)
+        // A pinned panel takes the rank it was declared with, whatever the
+        // caller asks: that rank is the whole point of pinning it.
+        insertInStack(entry, order?.takeIf { entry.isReorderable } ?: remembered?.order)
         entry.preferredDockSide = side
     }
 
@@ -455,6 +467,7 @@ public class SatelliteWorkspace(
     ): DockTarget? {
         val docked = entry.placement as? SatellitePlacement.Docked ?: return null
         if (entry.dockHost !== host) return null
+        if (!entry.isReorderable) return DockTarget(host, docked.side)
         val shown = stackOf(docked.side, host, exclude = null).filter { it.isShown }
         return DockTarget(host, docked.side, shown.indexOf(entry).takeIf { shown.size > 1 && it >= 0 })
     }
@@ -582,12 +595,42 @@ public class SatelliteWorkspace(
         pointerScreenPx: Offset,
     ): DockTarget? = zoneOf { it.dockHitTest(draggedScreenRectPx, pointerScreenPx, DockZoneWidth) }
 
-    /** [dockTargetAt] for the satellite [entry]: a zone on a side it may not dock on is no target for it. */
+    /**
+     * Whether dragging [entry] could change anything: it can float, it has
+     * another side or another window's dock to go to, or it may take another
+     * rank among the panels shown beside it. `false` makes
+     * [Modifier.satelliteDragHandle] inert rather than leaving a gesture that
+     * cannot end anywhere.
+     */
+    internal fun canBeDragged(entry: SatelliteEntry): Boolean {
+        if (entry.isFloatable) return true
+        val docked = entry.placement as? SatellitePlacement.Docked ?: return true
+        if (entry.dockSides.any { it != docked.side }) return true
+        if (members.size > 1) return true
+        return entry.isReorderable && stackOf(docked.side, entry.dockHost, exclude = entry).any { it.isShown }
+    }
+
+    /** [dockTargetAt] resolved for the satellite [entry] — see [targetFor]. */
     internal fun dockTargetFor(
         entry: SatelliteEntry,
         draggedScreenRectPx: Rect,
         pointerScreenPx: Offset,
-    ): DockTarget? = dockTargetAt(draggedScreenRectPx, pointerScreenPx)?.takeIf { it.side in entry.dockSides }
+    ): DockTarget? = dockTargetAt(draggedScreenRectPx, pointerScreenPx)?.let { targetFor(entry, it) }
+
+    /**
+     * [target] as a target for [entry]: `null` on a side [entry] was not
+     * declared for, and without a rank for a pinned one — [dock] would ignore
+     * it, so a preview drawn from it would promise a move that does not happen.
+     */
+    internal fun targetFor(
+        entry: SatelliteEntry,
+        target: DockTarget,
+    ): DockTarget? =
+        when {
+            target.side !in entry.dockSides -> null
+            entry.isReorderable -> target
+            else -> target.copy(order = null)
+        }
 
     private inline fun zoneOf(hitTest: (HostGeometry) -> DockHit?): DockTarget? {
         val hit =
@@ -788,6 +831,7 @@ public class SatelliteWorkspace(
         initiallyOpen: Boolean,
         dockSides: Set<DockSide> = DockSide.entries.toSet(),
         floatable: Boolean = true,
+        reorderable: Boolean = true,
     ): SatelliteEntry {
         entryMap[id]?.let {
             it.title = title
@@ -800,7 +844,11 @@ public class SatelliteWorkspace(
         require(floatable || initialPlacement is SatellitePlacement.Docked) {
             "satellite '$id' cannot float and is not declared docked: it would have nowhere to live"
         }
-        val entry = SatelliteEntry(id, title, initialPlacement, initiallyOpen, dockSides, floatable)
+        require(reorderable || initialPlacement is SatellitePlacement.Docked) {
+            "satellite '$id' is pinned to a rank and is not declared docked: there is no rank to pin it to"
+        }
+        val entry =
+            SatelliteEntry(id, title, initialPlacement, initiallyOpen, dockSides, floatable, reorderable)
         if (initialPlacement is SatellitePlacement.Docked) entry.dockHost = owner
         entryMap[id] = entry
         pendingRestore.remove(id)?.let { apply(entry, it) }
@@ -935,6 +983,12 @@ public class SatelliteWorkspace(
     /**
      * Puts the freshly docked [entry] at [index] of its side's stack — the
      * end when `null` or past it — and renumbers the stack from `0`.
+     *
+     * A reorderable [entry] cannot land in front of a pinned panel: the ranks
+     * are contiguous, so inserting there would shift every pinned panel from
+     * that rank on. The insertion is pushed past the last of them. A pinned
+     * [entry] itself is placed at the rank it asks for, which is the one it
+     * was declared with.
      */
     private fun insertInStack(
         entry: SatelliteEntry,
@@ -942,9 +996,13 @@ public class SatelliteWorkspace(
     ) {
         val docked = entry.placement as SatellitePlacement.Docked
         val stack = stackOf(docked.side, entry.dockHost, exclude = entry).toMutableList()
-        stack.add(index?.coerceIn(0, stack.size) ?: stack.size, entry)
+        val floor = if (entry.isReorderable) pinnedFloor(stack) else 0
+        stack.add((index ?: stack.size).coerceIn(floor, stack.size), entry)
         renumber(stack)
     }
+
+    /** The first rank of [stack] a reorderable panel may take: past every pinned panel. */
+    internal fun pinnedFloor(stack: List<SatelliteEntry>): Int = stack.indexOfLast { !it.isReorderable } + 1
 
     private fun renumber(stack: List<SatelliteEntry>) {
         stack.forEachIndexed { rank, member ->
