@@ -147,6 +147,10 @@ internal class SatelliteScopeImpl(
  *   [SatelliteWorkspace.dock]. Empty makes it a floating-only palette. Fixed
  *   on first declaration, like the placement; a docked [initialPlacement]
  *   must name one of them.
+ * @param floatable whether the satellite can be a window of its own. `false`
+ *   is a fixed panel: no tear-out, [SatelliteWorkspace.undock] refuses it,
+ *   the default header offers no Float action, and a drag can only move it
+ *   inside the dock. Requires a docked [initialPlacement].
  * @param resizable whether the floating window can be resized by the user.
  * @param hideWhileOwnerFullscreenOrMaximized hide the floating window while
  *   the owner fills the screen; see [SatelliteWindow].
@@ -170,6 +174,7 @@ public fun ApplicationScope.Satellite(
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
+    floatable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     compositionLocalContext: CompositionLocalContext? = null,
@@ -179,7 +184,10 @@ public fun ApplicationScope.Satellite(
     header: @Composable @UiComposable SatelliteScope.() -> Unit = { DefaultSatelliteHeader() },
     content: @Composable @UiComposable SatelliteScope.() -> Unit,
 ) {
-    val entry = remember(workspace, id) { workspace.register(id, title, initialPlacement, initiallyOpen, dockSides) }
+    val entry =
+        remember(workspace, id) {
+            workspace.register(id, title, initialPlacement, initiallyOpen, dockSides, floatable)
+        }
     val scope = remember(entry) { SatelliteScopeImpl(workspace, entry, isDocked = false) }
     // Published as snapshot state so the DockLayout hosting the panel picks up
     // a new lambda without this composable knowing where the panel lives.
@@ -448,7 +456,7 @@ public fun SatelliteScope.DefaultSatelliteHeader() {
             overflow = TextOverflow.Ellipsis,
         )
         if (isDocked) {
-            HeaderAction("Float", colors.content) { undock() }
+            if (satellite.isFloatable) HeaderAction("Float", colors.content) { undock() }
             HeaderAction("Close", colors.content) { close() }
         } else {
             if (satellite.dockSides.isNotEmpty()) HeaderAction("Dock", colors.content) { dock() }

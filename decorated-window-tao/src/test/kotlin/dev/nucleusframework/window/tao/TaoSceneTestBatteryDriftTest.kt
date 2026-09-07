@@ -97,6 +97,7 @@ class TaoSceneTestBatteryDriftTest {
             DockDropSlotsTest::class.java,
             SatelliteDockRankTest::class.java,
             SatelliteDockSidesTest::class.java,
+            SatelliteFixedPanelTest::class.java,
             DockTargetFromDraggedRectTest::class.java,
             RelocatingSaveableStateRegistryTest::class.java,
             WindowGroupTest::class.java,

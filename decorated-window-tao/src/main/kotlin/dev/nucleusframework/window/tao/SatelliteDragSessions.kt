@@ -115,8 +115,11 @@ private class DockedDragSession(
         workspace.dockPreview = workspace.dockTargetFor(entry, ghost, pointer)?.takeIf { it != own }
         // Follows the pointer for the whole gesture, including over a dock
         // zone: the panel is out of the layout as soon as the drag starts, and
-        // seeing it hover is what makes the tear-out read.
-        workspace.dragGhost = DragGhost(entry, ghost, scaleFactor)
+        // seeing it hover is what makes the tear-out read. A fixed panel has
+        // no tear-out to read, so it stays where it is and only the zone
+        // feedback moves — showing a ghost would promise a window the release
+        // does not produce.
+        if (entry.isFloatable) workspace.dragGhost = DragGhost(entry, ghost, scaleFactor)
     }
 
     private fun ghostRectPx(): Rect = Rect(pointer - grabOffsetPx, panelScreenRectPx.size)
@@ -129,7 +132,9 @@ private class DockedDragSession(
         cancel()
         when {
             target != null -> workspace.dropAt(entry.id, target)
-            panelScreenRectPx.contains(drop) -> Unit
+            // Released on its own panel, or anywhere at all for a fixed one:
+            // the gesture was abandoned, not a tear-out.
+            !entry.isFloatable || panelScreenRectPx.contains(drop) -> Unit
             else -> workspace.undock(entry.id, workspace.floatingAtScreen(drop - grabOffsetPx, panelScreenRectPx.size))
         }
     }

@@ -79,7 +79,8 @@ fun SatelliteScope.PaneHeader(style: ReaderStyle) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (isDocked) {
-                        HeaderAction(FLOAT_GLYPH) { undock() }
+                        // A fixed pane has nowhere to float to.
+                        if (satellite.isFloatable) HeaderAction(FLOAT_GLYPH) { undock() }
                     } else {
                         HeaderAction(DOCK_GLYPH) { dock() }
                     }

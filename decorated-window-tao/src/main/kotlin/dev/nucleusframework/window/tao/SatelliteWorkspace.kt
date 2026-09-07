@@ -50,6 +50,12 @@ public class SatelliteEntry internal constructor(
      * the satellite only ever floats. Declared with [Satellite].
      */
     public val dockSides: Set<DockSide> = DockSide.entries.toSet(),
+    /**
+     * Whether this satellite can be a window of its own. `false` is a fixed
+     * panel: [SatelliteWorkspace.undock] refuses it, a drag can only move it
+     * within the dock, and a restore never floats it. Declared with [Satellite].
+     */
+    public val isFloatable: Boolean = true,
 ) {
     /** Human-readable title, shown by the default header. */
     public var title: String by mutableStateOf(title)
@@ -457,13 +463,15 @@ public class SatelliteWorkspace(
      * Turns the docked satellite [id] back into a floating window: at
      * [placement] when given, else over the panel it just was when the host's
      * geometry is known, else at its last floating position. No-op for a
-     * floating satellite.
+     * floating satellite, and for a fixed one
+     * ([SatelliteEntry.isFloatable] `false`), which never leaves the dock.
      */
     public fun undock(
         id: String,
         placement: SatellitePlacement.Floating? = null,
     ) {
         val entry = entryMap[id] ?: return
+        if (!entry.isFloatable) return
         val docked = entry.placement as? SatellitePlacement.Docked ?: return
         entry.preferredDockSide = docked.side
         val floating = placement ?: liftOffPlacement(entry) ?: entry.lastFloating
@@ -779,6 +787,7 @@ public class SatelliteWorkspace(
         initialPlacement: SatellitePlacement,
         initiallyOpen: Boolean,
         dockSides: Set<DockSide> = DockSide.entries.toSet(),
+        floatable: Boolean = true,
     ): SatelliteEntry {
         entryMap[id]?.let {
             it.title = title
@@ -788,7 +797,10 @@ public class SatelliteWorkspace(
             "satellite '$id' is declared docked on ${(initialPlacement as SatellitePlacement.Docked).side}, " +
                 "a side its dockSides $dockSides do not allow"
         }
-        val entry = SatelliteEntry(id, title, initialPlacement, initiallyOpen, dockSides)
+        require(floatable || initialPlacement is SatellitePlacement.Docked) {
+            "satellite '$id' cannot float and is not declared docked: it would have nowhere to live"
+        }
+        val entry = SatelliteEntry(id, title, initialPlacement, initiallyOpen, dockSides, floatable)
         if (initialPlacement is SatellitePlacement.Docked) entry.dockHost = owner
         entryMap[id] = entry
         pendingRestore.remove(id)?.let { apply(entry, it) }
@@ -812,6 +824,9 @@ public class SatelliteWorkspace(
         (entry.placement as? SatellitePlacement.Docked)?.let { entry.dockMemory[it.side] = it }
         when (val placement = saved.placement) {
             is SatellitePlacement.Floating -> {
+                // A fixed panel has no floating placement to go back to: the
+                // snapshot predates the declaration, and the dock stands.
+                if (!entry.isFloatable) return
                 applyFloating(entry, placement)
                 // Already on screen: move it, since placement is otherwise one-shot.
                 entry.windowState.reanchor()

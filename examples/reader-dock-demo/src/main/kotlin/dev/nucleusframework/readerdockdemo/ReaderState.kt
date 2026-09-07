@@ -22,15 +22,38 @@ enum class ReaderStyle {
  */
 val ReaderDockSides: Set<DockSide> = setOf(DockSide.Left, DockSide.Right, DockSide.Bottom)
 
-/** One pane of the reader: a satellite with a home in the dock. */
+/** The sides [Pane.fixed] panes accept: the right of the text, where the reader puts them. */
+val ReaderFixedDockSides: Set<DockSide> = setOf(DockSide.Right)
+
+/**
+ * One pane of the reader: a satellite with a home in the dock.
+ *
+ * [fixed] is the reader's furniture — the book tree and the table of contents
+ * belong on the right of the text and nowhere else: they cannot be torn into a
+ * window of their own, nor moved to another side. They can still be hidden,
+ * resized, and reordered between themselves.
+ */
 enum class Pane(
     val id: String,
     val title: String,
     val home: SatellitePlacement.Docked,
     val openAtStart: Boolean,
+    val fixed: Boolean = false,
 ) {
-    Tree("tree", "ספרים", SatellitePlacement.Docked(DockSide.Right, order = 0, extent = 200.dp), openAtStart = true),
-    Toc("toc", "תוכן", SatellitePlacement.Docked(DockSide.Right, order = 1, extent = 170.dp), openAtStart = true),
+    Tree(
+        "tree",
+        "ספרים",
+        SatellitePlacement.Docked(DockSide.Right, order = 0, extent = 200.dp),
+        openAtStart = true,
+        fixed = true,
+    ),
+    Toc(
+        "toc",
+        "תוכן",
+        SatellitePlacement.Docked(DockSide.Right, order = 1, extent = 170.dp),
+        openAtStart = true,
+        fixed = true,
+    ),
     Notes("notes", "הערות", SatellitePlacement.Docked(DockSide.Right, order = 2, extent = 220.dp), openAtStart = false),
     Targum("targum", "תרגום", SatellitePlacement.Docked(DockSide.Left, extent = 240.dp), openAtStart = false),
     Comments("comments", "מפרשים", SatellitePlacement.Docked(DockSide.Bottom, extent = 220.dp), openAtStart = true),

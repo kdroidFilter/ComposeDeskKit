@@ -49,6 +49,9 @@ import dev.nucleusframework.window.tao.SatelliteWorkspace
  *
  * @param dockSides the sides the satellite may be docked on; the others are
  *   never offered nor accepted. Empty: a floating-only palette.
+ * @param floatable whether the satellite can be a window of its own; `false`
+ *   is a fixed panel that cannot be torn out. Requires a docked
+ *   [initialPlacement].
  * @param nativeContextMenu whether text fields in the floating window get the
  *   native context menu, as for [SatelliteWindow].
  */
@@ -62,6 +65,7 @@ public fun NucleusApplicationScope.Satellite(
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
+    floatable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -78,6 +82,7 @@ public fun NucleusApplicationScope.Satellite(
                 initialPlacement = initialPlacement,
                 initiallyOpen = initiallyOpen,
                 dockSides = dockSides,
+                floatable = floatable,
                 resizable = resizable,
                 hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
                 nativeContextMenu = nativeContextMenu,
@@ -101,6 +106,7 @@ public fun Satellite(
     initialPlacement: SatellitePlacement = SatellitePlacement.Floating(),
     initiallyOpen: Boolean = true,
     dockSides: Set<DockSide> = DockSide.entries.toSet(),
+    floatable: Boolean = true,
     resizable: Boolean = true,
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
@@ -114,6 +120,7 @@ public fun Satellite(
         initialPlacement = initialPlacement,
         initiallyOpen = initiallyOpen,
         dockSides = dockSides,
+        floatable = floatable,
         resizable = resizable,
         hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
         nativeContextMenu = nativeContextMenu,

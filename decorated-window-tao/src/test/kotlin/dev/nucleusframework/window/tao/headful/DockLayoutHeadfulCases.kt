@@ -46,6 +46,8 @@ import kotlin.math.abs
  *     neighbours it left, on a layered and on a split side alike;
  * 12. a layer dragged by its header over the outer half of the outermost
  *     layer previews the first rank and lands there, nothing rebuilt;
+ * 15. a fixed panel is never torn out — no ghost, no window, nothing
+ *     rebuilt — while its ordinary neighbour still is;
  * 14. a palette declared for three sides is never offered the fourth: the
  *     top strip is neither hinted nor published, a release there leaves it
  *     floating, and a direct dock on that side is refused;
@@ -76,7 +78,104 @@ internal object DockLayoutHeadfulCases {
             aLayerDraggedOverTheOutermostOneBecomesTheFirst(),
             aSplitPanelDroppedOnItsStackTakesTheRankUnderThePointer(),
             aPaletteIsNeverOfferedASideItWasNotDeclaredFor(),
+            aFixedPanelIsNeverTornOut(),
         )
+
+    // ── 15. a fixed panel ────────────────────────────────────────────────
+
+    /**
+     * A fixed panel ([floatable] `false`): dragged into the middle of the
+     * content and released, it is still the panel it was — no ghost followed
+     * the pointer, no window appeared, its subtree was never rebuilt — while
+     * the panel next to it, an ordinary one, is torn out by the same gesture.
+     */
+    private fun aFixedPanelIsNeverTornOut(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(
+                            TREE,
+                            SatellitePlacement.Docked(DockSide.Right, order = 0, extent = TREE_W_DP.dp),
+                            dockSides = setOf(DockSide.Right),
+                            floatable = false,
+                        ),
+                        DockPanelSpec(TOC, SatellitePlacement.Docked(DockSide.Right, order = 1, extent = TOC_W_DP.dp)),
+                    ),
+                layeredSides = setOf(DockSide.Right),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout a fixed panel is never torn out, its neighbour still is",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodies(fixture, TREE, TOC)
+                val scale = window.scaleFactor
+                val layout = awaitDockLayout(workspace, window)
+                val client = requireNotNull(workspace.dockHostGeometry(window)?.clientOriginPx())
+                val treeBefore = panel(fixture, TREE)
+                val tree = requireNotNull(workspace.satellite(TREE))
+                check(!tree.isFloatable) { "the fixture did not declare the tree fixed" }
+
+                // Into the middle of the content — a tear-out for any other panel.
+                val grab =
+                    toScreen(
+                        fixture,
+                        Offset(treeBefore.center.x, treeBefore.top + DockPanelHeaderHeight.value * scale / 2f),
+                    )
+                // Deep in the content: clear of the left strip and well clear
+                // of the right side's ranks, which reach in behind its layers.
+                val middle = Offset(layout.left + CONTENT_AIM_DP * scale, layout.center.y)
+                val session = beginDockedDrag(workspace, TREE, grab)
+                session.update(middle)
+                check(workspace.dragGhost == null) { "a fixed panel published a tear-out ghost" }
+                check(workspace.dockPreview == null) { "the content previewed a zone: ${workspace.dockPreview}" }
+                session.end(middle)
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                check(
+                    tree.placement is SatellitePlacement.Docked,
+                ) { "the fixed panel left the dock: ${tree.placement}" }
+                check(fixture.floatingWindows.value[TREE] == null) { "the fixed panel opened a window of its own" }
+                check(fixture.incarnationsOf(TREE) == 1) { "the refused tear-out rebuilt the panel" }
+                check(near(panel(fixture, TREE).width, treeBefore.width)) { "the fixed panel changed width" }
+
+                // A direct undock is refused as well.
+                workspace.undock(TREE)
+                settle()
+                check(tree.placement is SatellitePlacement.Docked) { "undock() tore out a fixed panel" }
+
+                // The ordinary neighbour is torn out by the very same gesture.
+                val tocBefore = panel(fixture, TOC)
+                // Grabbed near its left edge, so its ghost hangs to the right
+                // of the pointer and stays clear of the left strip: the
+                // release is a tear-out, not a dock on the left.
+                val tocGrab =
+                    toScreen(
+                        fixture,
+                        Offset(
+                            tocBefore.left + GRAB_EDGE_INSET_DP * scale,
+                            tocBefore.top + DockPanelHeaderHeight.value * scale / 2f,
+                        ),
+                    )
+                val tocSession = beginDockedDrag(workspace, TOC, tocGrab)
+                tocSession.update(middle)
+                check(workspace.dragGhost?.satellite?.id == TOC) { "no ghost for the ordinary panel" }
+                check(workspace.dockPreview == null) {
+                    "the ordinary panel is over a zone, so the release would not tear it out: ${workspace.dockPreview}"
+                }
+                tocSession.end(middle)
+                awaitUntil("the toc floats") { fixture.floatingWindows.value[TOC]?.hasRealFramePx() == true }
+                check(near(panel(fixture, TREE).right, (layout.right - client.x), LAYOUT_TOLERANCE_PX * 2)) {
+                    "the fixed panel is not still at the edge: ${panel(fixture, TREE)}"
+                }
+            },
+        )
+    }
 
     // ── 14. dockSides ────────────────────────────────────────────────────
 
@@ -1350,4 +1449,10 @@ internal object DockLayoutHeadfulCases {
 
     /** A drag that stays on the panel it started from. */
     private const val OWN_NUDGE_PX = 6f
+
+    /** Into the content, in dp from the layout's left edge: past the strip, short of the right ranks. */
+    private const val CONTENT_AIM_DP = 120f
+
+    /** How far inside a panel's leading edge a grab is taken. */
+    private const val GRAB_EDGE_INSET_DP = 8f
 }

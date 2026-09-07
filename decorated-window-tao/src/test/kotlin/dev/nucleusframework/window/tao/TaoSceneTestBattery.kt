@@ -759,6 +759,24 @@ public object TaoSceneTestBattery {
         run("SatelliteWorkspaceTest: docking a floating satellite seeds the side extent and hosts it in the owner") {
             SatelliteWorkspaceTest().`docking a floating satellite seeds the side extent and hosts it in the owner`()
         }
+        run("SatelliteFixedPanelTest: undock refuses a fixed panel") {
+            SatelliteFixedPanelTest().`undock refuses a fixed panel`()
+        }
+        run("SatelliteFixedPanelTest: a fixed satellite must be declared docked") {
+            SatelliteFixedPanelTest().`a fixed satellite must be declared docked`()
+        }
+        run("SatelliteFixedPanelTest: a drag released over the content leaves a fixed panel docked, with no ghost") {
+            SatelliteFixedPanelTest().`a drag released over the content leaves a fixed panel docked, with no ghost`()
+        }
+        run("SatelliteFixedPanelTest: a transfer drag with no record leaves a fixed panel docked") {
+            SatelliteFixedPanelTest().`a transfer drag with no record leaves a fixed panel docked`()
+        }
+        run("SatelliteFixedPanelTest: a snapshot that floats a fixed panel is ignored, but its open state is not") {
+            SatelliteFixedPanelTest().`a snapshot that floats a fixed panel is ignored, but its open state is not`()
+        }
+        run("SatelliteFixedPanelTest: a fixed panel is still reordered on its own side") {
+            SatelliteFixedPanelTest().`a fixed panel is still reordered on its own side`()
+        }
         run("SatelliteDockSidesTest: dock refuses a side the satellite was not declared for") {
             SatelliteDockSidesTest().`dock refuses a side the satellite was not declared for`()
         }
