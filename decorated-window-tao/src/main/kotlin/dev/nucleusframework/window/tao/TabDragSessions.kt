@@ -46,12 +46,7 @@ internal fun TabWorkspace.createTabDragSession(
             workspace = this,
             entry = entry,
             windowSizePx = tearOffSizePx(strip.window, outer, scale),
-            // Carried by its top edge wherever it was grabbed: the ghost hangs
-            // below the pointer, so the slot it is aimed at in another strip —
-            // which is where the pointer is — stays in view instead of being
-            // covered by the card. The torn-off window inherits the offset and
-            // lands where the ghost was. Only the grab's x is kept.
-            grabOffsetPx = Offset(pointerScreenPx.x - (client.x + slot.left), 0f),
+            grabOffsetPx = pointerScreenPx - (client + slot.topLeft),
             tabSizePx = slot.size,
             pointer = pointerScreenPx,
             scaleFactor = scale,
@@ -135,7 +130,7 @@ private class TabTearOffDragSession(
     private val entry: TabEntry,
     /** The source window's outer size, which the torn-off window inherits. */
     private val windowSizePx: Size,
-    /** Pointer offset from the dragged tab's left edge at the grab; `0` along y, the tab is carried by its top. */
+    /** Pointer offset from the dragged tab's top-left at the grab. */
     private val grabOffsetPx: Offset,
     private val tabSizePx: Size,
     /** Where the pointer was last seen; a rejected sample leaves it alone. */

@@ -498,11 +498,9 @@ class TabWorkspaceTest {
 
         assertEquals(listOf("a"), left.ids)
         val torn = assertNotNull(workspace.groups.firstOrNull { it.ids == listOf("b") })
-        // Grabbed 10 px right and 20 px down inside the tab: the window's
-        // top-left lands 10 px left of the drop, and level with it — the tab
-        // is carried by its top edge wherever it was grabbed, so the ghost
-        // never covers the slot the pointer aims at.
-        assertEquals(DpOffset(490.dp, 400.dp), torn.position)
+        // Grabbed 10 px right and 20 px down inside the tab, so the window's
+        // top-left lands that far up and left of the drop.
+        assertEquals(DpOffset(490.dp, 380.dp), torn.position)
         assertEquals(DpSize(800.dp, 600.dp), torn.size, "the new window inherits the size of the old one")
         assertNull(workspace.dragGhost)
     }
