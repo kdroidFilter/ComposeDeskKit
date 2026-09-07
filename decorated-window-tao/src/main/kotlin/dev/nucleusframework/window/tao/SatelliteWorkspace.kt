@@ -287,6 +287,20 @@ public class SatelliteWorkspace(
             .coerceAtLeast(MinDockExtent)
     }
 
+    /**
+     * The weight [entry] takes among the panels of a split side once docked on
+     * [side]: the one it has where it is docked now, else the one it last held
+     * on [side], else `1`. What [dock] gives the panel, and what the drop
+     * preview divides the stack with.
+     */
+    internal fun dockSeedWeight(
+        entry: SatelliteEntry,
+        side: DockSide,
+    ): Float =
+        (entry.placement as? SatellitePlacement.Docked)?.weight
+            ?: entry.dockMemory[side]?.weight
+            ?: 1f
+
     /** Sets [dockExtent]; clamped to [MinDockExtent]. Driven by the [DockLayout] splitters. */
     public fun setDockExtent(
         side: DockSide,
@@ -418,10 +432,10 @@ public class SatelliteWorkspace(
         if (side !in entry.dockSides) return
         val current = entry.placement
         val extent = dockSeedExtent(entry, side)
+        val weight = dockSeedWeight(entry, side)
         if (current is SatellitePlacement.Floating) entry.lastFloating = currentFloating(entry, current)
         leaveStack(entry)
         val remembered = entry.dockMemory[side]
-        val weight = (current as? SatellitePlacement.Docked)?.weight ?: remembered?.weight ?: 1f
         if (side !in extents) setDockExtent(side, extent)
         entry.dockHost =
             host?.takeIf { it in members }

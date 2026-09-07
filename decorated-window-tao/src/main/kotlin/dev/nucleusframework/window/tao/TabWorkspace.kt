@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -673,6 +674,19 @@ public class TabWorkspace(
         // in strip order, unless the strip runs right to left, where it is the last.
         val towardsLowX = currentStart < own.left
         return if (towardsLowX == !rightToLeft) indices.first() else indices.last()
+    }
+
+    /**
+     * The width [entry] has in the strip it is dragged from, in dp of that
+     * strip's window — what the slot it lands in elsewhere opens to. Its slot
+     * is still published while it is in flight (dimmed, or moving with its
+     * window); before the strip ever placed it, the widest a tab gets.
+     */
+    internal fun draggedTabWidth(entry: TabEntry): Dp {
+        val group = entry.group
+        val slot = group?.slotsInWindowPx?.getOrNull(group.tabIds.indexOf(entry.id))?.takeIf { !it.isEmpty }
+        val scale = group?.window?.scaleFactor?.takeIf { it > 0f } ?: 1f
+        return slot?.let { (it.width / scale).dp } ?: TabMaxWidth
     }
 
     /**

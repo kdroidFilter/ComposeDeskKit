@@ -12,7 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.nucleusframework.window.tao.TabDropGhost
+import dev.nucleusframework.window.tao.TabDropGhostCard
+import dev.nucleusframework.window.tao.TabEntry
 import dev.nucleusframework.window.tao.TabStripScope
+import dev.nucleusframework.window.tao.dropGhost
 import dev.nucleusframework.window.tao.tabDragHandle
 import dev.nucleusframework.window.tao.tabSlot
 import dev.nucleusframework.window.tao.tabStripGeometry
@@ -52,51 +56,65 @@ import org.jetbrains.jewel.ui.theme.editorTabStyle
 @Composable
 fun TabStripScope.JewelEditorTabStrip(onNewTab: () -> Unit) {
     val entries = tabs
+    // A tab dragged over this strip from another window is shown taking its
+    // place: the same card it travels under, as wide as it is, opened among
+    // the tabs where the release would put it.
+    val ghost = dropGhost
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
     ) {
+        val tabData = entries.mapIndexed { index, entry -> editorTab(index, entry) }.toMutableList<TabData>()
+        if (ghost != null) tabData.add(ghost.index, ghostTab(ghost))
         TabStrip(
-            tabs =
-                entries.mapIndexed { index, entry ->
-                    TabData.Editor(
-                        selected = entry.id == group.selectedId,
-                        closable = true,
-                        onClose = { workspace.close(entry.id) },
-                        onClick = { workspace.select(entry.id) },
-                        content = { tabState ->
-                            // One element for the whole gesture surface, filling
-                            // the tab: the slot the strip publishes, the grip a
-                            // drag starts from and the click that selects are
-                            // the same box, so there is no part of a tab that
-                            // reacts to one and not the others. Putting them on
-                            // the label alone leaves selection to the padding
-                            // around it — a sliver at the edges — while the
-                            // label drags, which is exactly as odd as it sounds.
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .tabSlot(group, index)
-                                        .tabDragHandle(workspace, entry)
-                                        .clickable { workspace.select(entry.id) },
-                                contentAlignment = Alignment.CenterStart,
-                            ) {
-                                // `tabContentAlpha` is Jewel's own: the label
-                                // dims exactly as it does in the IDE when the
-                                // tab is unselected or its window loses focus.
-                                Text(entry.title, modifier = Modifier.tabContentAlpha(state = tabState))
-                            }
-                        },
-                    )
-                },
+            tabs = tabData,
             style = JewelTheme.editorTabStyle,
             modifier = Modifier.weight(1f).tabStripGeometry(workspace, group),
         )
         NewTabButton(onNewTab)
     }
 }
+
+/** The slot a tab from another window would take, as a Jewel tab that is nothing but the card. */
+private fun ghostTab(ghost: TabDropGhost): TabData =
+    TabData.Editor(selected = false, closable = false, content = { TabDropGhostCard(ghost) })
+
+/** One document as a Jewel editor tab, its whole surface the slot, the grip and the click. */
+private fun TabStripScope.editorTab(
+    index: Int,
+    entry: TabEntry,
+): TabData =
+    TabData.Editor(
+        selected = entry.id == group.selectedId,
+        closable = true,
+        onClose = { workspace.close(entry.id) },
+        onClick = { workspace.select(entry.id) },
+        content = { tabState ->
+            // One element for the whole gesture surface, filling
+            // the tab: the slot the strip publishes, the grip a
+            // drag starts from and the click that selects are
+            // the same box, so there is no part of a tab that
+            // reacts to one and not the others. Putting them on
+            // the label alone leaves selection to the padding
+            // around it — a sliver at the edges — while the
+            // label drags, which is exactly as odd as it sounds.
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .tabSlot(group, index)
+                        .tabDragHandle(workspace, entry)
+                        .clickable { workspace.select(entry.id) },
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                // `tabContentAlpha` is Jewel's own: the label
+                // dims exactly as it does in the IDE when the
+                // tab is unselected or its window loses focus.
+                Text(entry.title, modifier = Modifier.tabContentAlpha(state = tabState))
+            }
+        },
+    )
 
 /** The "+" of a browser, as an IntelliJ icon button. */
 @Composable

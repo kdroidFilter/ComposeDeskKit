@@ -45,11 +45,11 @@ import kotlinx.coroutines.launch
 public val TabReorderAnimation: AnimationSpec<Float> = spring(stiffness = Spring.StiffnessMediumLow)
 
 /** How a tab opens: its width grows into the strip. */
-private val TabEnterAnimation: FiniteAnimationSpec<IntSize> =
+internal val TabEnterAnimation: FiniteAnimationSpec<IntSize> =
     tween(durationMillis = TAB_ENTER_MILLIS, easing = FastOutSlowInEasing)
 
 /** How a tab closes: its width shuts, taking the strip with it. */
-private val TabExitAnimation: FiniteAnimationSpec<IntSize> =
+internal val TabExitAnimation: FiniteAnimationSpec<IntSize> =
     tween(durationMillis = TAB_EXIT_MILLIS, easing = FastOutSlowInEasing)
 
 /** The fade that goes with a tab closing, and with one being picked up. */

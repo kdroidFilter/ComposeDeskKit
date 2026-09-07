@@ -9,7 +9,6 @@ package dev.nucleusframework.window.tao
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -256,7 +255,7 @@ public fun ApplicationScope.Satellite(
             title = ghost.satellite.title,
             compositionLocalContext = compositionLocalContext,
         ) {
-            SatelliteGhostCard(ghost.satellite.title)
+            SatelliteGhostCard(ghost.satellite.title, Modifier.fillMaxSize())
         }
     }
 
@@ -353,20 +352,17 @@ public fun ApplicationScope.Satellite(
 }
 
 /**
- * The translucent card a panel torn out of its dock is previewed as: the
- * satellite's grip and title on a tinted, rounded surface, filling the ghost
- * window.
+ * The card a panel is previewed as while it is dragged — following the pointer
+ * out of its dock, and drawn on the space a release will fill: the satellite's
+ * grip and title on the shared [DragPreviewSurface].
  */
 @Composable
-private fun SatelliteGhostCard(title: String) {
+internal fun SatelliteGhostCard(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
     val accent = LocalTitleBarStyle.current.colors.content
-    val ghostShape = RoundedCornerShape(GHOST_CORNER_DP.dp)
-    Box(
-        Modifier
-            .fillMaxSize()
-            .background(accent.copy(alpha = GHOST_FILL_ALPHA), ghostShape)
-            .border(GHOST_BORDER_DP.dp, accent.copy(alpha = GHOST_BORDER_ALPHA), ghostShape),
-    ) {
+    DragPreviewSurface(modifier) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(GHOST_PADDING_DP.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -597,10 +593,6 @@ private const val GRIP_DOT_COLUMNS = 2
 private const val GRIP_DOT_ROWS = 3
 private const val GRIP_ALPHA = 0.55f
 private const val GRIP_HOVER_ALPHA = 0.08f
-private const val GHOST_FILL_ALPHA = 0.22f
-private const val GHOST_BORDER_ALPHA = 0.55f
-private const val GHOST_BORDER_DP = 1
-private const val GHOST_CORNER_DP = 8
 private const val GHOST_PADDING_DP = 8
 private const val HEADER_ACTION_PADDING_DP = 6
 private const val HEADER_ACTION_VERTICAL_PADDING_DP = 2

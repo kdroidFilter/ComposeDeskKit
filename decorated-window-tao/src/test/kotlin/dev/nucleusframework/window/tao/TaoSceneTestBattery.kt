@@ -728,8 +728,14 @@ public object TaoSceneTestBattery {
         run("DockDropSlotsTest: a pinned layer hides the ranks in front of it, for itself and for the others") {
             DockDropSlotsTest().`a pinned layer hides the ranks in front of it, for itself and for the others`()
         }
-        run("DockDropSlotsTest: the insertion bar sits on the edge between the two ranks") {
-            DockDropSlotsTest().`the insertion bar sits on the edge between the two ranks`()
+        run("DockDropSlotsTest: a layer dropped at a rank is drawn where that rank puts it, at its own extent") {
+            DockDropSlotsTest().`a layer dropped at a rank is drawn where that rank puts it, at its own extent`()
+        }
+        run("DockDropSlotsTest: a panel dropped in a split stack is drawn as the share the weights give it") {
+            DockDropSlotsTest().`a panel dropped in a split stack is drawn as the share the weights give it`()
+        }
+        run("DockDropSlotsTest: dropped on an empty side, the space is the strip along its edge") {
+            DockDropSlotsTest().`dropped on an empty side, the space is the strip along its edge`()
         }
         run("DockZoneHintSidesTest: another window offers the side too, since dropping there is a move") {
             DockZoneHintSidesTest().`another window offers the side too, since dropping there is a move`()

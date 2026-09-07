@@ -1,17 +1,18 @@
 package dev.nucleusframework.window.tao
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -84,7 +85,10 @@ internal class TabStripScopeImpl(
  * under the pointer, its neighbours slide aside as its edge crosses their
  * centres, and on release it slides into the slot it was over before the
  * order changes — the motion of a browser's tab strip. Taken out of the strip
- * it becomes a ghost window, as a tab dragged to another window does.
+ * it becomes a ghost window, as a tab dragged to another window does, and the
+ * strip it is carried over opens a slot of its width where it would land,
+ * showing the same card ([dropGhost]), so the tab is seen taking its place
+ * before it is let go.
  *
  * @param reorderAnimation how a tab travels along the strip — pushed aside,
  *   or sliding home; `null` moves it at once. Only the drawing is animated:
@@ -101,15 +105,18 @@ public fun TabStripScope.TabStrip(
     trailing: @Composable TabStripScope.() -> Unit = {},
 ) {
     val entries = tabs
-    val dragged = workspace.draggedTab
-    val preview = workspace.dropPreview?.takeIf { it.group === group }
     val motion = rememberTabStripMotion(reorderAnimation)
-    // A tab of this strip is in this strip's hands — no ghost was published
-    // for it — or is still sliding home after being let go: the tabs
-    // themselves show where it lands, and the indicator would say it twice.
-    val carried =
-        (dragged != null && dragged.group === group && preview != null && workspace.dragGhost == null) ||
-            motion.animating != null
+    // A tab still sliding home after being let go: the tabs themselves show
+    // where it lands, and a slot would say it twice.
+    val ghost = dropGhost?.takeIf { motion.animating == null }
+    // The slot shuts with a slide when the tab moves on — but not when the tab
+    // lands in it. The tab then takes the slot's place in the very frame the
+    // drag ends, so the card is seen becoming the tab rather than shutting
+    // beside it: the slots are keyed on a generation that turns over at the
+    // landing, which drops the open one from the composition at once.
+    val landing = remember(group) { TabLandingMemo() }
+    workspace.draggedTab?.let { dragged -> if (ghost != null) landing.expect(dragged, ghost.index) }
+    if (ghost == null) landing.settle(entries)
     val closing = remember(group) { mutableStateListOf<String>() }
     Row(
         modifier = modifier.fillMaxWidth().tabStripGeometry(workspace, group),
@@ -117,8 +124,8 @@ public fun TabStripScope.TabStrip(
         horizontalArrangement = Arrangement.Start,
     ) {
         entries.forEachIndexed { index, entry ->
-            // The gap a tab coming from *another* window would take.
-            if (!carried && preview?.index == index) DropIndicator()
+            // The slot a tab coming from *another* window would take.
+            key(landing.generation) { TabDropGhostSlot(ghost, index) }
             // Keyed on the tab, not on its place in the strip: Compose
             // otherwise identifies the items by position, so a reorder would
             // hand the arriving tab the state of the one that left — its hover
@@ -135,8 +142,108 @@ public fun TabStripScope.TabStrip(
                 )
             }
         }
-        if (!carried && preview != null && preview.index >= entries.size) DropIndicator()
+        key(landing.generation) { TabDropGhostSlot(ghost, entries.size) }
         trailing()
+    }
+}
+
+/**
+ * Which tab the strip's open slot stands for, and where — so the frame that
+ * shows the tab landed there can tell a landing from a drag that moved on.
+ * Plain fields: bookkeeping read in the composition that writes it, never a
+ * reason to recompose.
+ */
+private class TabLandingMemo {
+    private var entry: TabEntry? = null
+    private var index = -1
+
+    /** Turned over at every landing; the slots are keyed on it. */
+    var generation = 0
+        private set
+
+    fun expect(
+        entry: TabEntry,
+        index: Int,
+    ) {
+        this.entry = entry
+        this.index = index
+    }
+
+    /** The slot has closed: if the tab it stood for is now at its place, it landed — snap the slot away. */
+    fun settle(entries: List<TabEntry>) {
+        val expected = entry ?: return
+        if (entries.getOrNull(index) === expected) generation++
+        entry = null
+        index = -1
+    }
+}
+
+/**
+ * The slot a tab dragged from another window would fill in this strip: the
+ * place it lands, the width it brings and its title — drawn with
+ * [TabDropGhostCard] where [TabStrip]'s own layout puts it, or by a strip
+ * written from scratch at [index] among its tabs (`tabs.size` is after the
+ * last one).
+ *
+ * `null` while nothing is dragged over this strip, and for a tab of this very
+ * strip in the strip's own hands: its neighbours moving aside already show
+ * where it lands.
+ */
+public val TabStripScope.dropGhost: TabDropGhost?
+    get() {
+        val preview = workspace.dropPreview?.takeIf { it.group === group } ?: return null
+        val dragged = workspace.draggedTab ?: return null
+        if (dragged.group === group && workspace.dragGhost == null) return null
+        return TabDropGhost(preview.index.coerceIn(0, tabs.size), workspace.draggedTabWidth(dragged), dragged.title)
+    }
+
+/**
+ * Where a tab dragged from another window would land in a strip, and what it
+ * looks like there — see [TabStripScope.dropGhost].
+ *
+ * @property index the place among the strip's tabs; `tabs.size` is after the last.
+ * @property width the width the tab has in the strip it comes from.
+ * @property title the tab's title.
+ */
+public data class TabDropGhost(
+    val index: Int,
+    val width: Dp,
+    val title: String,
+)
+
+/**
+ * The card a [TabDropGhost] is drawn as: [TabDropGhost.width] wide, the
+ * strip's height, the same card the tab travels under. A strip written from
+ * scratch composes it at [TabDropGhost.index] among its tabs.
+ */
+@Composable
+public fun TabDropGhostCard(
+    ghost: TabDropGhost,
+    modifier: Modifier = Modifier,
+) {
+    TabGhostCard(ghost.title, modifier.width(ghost.width).fillMaxHeight())
+}
+
+/**
+ * One of the strip's gaps — before the tab at [index], or after the last —
+ * opening to [ghost]'s width while [ghost] lands there and shutting when it
+ * moves on, so the tabs slide aside for it as they do for one of their own.
+ */
+@Composable
+private fun TabDropGhostSlot(
+    ghost: TabDropGhost?,
+    index: Int,
+) {
+    val shown = ghost?.takeIf { it.index == index }
+    // Kept through the exit, which still needs a width and a title to shut.
+    var last by remember { mutableStateOf(shown) }
+    if (shown != null) last = shown
+    AnimatedVisibility(
+        visible = shown != null,
+        enter = expandHorizontally(TabEnterAnimation, clip = false),
+        exit = shrinkHorizontally(TabExitAnimation, clip = false),
+    ) {
+        last?.let { TabDropGhostCard(it) }
     }
 }
 
@@ -326,35 +433,19 @@ private fun TabCloseButton(
     }
 }
 
-/** The gap a dropped tab would fill: where in the strip the drag would land. */
-@Composable
-private fun DropIndicator() {
-    val accent = LocalTitleBarStyle.current.colors.content
-    Box(
-        Modifier
-            .width(DropIndicatorWidth)
-            .fillMaxHeight()
-            .padding(vertical = DropIndicatorInset)
-            .background(accent.copy(alpha = DROP_INDICATOR_ALPHA), RoundedCornerShape(DropIndicatorWidth / 2)),
-    )
-}
-
 /**
- * The translucent card a tab dragged out of its strip is previewed as, filling
- * the ghost window.
+ * The card a tab is previewed as while it is dragged — following the pointer
+ * out of its strip, and drawn on the slot it would take in another: its title
+ * on the shared [DragPreviewSurface].
  */
 @Composable
-internal fun TabGhostCard(title: String) {
+internal fun TabGhostCard(
+    title: String,
+    modifier: Modifier = Modifier,
+) {
     val accent = LocalTitleBarStyle.current.colors.content
-    val shape = RoundedCornerShape(TabCornerRadius)
-    Box(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(accent.copy(alpha = GHOST_FILL_ALPHA), shape)
-                .border(GhostBorderWidth, accent.copy(alpha = GHOST_BORDER_ALPHA), shape),
-        contentAlignment = Alignment.CenterStart,
-    ) {
+    Box(modifier = modifier, contentAlignment = Alignment.CenterStart) {
+        DragPreviewSurface(Modifier.matchParentSize())
         BasicText(
             text = title,
             modifier = Modifier.padding(horizontal = TabHorizontalPadding),
@@ -369,9 +460,6 @@ internal val TabMaxWidth: Dp = 220.dp
 private val TabHorizontalPadding: Dp = 8.dp
 private val TabCornerRadius: Dp = 8.dp
 private val TabCloseInset: Dp = 3.dp
-private val DropIndicatorWidth: Dp = 3.dp
-private val DropIndicatorInset: Dp = 4.dp
-private val GhostBorderWidth: Dp = 1.dp
 private const val TAB_SELECTED_ALPHA = 0.16f
 private const val TAB_HOVER_ALPHA = 0.08f
 private const val TAB_LEAVING_ALPHA = 0.35f
@@ -381,9 +469,6 @@ private const val TAB_HELD_ALPHA = 0.7f
 
 /** The body a carried tab is given, so it travels as a card rather than as a title. */
 private const val TAB_HELD_BACKGROUND_ALPHA = 0.16f
-private const val DROP_INDICATOR_ALPHA = 0.8f
-private const val GHOST_FILL_ALPHA = 0.22f
-private const val GHOST_BORDER_ALPHA = 0.55f
 private const val TAB_TITLE_SP = 12
 private const val TAB_CLOSE_SP = 14
 

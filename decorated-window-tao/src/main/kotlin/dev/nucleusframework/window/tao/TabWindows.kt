@@ -161,7 +161,7 @@ public fun ApplicationScope.TabWindows(
             title = ghost.tab.title,
             compositionLocalContext = compositionLocalContext,
         ) {
-            TabGhostCard(ghost.tab.title)
+            TabGhostCard(ghost.tab.title, Modifier.fillMaxSize())
         }
     }
     val currentOnLastClosed = rememberUpdatedState(onLastWindowClosed)

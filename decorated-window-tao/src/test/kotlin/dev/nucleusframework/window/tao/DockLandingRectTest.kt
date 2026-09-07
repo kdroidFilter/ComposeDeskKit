@@ -7,9 +7,11 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.nucleusframework.window.tao.workspace.DockDropZone
 import dev.nucleusframework.window.tao.workspace.HostGeometry
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Where a drop preview is drawn ([DockLayoutState.landingRectPx]): along the
@@ -176,8 +178,8 @@ class DockZoneHintSidesTest {
 
 /**
  * The ranks a drop can take among the panels of a side
- * ([DockLayoutState.dropSlotsPx]) and the bar drawn for one
- * ([DockLayoutState.insertionBarPx]), on the reader layout of
+ * ([DockLayoutState.dropSlotsPx]) and the space drawn for one
+ * ([DockLayoutState.dropRectPx]), on the reader layout of
  * [DockLandingRectTest]: layered right side, split bottom, layout px.
  */
 class DockDropSlotsTest {
@@ -294,25 +296,51 @@ class DockDropSlotsTest {
         )
         val zone = DockDropZone(strip, state.dropSlotsPx(DockSide.Left, strip, dragged = movable))
         assertEquals(1, zone.slotAt(Offset(50f, 300f)), "aimed at the pinned layer, it lands behind it")
-        assertEquals(Rect(98f, 0f, 102f, 600f), state.insertionBarPx(DockSide.Left, movable, 0, 4f))
+        // Aimed in front of it, the movable layer is shown right behind it.
+        assertEquals(Rect(100f, 0f, 160f, 600f), state.dropRectPx(DockSide.Left, movable, 0, 60f))
         // The pinned layer itself is offered no rank at all.
         assertEquals(emptyList(), state.dropSlotsPx(DockSide.Left, strip, dragged = pinned))
     }
 
     @Test
-    fun `the insertion bar sits on the edge between the two ranks`() {
-        // Layered right: rank 1 is between the tree (900..1000) and the toc (800..900).
-        assertEquals(Rect(898f, 0f, 902f, 600f), state.insertionBarPx(DockSide.Right, null, 1, 4f))
-        assertEquals(Rect(998f, 0f, 1002f, 600f), state.insertionBarPx(DockSide.Right, null, 0, 4f), "the side's edge")
-        assertEquals(
-            Rect(798f, 0f, 802f, 600f),
-            state.insertionBarPx(DockSide.Right, null, 2, 4f),
-            "past the innermost",
-        )
-        // Split bottom, the sources dragged: only the comments remain.
-        assertEquals(Rect(348f, 540f, 352f, 600f), state.insertionBarPx(DockSide.Bottom, sources, 1, 4f))
-        assertEquals(Rect(-2f, 540f, 2f, 600f), state.insertionBarPx(DockSide.Bottom, sources, 0, 4f))
-        assertNull(state.insertionBarPx(DockSide.Left, null, 0, 4f))
+    fun `a layer dropped at a rank is drawn where that rank puts it, at its own extent`() {
+        // Layered right: rank 1 is between the tree (900..1000) and the toc, which moves in to make room.
+        assertEquals(Rect(840f, 0f, 900f, 600f), state.dropRectPx(DockSide.Right, null, 1, 60f))
+        assertEquals(Rect(940f, 0f, 1000f, 600f), state.dropRectPx(DockSide.Right, null, 0, 60f), "the side's edge")
+        assertEquals(Rect(740f, 0f, 800f, 600f), state.dropRectPx(DockSide.Right, null, 2, 60f), "past the innermost")
+        // The toc dragged to rank 0: only the tree stays, behind it.
+        assertEquals(Rect(940f, 0f, 1000f, 600f), state.dropRectPx(DockSide.Right, toc, 0, 60f))
+    }
+
+    @Test
+    fun `a panel dropped in a split stack is drawn as the share the weights give it`() {
+        // Split bottom, the sources dragged: they and the comments share the length again.
+        assertEquals(Rect(350f, 540f, 700f, 600f), state.dropRectPx(DockSide.Bottom, sources, 1, 60f))
+        assertEquals(Rect(0f, 540f, 350f, 600f), state.dropRectPx(DockSide.Bottom, sources, 0, 60f))
+        // A third panel, weight 1, in the middle: a third each.
+        val notes = workspace.register("notes", "notes", SatellitePlacement.Floating(), initiallyOpen = true)
+        assertRectEquals(Rect(700f / 3, 540f, 1400f / 3, 600f), state.dropRectPx(DockSide.Bottom, notes, 1, 60f))
+        // Twice the weight of each of the others, between them: half the stack.
+        workspace.dock("notes", DockSide.Left, host = host)
+        workspace.setDockedWeight("notes", 2f)
+        assertRectEquals(Rect(175f, 540f, 525f, 600f), state.dropRectPx(DockSide.Bottom, notes, 1, 60f))
+    }
+
+    private fun assertRectEquals(
+        expected: Rect,
+        actual: Rect,
+    ) {
+        val close =
+            listOf(expected.left to actual.left, expected.top to actual.top)
+                .plus(expected.right to actual.right)
+                .plus(expected.bottom to actual.bottom)
+                .all { (e, a) -> abs(e - a) < 0.01f }
+        assertTrue(close, "expected $expected, was $actual")
+    }
+
+    @Test
+    fun `dropped on an empty side, the space is the strip along its edge`() {
+        assertEquals(Rect(0f, 0f, 60f, 600f), state.dropRectPx(DockSide.Left, null, 0, 60f))
     }
 }
 

@@ -185,6 +185,18 @@ public final class dev/nucleusframework/window/tao/ComposableSingletons$DockLayo
 	public final fun getLambda$1525993791$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
 }
 
+public final class dev/nucleusframework/window/tao/ComposableSingletons$DockZoneHintsKt {
+	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$DockZoneHintsKt;
+	public fun <init> ()V
+	public final fun getLambda$-928659135$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function2;
+}
+
+public final class dev/nucleusframework/window/tao/ComposableSingletons$DragPreviewDefaultsKt {
+	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$DragPreviewDefaultsKt;
+	public fun <init> ()V
+	public final fun getLambda$2034763238$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+}
+
 public final class dev/nucleusframework/window/tao/ComposableSingletons$NativeViewKt {
 	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$NativeViewKt;
 	public fun <init> ()V
@@ -730,6 +742,22 @@ public abstract interface class dev/nucleusframework/window/tao/TabDragSession {
 	public abstract fun update-k-4lQ0M (J)V
 }
 
+public final class dev/nucleusframework/window/tao/TabDropGhost {
+	public static final field $stable I
+	public synthetic fun <init> (IFLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2-D9Ej5fM ()F
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-lG28NQ4 (IFLjava/lang/String;)Ldev/nucleusframework/window/tao/TabDropGhost;
+	public static synthetic fun copy-lG28NQ4$default (Ldev/nucleusframework/window/tao/TabDropGhost;IFLjava/lang/String;ILjava/lang/Object;)Ldev/nucleusframework/window/tao/TabDropGhost;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getTitle ()Ljava/lang/String;
+	public final fun getWidth-D9Ej5fM ()F
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class dev/nucleusframework/window/tao/TabDropTarget {
 	public static final field $stable I
 	public fun <init> (Ldev/nucleusframework/window/tao/TabWindowGroup;I)V
@@ -805,7 +833,9 @@ public final class dev/nucleusframework/window/tao/TabStripDragKt {
 }
 
 public final class dev/nucleusframework/window/tao/TabStripKt {
+	public static final fun TabDropGhostCard (Ldev/nucleusframework/window/tao/TabDropGhost;Landroidx/compose/ui/Modifier;Landroidx/compose/runtime/Composer;II)V
 	public static final fun TabStrip (Ldev/nucleusframework/window/tao/TabStripScope;Landroidx/compose/ui/Modifier;Landroidx/compose/animation/core/AnimationSpec;Lkotlin/jvm/functions/Function3;Landroidx/compose/runtime/Composer;II)V
+	public static final fun getDropGhost (Ldev/nucleusframework/window/tao/TabStripScope;)Ldev/nucleusframework/window/tao/TabDropGhost;
 	public static final fun tabSlot (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TabWindowGroup;I)Landroidx/compose/ui/Modifier;
 	public static final fun tabStripGeometry (Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TabWorkspace;Ldev/nucleusframework/window/tao/TabWindowGroup;)Landroidx/compose/ui/Modifier;
 }
