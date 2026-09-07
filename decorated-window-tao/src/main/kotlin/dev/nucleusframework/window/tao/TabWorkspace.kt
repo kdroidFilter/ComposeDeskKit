@@ -592,25 +592,57 @@ public class TabWorkspace(
         screenPx: Offset,
         exclude: TabEntry? = null,
         excludeGroup: TabWindowGroup? = null,
-    ): TabDropTarget? =
-        stripHosts
-            .ordered(windows.membersByRecency)
-            .asSequence()
-            .filterNot { it.minimized() }
-            .mapNotNull { geometry ->
-                val strip = geometry.layoutScreenRectPx() ?: return@mapNotNull null
-                if (!strip.contains(screenPx)) return@mapNotNull null
-                val group = groupOf(geometry.host)?.takeIf { it !== excludeGroup } ?: return@mapNotNull null
-                val client = geometry.clientOriginPx() ?: return@mapNotNull null
-                val ownSlide = exclude?.takeIf { it.group === group }?.let { slideIn(group, it, screenPx) }
-                val index =
-                    if (ownSlide != null) {
-                        reorderTarget(group, exclude, ownSlide) ?: group.tabIds.indexOf(exclude.id)
-                    } else {
-                        insertionIndex(group, screenPx.x - client.x, exclude)
-                    }
-                TabDropTarget(group, index)
-            }.firstOrNull()
+    ): TabDropTarget? = dropTargetAt(null, screenPx, exclude, excludeGroup)
+
+    /**
+     * The strip the tab being dragged would land in, decided from **where the
+     * tab is** as well as from where the pointer is: the strip
+     * [draggedScreenRectPx] — the ghost card following the pointer — has
+     * reached counts as entered, so a tab whose top edge has come up into a
+     * strip is previewed there before the pointer itself arrives. That is what
+     * the user sees moving, and it is the rule the dock zones already follow.
+     *
+     * The pointer still wins where both answer: a strip it is actually in is
+     * the target, whatever the card overlaps. Otherwise the first strip the
+     * card has reached, by the same order as the pointer overload. A `null`
+     * rect is the pointer alone.
+     *
+     * [exclude] and [excludeGroup] are as in the pointer overload.
+     */
+    public fun dropTargetAt(
+        draggedScreenRectPx: Rect?,
+        screenPx: Offset,
+        exclude: TabEntry? = null,
+        excludeGroup: TabWindowGroup? = null,
+    ): TabDropTarget? {
+        // The excluded group is dropped from the search rather than ending it:
+        // a single-tab window's own strip travels with the pointer and covers
+        // whatever it is being dropped on, so the search has to look past it.
+        val candidates =
+            stripHosts
+                .ordered(windows.membersByRecency)
+                .filterNot { it.minimized() }
+                .mapNotNull { geometry ->
+                    val group = groupOf(geometry.host)?.takeIf { it !== excludeGroup } ?: return@mapNotNull null
+                    geometry.layoutScreenRectPx()?.let { Triple(geometry, group, it) }
+                }
+        val hit =
+            candidates.firstOrNull { (_, _, strip) -> strip.contains(screenPx) }
+                ?: draggedScreenRectPx?.let { card ->
+                    candidates.firstOrNull { (_, _, strip) -> !strip.intersect(card).isEmpty }
+                }
+                ?: return null
+        val (geometry, group, _) = hit
+        val client = geometry.clientOriginPx() ?: return null
+        val ownSlide = exclude?.takeIf { it.group === group }?.let { slideIn(group, it, screenPx) }
+        val index =
+            if (ownSlide != null) {
+                reorderTarget(group, exclude, ownSlide) ?: group.tabIds.indexOf(exclude.id)
+            } else {
+                insertionIndex(group, screenPx.x - client.x, exclude)
+            }
+        return TabDropTarget(group, index)
+    }
 
     /**
      * How far the tab in hand has been carried along its own strip: the

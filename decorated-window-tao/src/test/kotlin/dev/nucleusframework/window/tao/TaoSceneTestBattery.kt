@@ -1064,6 +1064,12 @@ public object TaoSceneTestBattery {
         run("TabWorkspaceTest: tearing off an unknown tab changes nothing") {
             TabWorkspaceTest().`tearing off an unknown tab changes nothing`()
         }
+        run("TabWorkspaceTest: the card entering a strip is a drop before the pointer reaches it") {
+            TabWorkspaceTest().`the card entering a strip is a drop before the pointer reaches it`()
+        }
+        run("TabWorkspaceTest: a dragged window's own strip never answers for the card either") {
+            TabWorkspaceTest().`a dragged window's own strip never answers for the card either`()
+        }
         run("TabWorkspaceTest: a drop resolves to the strip under the pointer and the index it falls at") {
             TabWorkspaceTest().`a drop resolves to the strip under the pointer and the index it falls at`()
         }

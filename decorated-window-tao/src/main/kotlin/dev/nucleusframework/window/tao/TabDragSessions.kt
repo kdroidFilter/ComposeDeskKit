@@ -107,8 +107,26 @@ private class TabWindowDragSession(
         // Its own strip moved with the window and is under the pointer the
         // whole time; only another window's strip is a target, and the search
         // has to look *past* its own rather than stop at it.
-        workspace.dropPreview = workspace.dropTargetAt(pointer, exclude = entry, excludeGroup = entry.group)
+        //
+        // That own strip is also what stands in for the card here: the window
+        // is what the user is moving, so a merge is previewed as soon as its
+        // strip reaches another's, before the pointer is over it — the same
+        // rule as for a tab carried under a ghost.
+        workspace.dropPreview =
+            workspace.dropTargetAt(stripScreenRectPx(topLeft), pointer, exclude = entry, excludeGroup = entry.group)
         workspace.dragPointerScreenPx = pointer
+    }
+
+    /**
+     * Where this window's own strip would be with its frame at [topLeftPx]:
+     * the band that stands in for the dragged card. `null` before the strip
+     * has published its geometry.
+     */
+    private fun stripScreenRectPx(topLeftPx: Offset): Rect? {
+        val geometry = workspace.stripHosts[origin.window] ?: return null
+        val outer = origin.outerBoundsPx() ?: return null
+        val clientInset = (geometry.clientOriginPx() ?: return null) - Offset(outer[0].toFloat(), outer[1].toFloat())
+        return geometry.layoutBoundsInWindowPx.translate(topLeftPx + clientInset)
     }
 
     override fun end(pointerScreenPx: Offset) {
@@ -144,7 +162,12 @@ private class TabTearOffDragSession(
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         workspace.dragVelocityPxPerSecond = velocity.sample(pointer.x)
-        val target = workspace.dropTargetAt(pointer, exclude = entry)
+        // Resolved from the card as well as from the pointer: a tab whose top
+        // edge has come up into a strip is previewed there before the pointer
+        // reaches it, so the drop reads while the card is still below the
+        // strip rather than over it.
+        val card = ghostRectPx()
+        val target = workspace.dropTargetAt(card, pointer, exclude = entry)
         workspace.dropPreview = target
         workspace.dragPointerScreenPx = pointer
         // Over its own strip the tab has not left: the strip holds it under the
@@ -152,15 +175,17 @@ private class TabTearOffDragSession(
         // another window's strip, or clear of every strip, it *is* leaving —
         // and seeing it hover is what makes the move and the tear-out read.
         val inOwnStrip = target != null && target.group === entry.group
-        workspace.dragGhost =
-            if (inOwnStrip) null else TabDragGhost(entry, Rect(pointer - grabOffsetPx, tabSizePx), scaleFactor)
+        workspace.dragGhost = if (inOwnStrip) null else TabDragGhost(entry, card, scaleFactor)
     }
+
+    /** Where the card is on screen: the grabbed tab, carried at the grab offset. */
+    private fun ghostRectPx(): Rect = Rect(pointer - grabOffsetPx, tabSizePx)
 
     override fun end(pointerScreenPx: Offset) {
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         val drop = pointer
-        val target = workspace.dropTargetAt(drop, exclude = entry)
+        val target = workspace.dropTargetAt(ghostRectPx(), drop, exclude = entry)
         val group = entry.group
         // Read before the release clears the drag: the slide home starts with
         // the speed the pointer had, so a flick carries through.

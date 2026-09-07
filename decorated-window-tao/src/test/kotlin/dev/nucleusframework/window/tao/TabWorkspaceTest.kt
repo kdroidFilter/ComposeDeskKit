@@ -334,6 +334,42 @@ class TabWorkspaceTest {
     }
 
     @Test
+    fun `the card entering a strip is a drop before the pointer reaches it`() {
+        val workspace = TabWorkspace()
+        val (left, right) = workspace.twoStripWindows()
+
+        // Pointer below the right strip (which spans y 0..40), the card it
+        // carries reaching up into it: the drop is previewed already.
+        val pointer = Offset(1020f, 60f)
+        val card = Rect(1020f, 20f, 1120f, 60f)
+        assertNull(workspace.dropTargetAt(pointer), "the pointer alone is below the strip")
+        assertEquals(TabDropTarget(right, 0), workspace.dropTargetAt(card, pointer))
+
+        // The pointer still wins where both answer: it is in the left strip
+        // while the card overlaps the right one.
+        assertEquals(
+            TabDropTarget(left, 1),
+            workspace.dropTargetAt(Rect(1020f, 0f, 1120f, 40f), Offset(80f, 20f)),
+        )
+
+        // Clear of every strip, card included: no drop.
+        assertNull(workspace.dropTargetAt(Rect(400f, 300f, 500f, 340f), Offset(400f, 340f)))
+    }
+
+    @Test
+    fun `a dragged window's own strip never answers for the card either`() {
+        val workspace = TabWorkspace()
+        val (left, right) = workspace.twoStripWindows()
+
+        // The card is the dragged window's own strip, laid over the other's:
+        // its own group is skipped and the search carries on to the one below.
+        assertEquals(
+            TabDropTarget(right, 0),
+            workspace.dropTargetAt(Rect(1000f, 0f, 1800f, 40f), Offset(1020f, 20f), excludeGroup = left),
+        )
+    }
+
+    @Test
     fun `a drop resolves to the strip under the pointer and the index it falls at`() {
         val workspace = TabWorkspace()
         val (left, right) = workspace.twoStripWindows()
