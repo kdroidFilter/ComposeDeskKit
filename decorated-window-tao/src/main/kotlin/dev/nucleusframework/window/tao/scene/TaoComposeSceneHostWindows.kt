@@ -343,6 +343,33 @@ internal class TaoComposeSceneHostWindows(
      */
     private var nativePointerRedispatchInFlight: Boolean = false
 
+    /** Whether the press being dispatched was handed to a native view — reset at every press. */
+    private var nativePointerDispatchedThisEvent: Boolean = false
+
+    /**
+     * Buttons whose press was forwarded to an embedded child HWND and whose
+     * release Compose has not seen. A child that `SetCapture`s on the press
+     * (every EDIT does, so does WebView2) gets the release alone; Compose
+     * would keep the button down and every later click would have no down
+     * transition. Healed from Win32's own button state on the next move and
+     * released before a new press — see [healStaleNativePresses].
+     */
+    private val forwardedNativeButtons = mutableSetOf<PointerButton>()
+
+    /** Buttons the scene currently holds down, so a release Compose never saw the press of is dropped. */
+    private val pressedButtons = mutableSetOf<PointerButton>()
+
+    /** Live `NativeView` embeds; the keyboard reclaim only runs while there is one. */
+    private var attachedNativeViewCount: Int = 0
+
+    /**
+     * Captured at the first composition via [setContent]. Exposes the
+     * standard `FocusManager.clearFocus(force = true)` the scene-level
+     * focus manager doesn't, so a press that hands the keyboard to an embed
+     * also drops the Compose text field's caret.
+     */
+    private var capturedFocusManager: androidx.compose.ui.focus.FocusManager? = null
+
     // Frame pacing is delegated to VSync — `eglSwapInterval(1)` makes
     // eglSwapBuffers pace off the display refresh, which keeps Compose
     // animations (smooth scroll, etc.) aligned on the display cadence at the
@@ -975,6 +1002,8 @@ internal class TaoComposeSceneHostWindows(
     fun setContent(content: @Composable () -> Unit) =
         exceptionHandler.catchExceptions {
             scene?.setContent {
+                val fm = androidx.compose.ui.platform.LocalFocusManager.current
+                androidx.compose.runtime.SideEffect { capturedFocusManager = fm }
                 // Stock Compose Desktop Windows wheel behavior; only the
                 // lines-per-notch factor is reapplied (see TaoWindowsScrollConfig).
                 ProvideTaoWindowsScrollConfig {
@@ -1210,7 +1239,22 @@ internal class TaoComposeSceneHostWindows(
     }
 
     fun onFocusChanged(focused: Boolean) {
-        windowInfo.isWindowFocused = focused
+        // Win32 focus moving to an embedded child (a `NativeView`, WebView2)
+        // reaches Tao as the main HWND losing it, but the window is still the
+        // one the user is working in. Telling the scene otherwise puts its
+        // focus system to sleep: carets stop, `clearFocus` stops taking, and
+        // anything reading `LocalWindowInfo.isWindowFocused` goes inactive
+        // under the user's hands. `DecoratedWindow` keeps its chrome active
+        // through the same question.
+        windowInfo.isWindowFocused = focused || isFocusInsideWindowTree()
+    }
+
+    /** Whether Win32 keyboard focus is on this window or on something it contains. */
+    private fun isFocusInsideWindowTree(): Boolean {
+        if (hwnd == 0L) return false
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return false
+        return dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+            .nativeIsFocusInTree(hwnd)
     }
 
     private fun updateWindowInfoSize() {
@@ -1447,6 +1491,9 @@ internal class TaoComposeSceneHostWindows(
         lastPointerY = yPx
         currentKeyboardModifiers = taoKeyboardModifiers(window.modifierState)
         windowInfo.keyboardModifiers = currentKeyboardModifiers
+        healStaleNativePresses()
+        // Tao saw this move, so its own idea of the position is current again.
+        pointerPositionSetByOverlay = false
         if (!pointerDeadband.shouldDispatchMove(xPx, yPx, scale)) return
         scene?.sendPointerEvent(
             eventType = PointerEventType.Move,
@@ -1479,14 +1526,202 @@ internal class TaoComposeSceneHostWindows(
         pressed: Boolean,
     ) {
         if (nativePointerRedispatchInFlight) return
+        syncPointerPositionFromWin32()
+        if (consumeOverlayEcho(mapButton(buttonCode), pressed)) return
         currentKeyboardModifiers = taoKeyboardModifiers(window.modifierState)
         windowInfo.keyboardModifiers = currentKeyboardModifiers
+        sendButtonToScene(mapButton(buttonCode), pressed)
+    }
+
+    /**
+     * The one button path of the scene, for the HWND's own messages and the
+     * blending overlay's alike. Around the dispatch it keeps Compose's idea
+     * of the buttons honest against the embeds (see [forwardedNativeButtons])
+     * and gives the keyboard to whichever side the press went to.
+     */
+    private fun sendButtonToScene(
+        button: PointerButton,
+        pressed: Boolean,
+    ) {
+        if (pressed) {
+            // A button an embed swallowed the release of must not still be
+            // "down" when this press is hit-tested: Compose would see no
+            // down transition and the click would be dead.
+            for (stale in forwardedNativeButtons.toList()) releaseStaleNativePress(stale)
+            nativePointerDispatchedThisEvent = false
+            pressedButtons.add(button)
+        } else {
+            if (forwardedNativeButtons.remove(button)) releaseChildCapture()
+            // A release whose press the scene never saw (it went to an
+            // embed, a popup layer, or the frame) means nothing to it.
+            if (!pressedButtons.remove(button)) return
+        }
         scene?.sendPointerEvent(
             eventType = if (pressed) PointerEventType.Press else PointerEventType.Release,
             position = Offset(pointerDeadband.x, pointerDeadband.y),
             type = PointerType.Mouse,
             keyboardModifiers = currentKeyboardModifiers,
-            button = mapButton(buttonCode),
+            button = button,
+        )
+        if (pressed && !nativePointerDispatchedThisEvent) claimKeyboardForCompose()
+    }
+
+    /**
+     * Takes Win32 keyboard focus back from an embed after a press Compose
+     * kept. Without it an embed clicked into earlier keeps the keyboard while
+     * Compose shows a focused text field — the macOS host does the same with
+     * `makeFirstResponder`.
+     */
+    private fun claimKeyboardForCompose() {
+        if (attachedNativeViewCount == 0 || hwnd == 0L) return
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
+        dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+            .nativeClaimKeyboardForCompose(hwnd)
+    }
+
+    /**
+     * Whether the scene's pointer position came from the blending overlay,
+     * which Tao knows nothing about — see [syncPointerPositionFromWin32].
+     */
+    private var pointerPositionSetByOverlay: Boolean = false
+
+    /**
+     * Puts the scene's pointer back where Win32 says it is, moving it there
+     * first when it has drifted.
+     *
+     * Tao reports a button press without a position, so the scene places it
+     * where the last move left the pointer — and Tao drops a `WM_MOUSEMOVE`
+     * whose coordinate equals the last one *it* saw. Every move over a
+     * `NativeView` is delivered to the blending overlay instead, which never
+     * reaches Tao, so its idea of the position goes stale: a pointer that
+     * leaves the embed and comes back to a point Tao saw before gets no move
+     * at all, and the click that follows is dispatched onto the embed the
+     * user just left. It is dead, and so is every click after it.
+     */
+    private fun syncPointerPositionFromWin32() {
+        if (!pointerPositionSetByOverlay) return
+        pointerPositionSetByOverlay = false
+        if (hwnd == 0L) return
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
+        val packed =
+            dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+                .nativeCursorPosInClient(hwnd)
+        if (packed == Long.MIN_VALUE) return
+        val xPx = (packed shr 32).toInt().toFloat()
+        val yPx = packed.toInt().toFloat()
+        if (kotlin.math.abs(xPx - pointerDeadband.x) < 1f && kotlin.math.abs(yPx - pointerDeadband.y) < 1f) return
+        lastPointerX = xPx
+        lastPointerY = yPx
+        pointerDeadband.shouldDispatchMove(xPx, yPx, scale)
+        // The scene has to *travel* there: a press on a node the pointer was
+        // never seen entering leaves hover and cursor state on the old one.
+        scene?.sendPointerEvent(
+            eventType = PointerEventType.Move,
+            position = Offset(pointerDeadband.x, pointerDeadband.y),
+            type = PointerType.Mouse,
+            keyboardModifiers = currentKeyboardModifiers,
+        )
+    }
+
+    /**
+     * The last button event the blending overlay fed to the scene, kept until
+     * the main HWND replays it — see [consumeOverlayEcho].
+     */
+    private var echoButton: PointerButton? = null
+    private var echoPressed: Boolean = false
+    private var echoXPx: Float = 0f
+    private var echoYPx: Float = 0f
+    private var echoAtNanos: Long = 0L
+
+    private fun noteOverlayButton(
+        button: PointerButton,
+        pressed: Boolean,
+        xPx: Float,
+        yPx: Float,
+    ) {
+        echoButton = button
+        echoPressed = pressed
+        echoXPx = xPx
+        echoYPx = yPx
+        echoAtNanos = System.nanoTime()
+    }
+
+    /**
+     * Whether this main-HWND button event is Windows replaying one the
+     * blending overlay already gave the scene, and must be dropped.
+     *
+     * Pixels a `NativeView` owns are the overlay's: it is the window under
+     * them and hit-tests them first. Forwarding the press it reports to the
+     * embedded child moves Win32 focus, and the queue then replays the very
+     * same message to the owner HWND. Dispatched a second time it leaves
+     * Compose holding a press with no release, and every later click on the
+     * window is dead. Matched on button, position and recency, and consumed
+     * once, so a genuine second click — a double click on the embed, or a
+     * programmatic dispatch straight into the window — still gets through.
+     */
+    private fun consumeOverlayEcho(
+        button: PointerButton,
+        pressed: Boolean,
+    ): Boolean {
+        val pending = echoButton ?: return false
+        if (pending != button || echoPressed != pressed) return false
+        if (System.nanoTime() - echoAtNanos > OVERLAY_ECHO_WINDOW_NANOS) return false
+        if (kotlin.math.abs(lastPointerX - echoXPx) > OVERLAY_ECHO_SLACK_PX ||
+            kotlin.math.abs(lastPointerY - echoYPx) > OVERLAY_ECHO_SLACK_PX
+        ) {
+            return false
+        }
+        echoButton = null
+        return true
+    }
+
+    /**
+     * Hands the mouse capture back when an embed took it on a forwarded
+     * press. Without this the child HWND keeps every later mouse message and
+     * the Compose window — its own HWND and the blending overlay alike —
+     * never sees the pointer again.
+     */
+    private fun releaseChildCapture() {
+        if (hwnd == 0L) return
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
+        dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+            .nativeReleaseChildCapture(hwnd)
+    }
+
+    /**
+     * Releases every [forwardedNativeButtons] entry Win32 reports as up. Only
+     * pays the query while there is one, so a window without embeds never
+     * does.
+     */
+    private fun healStaleNativePresses() {
+        if (forwardedNativeButtons.isEmpty()) return
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
+        val mask =
+            dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+                .nativeQueryPointerButtons()
+        for (button in forwardedNativeButtons.toList()) {
+            val bit =
+                when (button) {
+                    PointerButton.Primary -> WIN32_LBUTTON_BIT
+                    PointerButton.Secondary -> WIN32_RBUTTON_BIT
+                    PointerButton.Tertiary -> WIN32_MBUTTON_BIT
+                    else -> 0
+                }
+            if (mask and bit == 0) releaseStaleNativePress(button)
+        }
+    }
+
+    /** The release the embed kept, synthesized where the scene last saw the pointer. */
+    private fun releaseStaleNativePress(button: PointerButton) {
+        forwardedNativeButtons.remove(button)
+        releaseChildCapture()
+        if (!pressedButtons.remove(button)) return
+        scene?.sendPointerEvent(
+            eventType = PointerEventType.Release,
+            position = Offset(pointerDeadband.x, pointerDeadband.y),
+            type = PointerType.Mouse,
+            keyboardModifiers = currentKeyboardModifiers,
+            button = button,
         )
     }
 
@@ -1629,12 +1864,17 @@ internal class TaoComposeSceneHostWindows(
         )
     }
 
+    /** Native popup layers handed out by [nativePopupLayerFactory] and not yet closed — swept by [detach]. */
+    @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+    private val liveNativePopupLayers = linkedSetOf<androidx.compose.ui.scene.ComposeSceneLayer>()
+
     /**
      * Builds this window's native popup layers ([TaoPopupSceneLayerWindows]).
      * The factory behind [nativePopupLayers], and the one `NativePopupLayers { }`
      * hands to a subtree that wants native surfaces while the window's own
      * popups stay in-scene. `null` until the HWND and its Skia context exist.
      */
+
     fun nativePopupLayerFactory(): TaoPopupLayerFactory? {
         val popupHost = popupHost() ?: return null
         return { density, layoutDirection, focusable, consumeOutside ->
@@ -1644,7 +1884,7 @@ internal class TaoComposeSceneHostWindows(
                 initialLayoutDirection = layoutDirection,
                 initialFocusable = focusable,
                 initialConsumePointerInputOutside = consumeOutside,
-            )
+            ).also { liveNativePopupLayers += it }
         }
     }
 
@@ -1697,6 +1937,11 @@ internal class TaoComposeSceneHostWindows(
             override fun unregisterRenderer(token: Any) {
                 outer.popupRenderers.remove(token)
                 outer.hostContextDirtied = true
+            }
+
+            @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+            override fun onLayerClosed(layer: androidx.compose.ui.scene.ComposeSceneLayer) {
+                outer.liveNativePopupLayers.remove(layer)
             }
 
             override fun registerKeyHandler(
@@ -1767,7 +2012,17 @@ internal class TaoComposeSceneHostWindows(
         for (cb in ownerMoveListeners.values.toList()) cb()
     }
 
-    fun nativeViewHost(): dev.nucleusframework.window.tao.TaoNativeViewHost? {
+    /**
+     * One host instance per scene. The composition local built from it keys
+     * `NativeView`'s attach effect: a fresh object on every recomposition of
+     * the window root would detach and re-attach every embed each time.
+     */
+    private var nativeViewHostInstance: dev.nucleusframework.window.tao.TaoNativeViewHost? = null
+
+    fun nativeViewHost(): dev.nucleusframework.window.tao.TaoNativeViewHost? =
+        nativeViewHostInstance ?: createNativeViewHost()?.also { nativeViewHostInstance = it }
+
+    private fun createNativeViewHost(): dev.nucleusframework.window.tao.TaoNativeViewHost? {
         if (hwnd == 0L) return null
         if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return null
         val parent = hwnd
@@ -1780,6 +2035,7 @@ internal class TaoComposeSceneHostWindows(
                 dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
                     .nativeAttach(parent, childHandle)
                 outer.nativeViewBlending.retain()
+                outer.attachedNativeViewCount++
             }
 
             override fun detach(
@@ -1790,6 +2046,7 @@ internal class TaoComposeSceneHostWindows(
                 dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
                     .nativeDetach(childHandle)
                 outer.nativeViewBlending.release()
+                outer.attachedNativeViewCount = (outer.attachedNativeViewCount - 1).coerceAtLeast(0)
             }
 
             override fun setFrame(
@@ -1822,13 +2079,42 @@ internal class TaoComposeSceneHostWindows(
                 pressed: Boolean,
             ) {
                 if (parent == 0L) return
+                if (type == NATIVE_POINTER_PRESS) {
+                    // The child SetCaptures on this press and keeps the
+                    // release; Compose hears of it through the heal.
+                    outer.forwardedNativeButtons +=
+                        when (button) {
+                            NATIVE_SECONDARY_BUTTON -> PointerButton.Secondary
+                            NATIVE_MIDDLE_BUTTON -> PointerButton.Tertiary
+                            else -> PointerButton.Primary
+                        }
+                    // The embed takes the keyboard with this press (the bridge
+                    // SetFocuses it before forwarding): a Compose text field
+                    // must not keep showing a caret beside the embed's.
+                    //
+                    // Deferred, because this runs inside the Press dispatch —
+                    // but on the main dispatcher, not the frame queue: the
+                    // press may be the one that opens the embed's own context
+                    // menu, whose modal loop stops the window painting, and a
+                    // focus clear waiting for a frame would never run while
+                    // the menu the user is looking at is up.
+                    dev.nucleusframework.window.tao.dispatch.TaoMainDispatcher
+                        .dispatch(kotlin.coroutines.EmptyCoroutineContext) {
+                            outer.capturedFocusManager?.clearFocus(force = true)
+                        }
+                }
                 outer.nativePointerRedispatchInFlight = true
                 try {
                     dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
                         .nativeDispatchPointer(parent, handle, type, xPx, yPx, button, pressed)
                 } finally {
                     outer.nativePointerRedispatchInFlight = false
+                    outer.window.resetRedrawLatch()
                 }
+            }
+
+            override fun noteNativePointerDispatch() {
+                outer.nativePointerDispatchedThisEvent = true
             }
 
             override fun dispatchScrollToNative(
@@ -1845,6 +2131,12 @@ internal class TaoComposeSceneHostWindows(
                         .nativeDispatchScroll(parent, handle, xPx, yPx, dx, dy)
                 } finally {
                     outer.nativePointerRedispatchInFlight = false
+                    // Handing an event to a child HWND runs its handler on this
+                    // thread, and anything it pumps swallows the redraw this
+                    // window had pending — the coalescing latch then suppresses
+                    // every later request and the window silently stops
+                    // painting. See TaoWindow.resetRedrawLatch.
+                    outer.window.resetRedrawLatch()
                 }
             }
         }
@@ -1944,6 +2236,7 @@ internal class TaoComposeSceneHostWindows(
         ) {
             lastPointerX = x
             lastPointerY = y
+            pointerPositionSetByOverlay = true
             currentKeyboardModifiers = taoKeyboardModifiers(modifiers)
             windowInfo.keyboardModifiers = currentKeyboardModifiers
             val pointerButton =
@@ -1959,18 +2252,21 @@ internal class TaoComposeSceneHostWindows(
                     2 -> PointerEventType.Release
                     else -> PointerEventType.Move
                 }
-            // Same sub-pixel deadband as the main stream (#615) — the
-            // overlay WndProc shares the scene's single mouse pointer.
-            if (eventType == PointerEventType.Move &&
-                !pointerDeadband.shouldDispatchMove(x, y, scale)
-            ) {
+            if (eventType != PointerEventType.Move) {
+                noteOverlayButton(pointerButton ?: PointerButton.Primary, eventType == PointerEventType.Press, x, y)
+                // The overlay reports in owner-client px, like the HWND.
+                pointerDeadband.shouldDispatchMove(x, y, scale)
+                sendButtonToScene(pointerButton ?: PointerButton.Primary, eventType == PointerEventType.Press)
                 return
             }
+            healStaleNativePresses()
+            // Same sub-pixel deadband as the main stream (#615) — the
+            // overlay WndProc shares the scene's single mouse pointer.
+            if (!pointerDeadband.shouldDispatchMove(x, y, scale)) return
             scene?.sendPointerEvent(
                 eventType = eventType,
                 position = Offset(pointerDeadband.x, pointerDeadband.y),
                 type = PointerType.Mouse,
-                button = pointerButton,
                 keyboardModifiers = currentKeyboardModifiers,
             )
         }
@@ -1998,10 +2294,10 @@ internal class TaoComposeSceneHostWindows(
     }
 
     // Hop the debounced semantics walk onto the render thread (it touches
-    // Compose state) and request a redraw. See AbstractTaoComposeSceneHost.
+    // Compose state); the enqueue asks for the frame that drains it. See
+    // AbstractTaoComposeSceneHost.
     override fun dispatchA11yWalk(block: () -> Unit) {
         flushingDispatcher.enqueue(Runnable { block() })
-        window.requestRedraw()
     }
 
     /**
@@ -2053,6 +2349,12 @@ internal class TaoComposeSceneHostWindows(
     }
 
     fun detach() {
+        // Layers whose dismiss animation was still running: Compose closes a
+        // native popup layer only when its own disappearance finishes, so an
+        // owner destroyed mid-animation left the layer's popup window mapped
+        // for good — an invisible rectangle eating every click under it.
+        for (layer in liveNativePopupLayers.toList()) layer.close()
+        liveNativePopupLayers.clear()
         window.showHook = null
         window.inboundDragAndDropNode = null
         window.imePreedit = null
@@ -2167,8 +2469,15 @@ internal class TaoComposeSceneHostWindows(
             window.requestRedraw()
         }
 
+        /**
+         * Queues [block] for the next drain. The drains all sit in the frame
+         * path, so this asks for a frame too — a window with nothing else to
+         * redraw would otherwise hold the block forever (a focus clear that
+         * never runs leaves two carets on screen).
+         */
         fun enqueue(block: Runnable) {
             queue.add(block)
+            window.requestRedraw()
         }
 
         fun drain() {
@@ -2249,7 +2558,7 @@ private class WindowsTaoPlatformContext(
     }
 
     override fun setPointerIcon(pointerIcon: androidx.compose.ui.input.pointer.PointerIcon) {
-        NativeTaoBridge.nativeSetCursorIcon(
+        NativeTaoBridge.setCursorIcon(
             windowHandle,
             mapPointerIcon(pointerIcon),
         )
@@ -2257,3 +2566,19 @@ private class WindowsTaoPlatformContext(
 
     private fun mapPointerIcon(icon: androidx.compose.ui.input.pointer.PointerIcon): Int = icon.toTaoCursorIconCode()
 }
+
+/** `NativeView` pointer type / button codes (see `TaoNativeViewHost.dispatchPointerToNative`). */
+private const val NATIVE_POINTER_PRESS = 1
+private const val NATIVE_SECONDARY_BUTTON = 2
+private const val NATIVE_MIDDLE_BUTTON = 3
+
+/** Bits of `NativeTaoWindowsNativeViewBridge.nativeQueryPointerButtons`. */
+private const val WIN32_LBUTTON_BIT = 1
+private const val WIN32_RBUTTON_BIT = 2
+private const val WIN32_MBUTTON_BIT = 4
+
+/** How long after an overlay button event its main-HWND replay may arrive. */
+private const val OVERLAY_ECHO_WINDOW_NANOS = 500_000_000L
+
+/** How far the replayed position may sit from the overlay's, in px. */
+private const val OVERLAY_ECHO_SLACK_PX = 2f

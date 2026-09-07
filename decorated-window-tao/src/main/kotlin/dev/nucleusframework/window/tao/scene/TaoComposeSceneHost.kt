@@ -248,6 +248,23 @@ internal class TaoComposeSceneHost(
     /** Set by NativeView pointer-interop when a Press was forwarded to AppKit. */
     private var nativePointerDispatchedThisEvent: Boolean = false
 
+    /**
+     * Handles whose [TaoNativeViewHost.detach] has already run. A layout pass
+     * can still report the slot of an embed in the frame that removes it, and
+     * [scheduleInteropAction] may drain a `setFrame` after dispose — both
+     * must no-op. Only *detached* handles are refused: the first `setFrame`
+     * routinely lands before the attach effect.
+     */
+    private val detachedNativeViews: MutableSet<Long> = mutableSetOf()
+
+    /**
+     * Captured at the first composition via [setContent]. Exposes
+     * `FocusManager.clearFocus(force = true)` so a press handed to an embed
+     * can drop a Compose `BasicTextField`'s caret — the Linux/Windows hosts
+     * do the same.
+     */
+    private var capturedFocusManager: androidx.compose.ui.focus.FocusManager? = null
+
     /** Renderer's view of whether interop is currently active — lags the
      *  transaction's flag by one frame on the OFF transition so the
      *  final sync flush still goes through `presentsWithTransaction`. */
@@ -649,6 +666,8 @@ internal class TaoComposeSceneHost(
     fun setContent(content: @Composable () -> Unit) =
         exceptionHandler.catchExceptions {
             scene?.setContent {
+                val fm = androidx.compose.ui.platform.LocalFocusManager.current
+                androidx.compose.runtime.SideEffect { capturedFocusManager = fm }
                 TaoTextToolbarHost(textToolbar) {
                     val onSel = onTextSelectionForA11y
                     // Expose the publisher so themed wrappers (nucleus-application) can
@@ -866,7 +885,17 @@ internal class TaoComposeSceneHost(
     // consumes the event before the main scene sees it.
     private val popupKeyHandlers: MutableMap<Any, (KeyEvent) -> Boolean> = LinkedHashMap()
 
-    fun nativeViewHost(): TaoNativeViewHost? {
+    /**
+     * One host instance per scene. The composition local built from it keys
+     * `NativeView`'s attach effect: a fresh object on every recomposition of
+     * the window root would detach and re-attach every embed each time.
+     */
+    private var nativeViewHostInstance: dev.nucleusframework.window.tao.TaoNativeViewHost? = null
+
+    fun nativeViewHost(): dev.nucleusframework.window.tao.TaoNativeViewHost? =
+        nativeViewHostInstance ?: createNativeViewHost()?.also { nativeViewHostInstance = it }
+
+    private fun createNativeViewHost(): TaoNativeViewHost? {
         if (nsViewHandle == 0L) return null
         if (!NativeTaoMacOsNativeViewBridge.isLoaded) return null
         val outer = this
@@ -888,6 +917,7 @@ internal class TaoComposeSceneHost(
                     WindowTransparencyMode.acquire(outer.window, outer.glassBackgroundState)
                 }
                 outer.interopAttachCount++
+                outer.detachedNativeViews.remove(childHandle)
                 NativeTaoMacOsNativeViewBridge.nativeAddSubview(outer.nsViewHandle, childHandle)
             }
 
@@ -895,6 +925,7 @@ internal class TaoComposeSceneHost(
                 childHandle: Long,
                 regionToken: Any,
             ) {
+                outer.detachedNativeViews += childHandle
                 NativeTaoMacOsNativeViewBridge.nativeRemoveSubview(childHandle)
                 outer.interopAttachCount--
                 if (outer.interopAttachCount == 0) {
@@ -911,7 +942,9 @@ internal class TaoComposeSceneHost(
                 heightPx: Int,
                 regionToken: Any,
             ) {
+                if (handle in outer.detachedNativeViews) return
                 outer.scheduleInteropAction {
+                    if (handle in outer.detachedNativeViews) return@scheduleInteropAction
                     NativeTaoMacOsNativeViewBridge
                         .nativeSetSubviewFrame(outer.nsViewHandle, handle, xPx, yPx, widthPx, heightPx)
                 }
@@ -921,7 +954,9 @@ internal class TaoComposeSceneHost(
                 handle: Long,
                 radiusPx: Float,
             ) {
+                if (handle in outer.detachedNativeViews) return
                 outer.scheduleInteropAction {
+                    if (handle in outer.detachedNativeViews) return@scheduleInteropAction
                     NativeTaoMacOsNativeViewBridge
                         .nativeSetSubviewCornerRadius(outer.nsViewHandle, handle, radiusPx)
                 }
@@ -936,6 +971,16 @@ internal class TaoComposeSceneHost(
                 pressed: Boolean,
             ) {
                 if (outer.nsViewHandle == 0L || handle == 0L) return
+                if (handle in outer.detachedNativeViews) return
+                if (type == NATIVE_POINTER_PRESS) {
+                    // The embed takes the keyboard with this press
+                    // (`makeFirstResponder` in the bridge): a Compose text
+                    // field must not keep showing a caret beside the embed's.
+                    // Deferred — this runs inside the Press dispatch.
+                    outer.flushingDispatcher.enqueue(
+                        Runnable { outer.capturedFocusManager?.clearFocus(force = true) },
+                    )
+                }
                 NativeTaoMacOsNativeViewBridge.nativeDispatchPointer(
                     outer.nsViewHandle,
                     handle,
@@ -955,6 +1000,7 @@ internal class TaoComposeSceneHost(
                 dy: Float,
             ) {
                 if (outer.nsViewHandle == 0L || handle == 0L) return
+                if (handle in outer.detachedNativeViews) return
                 NativeTaoMacOsNativeViewBridge.nativeDispatchScroll(
                     outer.nsViewHandle,
                     handle,
@@ -1003,12 +1049,17 @@ internal class TaoComposeSceneHost(
         )
     }
 
+    /** Native popup layers handed out by [nativePopupLayerFactory] and not yet closed — swept by [detach]. */
+    @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+    private val liveNativePopupLayers = linkedSetOf<androidx.compose.ui.scene.ComposeSceneLayer>()
+
     /**
      * Builds this window's native popup layers ([TaoPopupSceneLayer]). The
      * factory behind [nativePopupLayers], and the one `NativePopupLayers { }`
      * hands to a subtree that wants native surfaces while the window's own
      * popups stay in-scene. `null` before the NSView is attached.
      */
+
     fun nativePopupLayerFactory(): TaoPopupLayerFactory? {
         val popupHost = popupHost() ?: return null
         return { density, layoutDirection, focusable, consumeOutside ->
@@ -1018,7 +1069,7 @@ internal class TaoComposeSceneHost(
                 initialLayoutDirection = layoutDirection,
                 initialFocusable = focusable,
                 initialConsumePointerInputOutside = consumeOutside,
-            )
+            ).also { liveNativePopupLayers += it }
         }
     }
 
@@ -1062,6 +1113,11 @@ internal class TaoComposeSceneHost(
                 popupRenderers.remove(token)
             }
 
+            @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
+            override fun onLayerClosed(layer: androidx.compose.ui.scene.ComposeSceneLayer) {
+                liveNativePopupLayers.remove(layer)
+            }
+
             override fun <T> runOnRenderThread(block: () -> T): T = outer.runOnRenderThread(block)
 
             override fun registerKeyHandler(
@@ -1076,7 +1132,7 @@ internal class TaoComposeSceneHost(
             }
 
             override fun setCursor(iconCode: Int) {
-                NativeTaoBridge.nativeSetCursorIcon(outer.window.handle, iconCode)
+                NativeTaoBridge.setCursorIcon(outer.window.handle, iconCode)
             }
         }
     }
@@ -1427,6 +1483,21 @@ internal class TaoComposeSceneHost(
                 if (handler(composeEvent)) return true
             }
         }
+        // An embed that holds first responder owns the keyboard. Synthetic
+        // keys never enter AppKit's responder chain, so deliver them here
+        // before Compose — otherwise a focused NSTextField never sees them
+        // and a still-focused BasicTextField would eat the letter too.
+        if (nsViewHandle != 0L &&
+            NativeTaoMacOsNativeViewBridge.isLoaded &&
+            NativeTaoMacOsNativeViewBridge.nativeDispatchKeyToFirstResponder(
+                nsViewHandle,
+                type,
+                vkCode,
+                codePoint,
+            )
+        ) {
+            return true
+        }
         if (sc.sendKeyEvent(composeEvent)) return true
         return keyHandler?.invoke(composeEvent) == true
     }
@@ -1702,6 +1773,12 @@ internal class TaoComposeSceneHost(
     }
 
     fun detach() {
+        // Layers whose dismiss animation was still running: Compose closes a
+        // native popup layer only when its own disappearance finishes, so an
+        // owner destroyed mid-animation left the layer's popup window mapped
+        // for good — an invisible rectangle eating every click under it.
+        for (layer in liveNativePopupLayers.toList()) layer.close()
+        liveNativePopupLayers.clear()
         window.inboundDragAndDropNode = null
         window.imeReplaceCommit = null
         window.imePreedit = null
@@ -1832,7 +1909,7 @@ private class TaoPlatformContext(
         }
 
     override fun setPointerIcon(pointerIcon: androidx.compose.ui.input.pointer.PointerIcon) {
-        NativeTaoBridge.nativeSetCursorIcon(windowHandle, mapPointerIcon(pointerIcon))
+        NativeTaoBridge.setCursorIcon(windowHandle, mapPointerIcon(pointerIcon))
     }
 
     /**
@@ -1932,3 +2009,6 @@ private class TaoPlatformContext(
  * which AppKit only ever asks near the caret.
  */
 private const val IME_DOCUMENT_WINDOW_UTF16 = 128
+
+/** `TaoNativeViewHost.dispatchPointerToNative` type code for a Press. */
+private const val NATIVE_POINTER_PRESS = 1

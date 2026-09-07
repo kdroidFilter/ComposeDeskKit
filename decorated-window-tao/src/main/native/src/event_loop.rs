@@ -146,6 +146,28 @@ fn x11_display() -> Option<gtk::gdk::Display> {
     })
 }
 
+/// Serves the redraws asked for during this batch (Windows only — see
+/// `UserEvent::RequestRedraw`), after the dispatcher drain that precedes every
+/// call site so a frame sees the work that produced it. A window destroyed
+/// meanwhile is skipped; one that asks again while being painted lands in the
+/// next batch, which the request itself wakes the loop for.
+#[cfg(target_os = "windows")]
+fn serve_pending_redraws(pending: &mut Vec<u64>) {
+    if pending.is_empty() {
+        return;
+    }
+    let serving: Vec<u64> = pending.drain(..).collect();
+    for handle in serving {
+        let alive = {
+            let guard = WINDOWS.lock().unwrap();
+            guard.as_ref().is_some_and(|map| map.contains_key(&handle))
+        };
+        if alive {
+            dispatch(handle, EVENT_REDRAW_REQUESTED, 0, 0);
+        }
+    }
+}
+
 pub(crate) fn run_event_loop_blocking() {
     // GTK backend selection. Default: let GDK auto-pick (= native Wayland on
     // a Wayland session, X11 elsewhere). The Wayland-native path goes through
@@ -241,10 +263,25 @@ pub(crate) fn run_event_loop_blocking() {
             }
             Event::UserEvent(user) => match user {
                 UserEvent::Wake => {
-                    // No-op: the side-effect we want is the loop returning from
-                    // its `Wait` to dispatch this event, which guarantees a
-                    // following `MainEventsCleared` tick that drains
+                    // The side-effect we want is the loop returning from its
+                    // `Wait` to dispatch this event, which normally guarantees
+                    // a following `MainEventsCleared` tick that drains
                     // `TaoMainDispatcher`.
+                    //
+                    // Windows: not inside a nested modal message loop. Tao
+                    // derives `MainEventsCleared` from an internal WM_PAINT on
+                    // its thread-message window, and a modal loop running on
+                    // this thread — an embedded EDIT's context menu, a
+                    // `DoDragDrop` — never generates it, while it does deliver
+                    // the posted wake. Drain the dispatcher here, and serve the
+                    // frames that work asks for, so the app keeps running *and*
+                    // painting for as long as the menu is up. Outside a modal
+                    // loop the tick that follows finds both queues empty.
+                    #[cfg(target_os = "windows")]
+                    {
+                        dispatch(0, EVENT_MAIN_EVENTS_CLEARED, 0, 0);
+                        serve_pending_redraws(&mut pending_redraws);
+                    }
                 }
                 UserEvent::CreateWindow {
                     handle,
@@ -1073,18 +1110,7 @@ pub(crate) fn run_event_loop_blocking() {
                 // being painted lands in the next batch, which the request
                 // itself wakes the loop for.
                 #[cfg(target_os = "windows")]
-                if !pending_redraws.is_empty() {
-                    let serving: Vec<u64> = pending_redraws.drain(..).collect();
-                    for handle in serving {
-                        let alive = {
-                            let guard = WINDOWS.lock().unwrap();
-                            guard.as_ref().is_some_and(|map| map.contains_key(&handle))
-                        };
-                        if alive {
-                            dispatch(handle, EVENT_REDRAW_REQUESTED, 0, 0);
-                        }
-                    }
-                }
+                serve_pending_redraws(&mut pending_redraws);
             }
             // macOS deep links: AppKit installs its own `kAEGetURL` handler
             // during `finishLaunching` (routing to `application:openURLs:`).
