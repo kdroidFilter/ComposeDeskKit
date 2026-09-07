@@ -6,6 +6,8 @@ import androidx.compose.ui.unit.dp
 import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.DockTarget
 import dev.nucleusframework.window.tao.DockTransferTarget
+import dev.nucleusframework.window.tao.SatelliteCaptionStripWidth
+import dev.nucleusframework.window.tao.SatelliteDragKind
 import dev.nucleusframework.window.tao.SatellitePlacement
 import dev.nucleusframework.window.tao.TabDropTarget
 import dev.nucleusframework.window.tao.TransferDrop
@@ -33,6 +35,10 @@ import kotlin.math.abs
  *     its owner is maximized, and never publishes an owner offset it cannot
  *     know;
  *  6. tabs the same way: no record tears off, a record merges back;
+ *  8. chrome is told the compositor places its window, the title bar reserves
+ *     the caption strip for the compositor's move and the app's slot is
+ *     composed inside it, and a satellite drag reports itself as carried by
+ *     the platform session with no ghost window;
  *  7. a drop over a stack resolves the rank under the pointer from window
  *     coordinates — its own rank being no move — and the record reorders the
  *     layers without rebuilding one.
@@ -50,7 +56,85 @@ internal object WaylandWorkspaceHeadfulCases {
             everyZoneResolvesFromAWindowCoordinate(),
             tabTransferDragTearsOffAndMergesBack(),
             aTransferDropResolvesARankAndReorders(),
+            chromeIsToldTheCompositorPlacesTheWindow(),
         )
+
+    /**
+     * The other half of the X11 case in `DockLayoutHeadfulCases`: here the
+     * compositor places the window, so [SatelliteScope.isCompositorPlaced] is
+     * `true` for the floating palette, its title bar reserves
+     * [SatelliteCaptionStripWidth] for the compositor's move with the app's
+     * `floatingCaption` composed inside it, and a satellite drag is a
+     * [SatelliteDragKind.Transfer] that publishes no ghost window.
+     *
+     * The docked panel reads its host, which is compositor-placed too.
+     */
+    private fun chromeIsToldTheCompositorPlacesTheWindow(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(TREE, SatellitePlacement.Docked(DockSide.Right, extent = 120.dp)),
+                        DockPanelSpec(
+                            NOTES,
+                            SatellitePlacement.Floating(
+                                positioner = workspaceRightEdgePositioner(),
+                                size = workspaceSatelliteSize(),
+                            ),
+                        ),
+                    ),
+            )
+        return TaoWindowTestCase(
+            name = "native Wayland: chrome is told the compositor places the window, and the caption strip is reserved",
+            skip = ::waylandSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodiesInWindow(fixture, TREE)
+                awaitUntil("the palette floats") {
+                    fixture.floatingWindows.value[NOTES]?.hasRealFramePx() == true
+                }
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                val floating = requireNotNull(fixture.floatingWindows.value[NOTES])
+                check(!floating.canPlaceOnScreen) { "case premise: the palette must be compositor-placed" }
+
+                awaitUntil("the palette's chrome learned how its window is placed") {
+                    fixture.compositorPlacedFloating.value[NOTES] == true
+                }
+                check(fixture.compositorPlacedDocked.value[TREE] == true) {
+                    "the panel was told its host places itself: ${fixture.compositorPlacedDocked.value}"
+                }
+                awaitUntil("the caption strip is composed") { fixture.captionBounds.value[NOTES] != null }
+                val caption = requireNotNull(fixture.captionBounds.value[NOTES])
+                val expectedPx = SatelliteCaptionStripWidth.value * floating.scaleFactor
+                check(abs(caption.width - expectedPx) <= LAYOUT_TOLERANCE_PX) {
+                    "the reserved strip is ${caption.width} px, SatelliteCaptionStripWidth is $expectedPx"
+                }
+                check(caption.height > 0f) { "the strip has no height, so nothing can be aimed at it" }
+
+                // The drag says how it is carried, and no ghost window follows.
+                check(workspace.dragKind == null) { "a drag is reported before one starts" }
+                val session = requireNotNull(workspace.beginTransferDrag(NOTES, floatingOrigin(floating)))
+                check(workspace.dragKind == SatelliteDragKind.Transfer) {
+                    "the platform session carries it, but the kind is ${workspace.dragKind}"
+                }
+                check(workspace.dragGhost == null) { "a ghost window followed a transfer drag" }
+                check(workspace.draggedSatellite?.id == NOTES) { "the dragged satellite is not published" }
+                session.cancel()
+                check(workspace.dragKind == null && workspace.publishesNoDragFeedback()) { "feedback left behind" }
+
+                // The screen-space API is still refused here, which is why the
+                // split exists in the first place.
+                check(workspace.beginDrag(NOTES, floatingOrigin(floating), Offset.Zero) == null) {
+                    "a screen drag started on a window the app cannot place"
+                }
+            },
+        )
+    }
 
     private fun aTransferDropResolvesARankAndReorders(): TaoWindowTestCase {
         val fixture =

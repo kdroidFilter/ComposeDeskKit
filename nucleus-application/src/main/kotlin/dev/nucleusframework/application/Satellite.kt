@@ -55,6 +55,9 @@ import dev.nucleusframework.window.tao.SatelliteWorkspace
  * @param reorderable whether the user may change its rank on its side;
  *   `false` pins it to the rank it was declared with. Requires a docked
  *   [initialPlacement].
+ * @param floatingCaption composed in the strip of the floating title bar left
+ *   to the compositor's window move, where the window is placed by the
+ *   compositor; see [dev.nucleusframework.window.tao.Satellite].
  * @param nativeContextMenu whether text fields in the floating window get the
  *   native context menu, as for [SatelliteWindow].
  */
@@ -74,6 +77,7 @@ public fun NucleusApplicationScope.Satellite(
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
     header: @Composable @UiComposable SatelliteScope.() -> Unit = { DefaultSatelliteHeader() },
+    floatingCaption: @Composable @UiComposable SatelliteScope.() -> Unit = {},
     content: @Composable @UiComposable SatelliteScope.() -> Unit,
 ) {
     when (this) {
@@ -92,6 +96,7 @@ public fun NucleusApplicationScope.Satellite(
                 hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
                 nativeContextMenu = nativeContextMenu,
                 header = header,
+                floatingCaption = floatingCaption,
                 content = content,
             )
     }
@@ -117,6 +122,7 @@ public fun Satellite(
     hideWhileOwnerFullscreenOrMaximized: Boolean = true,
     nativeContextMenu: Boolean = true,
     header: @Composable @UiComposable SatelliteScope.() -> Unit = { DefaultSatelliteHeader() },
+    floatingCaption: @Composable @UiComposable SatelliteScope.() -> Unit = {},
     content: @Composable @UiComposable SatelliteScope.() -> Unit,
 ) {
     LocalNucleusApplicationScope.current.Satellite(
@@ -132,6 +138,7 @@ public fun Satellite(
         hideWhileOwnerFullscreenOrMaximized = hideWhileOwnerFullscreenOrMaximized,
         nativeContextMenu = nativeContextMenu,
         header = header,
+        floatingCaption = floatingCaption,
         content = content,
     )
 }

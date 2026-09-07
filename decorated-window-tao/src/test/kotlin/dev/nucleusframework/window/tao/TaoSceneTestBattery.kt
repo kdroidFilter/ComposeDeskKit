@@ -762,6 +762,15 @@ public object TaoSceneTestBattery {
         run("SatelliteWorkspaceTest: docking a floating satellite seeds the side extent and hosts it in the owner") {
             SatelliteWorkspaceTest().`docking a floating satellite seeds the side extent and hosts it in the owner`()
         }
+        run("SatelliteDragKindTest: a pointer drag is carried by the window, and the kind clears with it") {
+            SatelliteDragKindTest().`a pointer drag is carried by the window, and the kind clears with it`()
+        }
+        run("SatelliteDragKindTest: a transfer drag is carried by the platform session, and publishes no ghost") {
+            SatelliteDragKindTest().`a transfer drag is carried by the platform session, and publishes no ghost`()
+        }
+        run("SatelliteDragKindTest: a window that is not a native Wayland surface places on screen") {
+            SatelliteDragKindTest().`a window that is not a native Wayland surface places on screen`()
+        }
         run("SatelliteFixedPanelTest: undock refuses a fixed panel") {
             SatelliteFixedPanelTest().`undock refuses a fixed panel`()
         }

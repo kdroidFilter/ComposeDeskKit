@@ -654,7 +654,9 @@ private fun DockPanel(
 ) {
     if (entry.content == null) return
     val workspace = state.workspace
-    val scope = remember(workspace, entry) { SatelliteScopeImpl(workspace, entry, isDocked = true) }
+    // The host answers how it is placed, and a panel moves between hosts, so
+    // the scope reads it through the entry rather than capturing a window.
+    val scope = remember(workspace, entry) { SatelliteScopeImpl(workspace, entry, isDocked = true) { entry.dockHost } }
     // Dimmed while its ghost is being dragged: the panel is on its way out.
     val leaving = workspace.dragGhost?.satellite === entry
     val containerSize = state.containerSize

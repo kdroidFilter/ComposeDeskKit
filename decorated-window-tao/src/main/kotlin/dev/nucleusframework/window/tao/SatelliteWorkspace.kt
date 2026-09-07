@@ -25,7 +25,6 @@ import dev.nucleusframework.window.tao.workspace.TransferGhostSource
 import dev.nucleusframework.window.tao.workspace.WindowGroup
 import dev.nucleusframework.window.tao.workspace.clientOriginPx
 import dev.nucleusframework.window.tao.workspace.sanitizedOrNull
-import dev.nucleusframework.window.tao.workspace.supportsScreenPlacement
 import dev.nucleusframework.window.tao.workspace.warnScreenPlacementUnsupported
 import kotlin.math.abs
 
@@ -552,6 +551,25 @@ public class SatelliteWorkspace(
     /** The drag currently owning the feedback state, or `null`. */
     internal val activeDragSession: SatelliteDragSession? get() = drags.active
 
+    /**
+     * How the satellite in flight is being carried, or `null` while none is.
+     *
+     * Read it to draw a drag the way it actually behaves:
+     * [SatelliteDragKind.Window] moves a real window under the pointer, so
+     * [dragGhost] is published and a torn-out panel is something the user sees
+     * leaving; [SatelliteDragKind.Transfer] carries the satellite in the
+     * platform's drag-and-drop session — the picture under the pointer is the
+     * drag icon the compositor draws, no window follows, and [dragGhost] stays
+     * `null`. [draggedSatellite] and [dockPreview] are published either way.
+     */
+    public val dragKind: SatelliteDragKind?
+        get() =
+            when {
+                drags.active != null -> SatelliteDragKind.Window
+                transferDrag != null -> SatelliteDragKind.Transfer
+                else -> null
+            }
+
     /** `true` while [session] is the one the workspace is publishing. */
     internal fun isLiveDrag(session: SatelliteDragSession): Boolean = drags.isLive(session)
 
@@ -667,7 +685,7 @@ public class SatelliteWorkspace(
                 is SatelliteDragOrigin.FloatingWindow -> origin.window
                 is SatelliteDragOrigin.DockedPanel -> origin.host
             }
-        if (!from.supportsScreenPlacement) {
+        if (!from.canPlaceOnScreen) {
             from.warnScreenPlacementUnsupported("SatelliteWorkspace.beginDrag")
             return null
         }
@@ -1034,6 +1052,26 @@ public class SatelliteWorkspace(
                 constraintAdjustment = WindowConstraintAdjustment.Slide,
             )
     }
+}
+
+/**
+ * How a satellite drag in flight is carried — see [SatelliteWorkspace.dragKind].
+ */
+public enum class SatelliteDragKind {
+    /**
+     * The satellite's own window, or a ghost window standing in for a docked
+     * panel, follows the pointer. [SatelliteWorkspace.dragGhost] is published
+     * for a panel being torn out.
+     */
+    Window,
+
+    /**
+     * The platform's drag-and-drop session carries it, because the window
+     * cannot be placed by the app ([TaoWindow.canPlaceOnScreen] `false`). The
+     * source is not told where the pointer is: the window under it resolves
+     * the drop and the source acts on that record.
+     */
+    Transfer,
 }
 
 /**

@@ -34,6 +34,7 @@ internal object TaoSatelliteWorkspaceAdapter {
         hideWhileOwnerFullscreenOrMaximized: Boolean,
         nativeContextMenu: Boolean,
         header: @Composable SatelliteScope.() -> Unit,
+        floatingCaption: @Composable SatelliteScope.() -> Unit,
         content: @Composable SatelliteScope.() -> Unit,
     ) {
         val outerLocals = currentCompositionLocalContext
@@ -55,6 +56,7 @@ internal object TaoSatelliteWorkspaceAdapter {
                     NucleusSatelliteScene(outerLocals, parentLayoutDirection, nativeContextMenu) { inner() }
                 },
                 header = header,
+                floatingCaption = floatingCaption,
                 content = content,
             )
         }

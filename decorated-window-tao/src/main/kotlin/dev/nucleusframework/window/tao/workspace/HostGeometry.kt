@@ -50,11 +50,11 @@ internal class HostGeometry(
     /**
      * Screen position of the host's content origin, `null` before the first
      * layout, while unmapped, or on a host whose screen position is not
-     * knowable ([supportsScreenPlacement] — native Wayland), where the origin
+     * knowable ([canPlaceOnScreen] — native Wayland), where the origin
      * GDK reports would place every window at the top-left of the screen.
      */
     fun clientOriginPx(): Offset? {
-        if (containerSizePx == IntSize.Zero || !host.supportsScreenPlacement) return null
+        if (containerSizePx == IntSize.Zero || !host.canPlaceOnScreen) return null
         val outer = outerBoundsPx() ?: return null
         return clientOriginPx(outer, containerSizePx)
     }

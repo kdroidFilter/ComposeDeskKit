@@ -10,6 +10,7 @@ import dev.nucleusframework.window.tao.DefaultDockSideOrder
 import dev.nucleusframework.window.tao.DockPanelHeaderHeight
 import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.DockTarget
+import dev.nucleusframework.window.tao.SatelliteDragKind
 import dev.nucleusframework.window.tao.SatelliteDragOrigin
 import dev.nucleusframework.window.tao.SatelliteDragSession
 import dev.nucleusframework.window.tao.SatellitePlacement
@@ -46,6 +47,8 @@ import kotlin.math.abs
  *     neighbours it left, on a layered and on a split side alike;
  * 12. a layer dragged by its header over the outer half of the outermost
  *     layer previews the first rank and lands there, nothing rebuilt;
+ * 16. chrome is told how its window is placed, no caption strip is reserved
+ *     where the app places its own windows, and a drag says how it is carried;
  * 15. a fixed panel is never torn out — no ghost, no window, nothing
  *     rebuilt — nor displaced by a neighbour docking in front of it, while
  *     that neighbour is still torn out by the same gesture;
@@ -80,7 +83,95 @@ internal object DockLayoutHeadfulCases {
             aSplitPanelDroppedOnItsStackTakesTheRankUnderThePointer(),
             aPaletteIsNeverOfferedASideItWasNotDeclaredFor(),
             aFixedPanelIsNeverTornOut(),
+            chromeIsToldHowTheWindowIsPlaced(),
         )
+
+    // ── 16. what chrome is told about the two gestures ───────────────────
+
+    /**
+     * What chrome is told about the two gestures, where the app places its own
+     * windows: [SatelliteScope.isCompositorPlaced] is `false` for the panel and
+     * for the floating palette alike, the `floatingCaption` slot is not
+     * composed at all — the whole bar drags the satellite — and a pointer drag
+     * reports itself as [SatelliteDragKind.Window] with a ghost to match.
+     *
+     * The other half of the contract, on a compositor-placed window, is
+     * `WaylandWorkspaceHeadfulCases`.
+     */
+    private fun chromeIsToldHowTheWindowIsPlaced(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(TREE, SatellitePlacement.Docked(DockSide.Right, extent = TREE_W_DP.dp)),
+                        DockPanelSpec(
+                            INSPECTOR,
+                            SatellitePlacement.Floating(
+                                positioner = workspaceRightEdgePositioner(),
+                                size = workspaceSatelliteSize(),
+                            ),
+                        ),
+                    ),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout chrome is told the window places itself, and no caption strip is reserved",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodies(fixture, TREE)
+                awaitUntil("the inspector floats") {
+                    fixture.floatingWindows.value[INSPECTOR]?.hasRealFramePx() == true
+                }
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                val floating = requireNotNull(fixture.floatingWindows.value[INSPECTOR])
+
+                check(window.canPlaceOnScreen) { "the case window should place itself on this leg" }
+                check(floating.canPlaceOnScreen) { "the satellite window should place itself on this leg" }
+                check(fixture.compositorPlacedDocked.value[TREE] == false) {
+                    "the panel was told the compositor places it: ${fixture.compositorPlacedDocked.value}"
+                }
+                check(fixture.compositorPlacedFloating.value[INSPECTOR] == false) {
+                    "the palette was told the compositor places it: ${fixture.compositorPlacedFloating.value}"
+                }
+                check(fixture.captionBounds.value.isEmpty()) {
+                    "a caption strip is reserved where nothing needs one: ${fixture.captionBounds.value}"
+                }
+
+                // The drag reports how it is carried, and the ghost matches.
+                check(workspace.dragKind == null) { "a drag is reported before one starts" }
+                val outer = requireNotNull(floating.outerBoundsPx())
+                val grab = Offset(outer[0] + outer[2] / 2f, outer[1] + HEADER_GRAB_Y_DP * floating.scaleFactor)
+                val palette =
+                    requireNotNull(workspace.beginDrag(INSPECTOR, SatelliteDragOrigin.FloatingWindow(floating), grab))
+                check(workspace.dragKind == SatelliteDragKind.Window) {
+                    "the palette's own window carries the drag, but the kind is ${workspace.dragKind}"
+                }
+                palette.cancel()
+                check(workspace.dragKind == null) { "the kind outlived the drag" }
+
+                val treeBounds = panel(fixture, TREE)
+                val panelGrab =
+                    toScreen(
+                        fixture,
+                        Offset(
+                            treeBounds.center.x,
+                            treeBounds.top + DockPanelHeaderHeight.value * window.scaleFactor / 2f,
+                        ),
+                    )
+                val panelDrag = beginDockedDrag(workspace, TREE, panelGrab)
+                panelDrag.update(panelGrab + Offset(0f, PANEL_DRAG_STEP_PX))
+                check(workspace.dragKind == SatelliteDragKind.Window) { "the torn-out panel's ghost is a window" }
+                check(workspace.dragGhost?.satellite?.id == TREE) { "no ghost for a window-carried drag" }
+                panelDrag.cancel()
+                check(workspace.dragGhost == null && workspace.dragKind == null) { "feedback left behind" }
+            },
+        )
+    }
 
     // ── 15. a fixed panel ────────────────────────────────────────────────
 
@@ -1487,6 +1578,9 @@ internal object DockLayoutHeadfulCases {
 
     /** Into the content, in dp from the layout's left edge: past the strip, short of the right ranks. */
     private const val CONTENT_AIM_DP = 120f
+
+    /** Enough to pass the touch slop and publish a ghost. */
+    private const val PANEL_DRAG_STEP_PX = 24f
 
     /** How far inside a panel's leading edge a grab is taken. */
     private const val GRAB_EDGE_INSET_DP = 8f

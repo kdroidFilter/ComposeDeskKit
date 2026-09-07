@@ -92,6 +92,24 @@ fun SatelliteScope.PaneHeader(style: ReaderStyle) {
     }
 }
 
+/**
+ * What the floating pane draws in the strip its title bar leaves to the
+ * compositor: the grip that says "press here to move the window", as opposed
+ * to the header beside it, which drags the pane into the dock.
+ *
+ * Composed only where the two gestures have to be told apart
+ * ([SatelliteScope.isCompositorPlaced]); the slot is not composed at all
+ * elsewhere, so this costs nothing on Windows, macOS and X11.
+ */
+@Composable
+fun SatelliteScope.PaneMoveAffordance() {
+    Text(
+        MOVE_GLYPH,
+        fontSize = ACTION_GLYPH_SP.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = MOVE_GLYPH_ALPHA),
+    )
+}
+
 @Composable
 private fun HeaderAction(
     glyph: String,
@@ -175,10 +193,12 @@ private const val HEADER_PADDING_DP = 8
 private const val HEADER_TEXT_SP = 14
 private const val ACTION_GAP_DP = 4
 private const val ACTION_SIZE_DP = 24
+private const val MOVE_GLYPH_ALPHA = 0.55f
 private const val ACTION_GLYPH_SP = 12
 private const val FLOAT_GLYPH = "\u2197"
 private const val DOCK_GLYPH = "\u2199"
 private const val HIDE_GLYPH = "\u2014"
+private const val MOVE_GLYPH = "✥"
 private const val ISLANDS_HEADER_ALPHA = 0.15f
 private const val DIVIDER_DP = 1
 private const val GRIP_DP = 5

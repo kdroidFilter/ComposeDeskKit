@@ -133,6 +133,9 @@ fun main() =
                     floatable = !pane.fixed,
                     reorderable = !pane.fixed,
                     header = { PaneHeader(reader.style) },
+                    // Only reserved where the compositor owns the window move;
+                    // elsewhere the whole bar drags the pane and this is not composed.
+                    floatingCaption = { PaneMoveAffordance() },
                 ) {
                     Surface(Modifier.fillMaxSize(), color = colors.surface) { PaneContent(pane) }
                 }

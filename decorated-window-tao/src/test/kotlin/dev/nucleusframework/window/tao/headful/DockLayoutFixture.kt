@@ -89,6 +89,13 @@ internal class DockLayoutFixture(
     val contentDirection = mutableStateOf<LayoutDirection?>(null)
     val bodyDirections = mutableStateOf<Map<String, LayoutDirection>>(emptyMap())
 
+    /** What each satellite's chrome was told about its window: `isCompositorPlaced`, per host kind. */
+    val compositorPlacedDocked = mutableStateOf<Map<String, Boolean>>(emptyMap())
+    val compositorPlacedFloating = mutableStateOf<Map<String, Boolean>>(emptyMap())
+
+    /** Bounds of each satellite's `floatingCaption` slot, in its own window px; absent while not composed. */
+    val captionBounds = mutableStateOf<Map<String, Rect>>(emptyMap())
+
     /** The floating window of each satellite while it floats. */
     val floatingWindows = mutableStateOf<Map<String, TaoWindow>>(emptyMap())
 
@@ -195,6 +202,18 @@ internal class DockLayoutFixture(
                     title = "Panel ${spec.id}",
                     initialPlacement = spec.placement,
                     initiallyOpen = spec.open,
+                    floatingCaption = {
+                        DisposableEffect(spec.id) {
+                            onDispose { captionBounds.value = captionBounds.value - spec.id }
+                        }
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .onGloballyPositioned {
+                                    captionBounds.value = captionBounds.value + (spec.id to it.boundsInWindow())
+                                },
+                        )
+                    },
                     dockSides = spec.dockSides,
                     floatable = spec.floatable,
                     reorderable = spec.reorderable,
@@ -214,7 +233,13 @@ internal class DockLayoutFixture(
         val window = LocalTaoWindow.current
         val docked = isDocked
         val here = LocalLayoutDirection.current
+        val placed = isCompositorPlaced
         SideEffect {
+            if (docked) {
+                compositorPlacedDocked.value = compositorPlacedDocked.value + (id to placed)
+            } else {
+                compositorPlacedFloating.value = compositorPlacedFloating.value + (id to placed)
+            }
             bodyDirections.value = bodyDirections.value + (id to here)
             if (!docked && window != null) floatingWindows.value = floatingWindows.value + (id to window)
         }

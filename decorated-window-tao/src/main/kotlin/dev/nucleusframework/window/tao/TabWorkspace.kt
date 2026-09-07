@@ -18,7 +18,6 @@ import dev.nucleusframework.window.tao.workspace.HostGeometryRegistry
 import dev.nucleusframework.window.tao.workspace.RelocatableSlot
 import dev.nucleusframework.window.tao.workspace.WindowGroup
 import dev.nucleusframework.window.tao.workspace.sanitizedOrNull
-import dev.nucleusframework.window.tao.workspace.supportsScreenPlacement
 import dev.nucleusframework.window.tao.workspace.warnScreenPlacementUnsupported
 
 /**
@@ -512,7 +511,7 @@ public class TabWorkspace(
             when (origin) {
                 is TabDragOrigin.Strip -> origin.window
             }
-        if (!from.supportsScreenPlacement) {
+        if (!from.canPlaceOnScreen) {
             from.warnScreenPlacementUnsupported("TabWorkspace.beginDrag")
             return null
         }

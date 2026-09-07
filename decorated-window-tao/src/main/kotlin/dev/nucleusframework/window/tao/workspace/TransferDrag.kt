@@ -52,7 +52,7 @@ import kotlin.math.roundToInt
 /**
  * A cross-window drag carried by the platform's drag-and-drop session — the
  * path taken where the client cannot read or set window positions (native
- * Wayland, see [supportsScreenPlacement]).
+ * Wayland, see [canPlaceOnScreen]).
  *
  * The roles are inverted with respect to [ScreenDrag]: the *source* learns
  * nothing about where the pointer is, and the *target* window — the one the
