@@ -28,6 +28,8 @@ import dev.nucleusframework.window.tao.scene.TaoScenePopupTest
 import dev.nucleusframework.window.tao.scene.TaoSceneRenderTest
 import dev.nucleusframework.window.tao.scene.TaoSceneScrollTest
 import dev.nucleusframework.window.tao.scene.TaoSceneSemanticsTest
+import dev.nucleusframework.window.tao.scene.TaoSceneTrackpadPanTest
+import dev.nucleusframework.window.tao.scene.TaoTrackpadPanRouterTest
 import dev.nucleusframework.window.tao.workspace.DragControllerTest
 import dev.nucleusframework.window.tao.workspace.HostGeometryTest
 import dev.nucleusframework.window.tao.workspace.RelocatingSaveableStateRegistryTest
@@ -135,20 +137,23 @@ public object TaoSceneTestBattery {
         run("MacOsWheelDeltaTest: scrollUpMatchesTaoWindowAwtSign") {
             MacOsWheelDeltaTest().scrollUpMatchesTaoWindowAwtSign()
         }
-        run("MacOsWheelDeltaTest: horizontalDeltaKeepsAppKitX") {
-            MacOsWheelDeltaTest().horizontalDeltaKeepsAppKitX()
+        run("MacOsWheelDeltaTest: horizontalDeltaFlipsLikeVertical") {
+            MacOsWheelDeltaTest().horizontalDeltaFlipsLikeVertical()
         }
-        run("MacOsWheelDeltaTest: precisePixelDeltaMatchesTaoWindowScale") {
-            MacOsWheelDeltaTest().precisePixelDeltaMatchesTaoWindowScale()
+        run("MacOsWheelDeltaTest: precisePixelDeltaIgnoresDisplayScale") {
+            MacOsWheelDeltaTest().precisePixelDeltaIgnoresDisplayScale()
         }
-        run("MacOsWheelDeltaTest: precisePixelHorizontalMatchesTaoWindowScale") {
-            MacOsWheelDeltaTest().precisePixelHorizontalMatchesTaoWindowScale()
+        run("MacOsWheelDeltaTest: precisePixelHorizontalFlipsAndDividesByTen") {
+            MacOsWheelDeltaTest().precisePixelHorizontalFlipsAndDividesByTen()
         }
         run("MacOsWheelDeltaTest: lineDeltaCarriesMacOsScrollAmount") {
             MacOsWheelDeltaTest().lineDeltaCarriesMacOsScrollAmount()
         }
         run("MacOsWheelDeltaTest: preciseDeltaCarriesMacOsScrollAmount") {
             MacOsWheelDeltaTest().preciseDeltaCarriesMacOsScrollAmount()
+        }
+        run("MacOsWheelDeltaTest: gesturePhaseRidesAlongWhateverThePrecisionFlag") {
+            MacOsWheelDeltaTest().gesturePhaseRidesAlongWhateverThePrecisionFlag()
         }
         run("StandaloneFramePumpTest: scheduleOnMainRunsInline") {
             StandaloneFramePumpTest().scheduleOnMainRunsInline()
@@ -197,6 +202,48 @@ public object TaoSceneTestBattery {
         }
         run("TaoWindowScrollTest: pixelScrollMirrorsMacOsAwtPreciseWheelRotationScale") {
             TaoWindowScrollTest().pixelScrollMirrorsMacOsAwtPreciseWheelRotationScale()
+        }
+        run("TaoWindowScrollTest: scrollGestureIsShapedLikePixelScrollWithItsPhase") {
+            TaoWindowScrollTest().scrollGestureIsShapedLikePixelScrollWithItsPhase()
+        }
+        run("TaoWindowScrollTest: unknownGestureWireCodeDegradesToPlainPreciseScroll") {
+            TaoWindowScrollTest().unknownGestureWireCodeDegradesToPlainPreciseScroll()
+        }
+        run("TaoTrackpadPanRouterTest: swipe without momentum ends after the grace period") {
+            TaoTrackpadPanRouterTest().`swipe without momentum ends after the grace period`()
+        }
+        run("TaoTrackpadPanRouterTest: terminal steps carrying a delta still pan when no gesture is open") {
+            TaoTrackpadPanRouterTest().`terminal steps carrying a delta still pan when no gesture is open`()
+        }
+        run("TaoTrackpadPanRouterTest: momentum tail continues the pan and ends it once") {
+            TaoTrackpadPanRouterTest().`momentum tail continues the pan and ends it once`()
+        }
+        run("TaoTrackpadPanRouterTest: a momentum tail arriving after the pan closed is handed back unhandled") {
+            TaoTrackpadPanRouterTest().`a momentum tail arriving after the pan closed is handed back unhandled`()
+        }
+        run("TaoTrackpadPanRouterTest: fingers resting on the glass during the tail close the pan at once") {
+            TaoTrackpadPanRouterTest().`fingers resting on the glass during the tail close the pan at once`()
+        }
+        run("TaoTrackpadPanRouterTest: a truncated stream is closed by the stall watchdog") {
+            TaoTrackpadPanRouterTest().`a truncated stream is closed by the stall watchdog`()
+        }
+        run("TaoTrackpadPanRouterTest: finger steps move the deadline without re-scheduling the timer") {
+            TaoTrackpadPanRouterTest().`finger steps move the deadline without re-scheduling the timer`()
+        }
+        run("TaoTrackpadPanRouterTest: finishNow closes an open pan and is a no-op otherwise") {
+            TaoTrackpadPanRouterTest().`finishNow closes an open pan and is a no-op otherwise`()
+        }
+        run("TaoTrackpadPanRouterTest: pan offsets pass through unchanged and zero deltas send no move") {
+            TaoTrackpadPanRouterTest().`pan offsets pass through unchanged and zero deltas send no move`()
+        }
+        run("TaoTrackpadPanRouterTest: cancelled closes immediately and may-begin alone is silent") {
+            TaoTrackpadPanRouterTest().`cancelled closes immediately and may-begin alone is silent`()
+        }
+        run("TaoTrackpadPanRouterTest: a new swipe during the grace period keeps the same pan open") {
+            TaoTrackpadPanRouterTest().`a new swipe during the grace period keeps the same pan open`()
+        }
+        run("TaoTrackpadPanRouterTest: cancel drops the pending end without sending PanEnd") {
+            TaoTrackpadPanRouterTest().`cancel drops the pending end without sending PanEnd`()
         }
         run("TaoWindowResizableTest: reflectsCreationFlag") { TaoWindowResizableTest().reflectsCreationFlag() }
         run("WindowWrapContentTest: creationSizeUsesSpecifiedAxis") {
@@ -361,6 +408,30 @@ public object TaoSceneTestBattery {
         }
         run("TaoSceneScrollTest: scrolled content repaints at the new offset") {
             TaoSceneScrollTest().`scrolled content repaints at the new offset`()
+        }
+        run("TaoSceneTrackpadPanTest: positive vertical pan scrolls a column down") {
+            TaoSceneTrackpadPanTest().`positive vertical pan scrolls a column down`()
+        }
+        run("TaoSceneTrackpadPanTest: positive horizontal pan scrolls a row forward") {
+            TaoSceneTrackpadPanTest().`positive horizontal pan scrolls a row forward`()
+        }
+        run("TaoSceneTrackpadPanTest: negative pan at the origin is a no-op") {
+            TaoSceneTrackpadPanTest().`negative pan at the origin is a no-op`()
+        }
+        run("TaoSceneTrackpadPanTest: pan moves content by its pixel offset") {
+            TaoSceneTrackpadPanTest().`pan moves content by its pixel offset`()
+        }
+        run("TaoSceneTrackpadPanTest: routed gesture steps pan a column and close after the grace") {
+            TaoSceneTrackpadPanTest().`routed gesture steps pan a column and close after the grace`()
+        }
+        run("TaoSceneTrackpadPanTest: with pan events disabled gesture steps scroll as wheel events") {
+            TaoSceneTrackpadPanTest().`with pan events disabled gesture steps scroll as wheel events`()
+        }
+        run("TaoSceneTrackpadPanTest: an orphaned momentum tail scrolls as wheel events instead of stalling") {
+            TaoSceneTrackpadPanTest().`an orphaned momentum tail scrolls as wheel events instead of stalling`()
+        }
+        run("TaoSceneScrollTest: one wheel unit scrolls ten dp on macOS") {
+            TaoSceneScrollTest().`one wheel unit scrolls ten dp on macOS`()
         }
         run("NativePopupLayersTest: a Popup inside NativePopupLayers is built by the window's native layer factory") {
             NativePopupLayersTest().`a Popup inside NativePopupLayers is built by the window's native layer factory`()

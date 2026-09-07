@@ -119,6 +119,7 @@ fun main(args: Array<String>) =
         var themeMode by remember { mutableStateOf(ThemeMode.System) }
         var showInfoDialog by remember { mutableStateOf(false) }
         var isFillCenterWindowVisible by remember { mutableStateOf(false) }
+        var isTrackpadLabWindowVisible by remember { mutableStateOf(false) }
 
         val isDark =
             when (themeMode) {
@@ -155,7 +156,17 @@ fun main(args: Array<String>) =
                 ) {
                     val tabs =
                         buildList {
-                            addAll(listOf("Nucleus", "Fill Title", "Gallery", "Taskbar", "Scroll Test", "Popups"))
+                            addAll(
+                                listOf(
+                                    "Nucleus",
+                                    "Fill Title",
+                                    "Gallery",
+                                    "Taskbar",
+                                    "Scroll Test",
+                                    "Trackpad Lab",
+                                    "Popups",
+                                ),
+                            )
                             add("Notifications (Common)")
                             add("Notifications")
                             add("Launcher")
@@ -166,7 +177,11 @@ fun main(args: Array<String>) =
                                 add("Menu")
                             }
                         }
-                    var selectedTab by remember { mutableStateOf("Nucleus") }
+                    // NUCLEUS_DEMO_TAB=<tab name> opens straight on a tab (manual
+                    // test rigs such as the Trackpad Lab, automation).
+                    var selectedTab by remember {
+                        mutableStateOf(System.getenv("NUCLEUS_DEMO_TAB")?.takeIf { it in tabs } ?: "Nucleus")
+                    }
 
                     MaterialTitleBar(modifier = Modifier.newFullscreenControls().macOSLargeCornerRadius()) { _ ->
                         val titleBarAlignment =
@@ -282,6 +297,11 @@ fun main(args: Array<String>) =
                         "Taskbar" -> TaskbarProgressScreen(nucleusWindow)
                         "Scroll Test" -> ScrollTestScreen()
                         "Popups" -> PopupPlacementScreen(nucleusWindow.unsafe.taoWindow)
+                        "Trackpad Lab" ->
+                            TrackpadLabScreen(onOpenNativePopupWindow = {
+                                isTrackpadLabWindowVisible =
+                                    true
+                            })
                         "Notifications" -> {
                             when (Platform.Current) {
                                 Platform.MacOS -> NotificationsScreen()
@@ -364,6 +384,10 @@ fun main(args: Array<String>) =
                     visible = isFillCenterWindowVisible,
                     onCloseRequest = { isFillCenterWindowVisible = false },
                     seedColor = seedColor,
+                )
+                TrackpadLabWindow(
+                    visible = isTrackpadLabWindowVisible,
+                    onCloseRequest = { isTrackpadLabWindowVisible = false },
                 )
             }
         }
