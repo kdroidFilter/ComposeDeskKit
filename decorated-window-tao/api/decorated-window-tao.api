@@ -299,13 +299,16 @@ public abstract interface class dev/nucleusframework/window/tao/DockSplitterScop
 
 public final class dev/nucleusframework/window/tao/DockTarget {
 	public static final field $stable I
-	public fun <init> (Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;)V
+	public fun <init> (Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;)V
+	public synthetic fun <init> (Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/nucleusframework/window/tao/TaoWindow;
 	public final fun component2 ()Ldev/nucleusframework/window/tao/DockSide;
-	public final fun copy (Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;)Ldev/nucleusframework/window/tao/DockTarget;
-	public static synthetic fun copy$default (Ldev/nucleusframework/window/tao/DockTarget;Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;ILjava/lang/Object;)Ldev/nucleusframework/window/tao/DockTarget;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun copy (Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;)Ldev/nucleusframework/window/tao/DockTarget;
+	public static synthetic fun copy$default (Ldev/nucleusframework/window/tao/DockTarget;Ldev/nucleusframework/window/tao/TaoWindow;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;ILjava/lang/Object;)Ldev/nucleusframework/window/tao/DockTarget;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getHost ()Ldev/nucleusframework/window/tao/TaoWindow;
+	public final fun getOrder ()Ljava/lang/Integer;
 	public final fun getSide ()Ldev/nucleusframework/window/tao/DockSide;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;

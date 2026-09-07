@@ -82,7 +82,13 @@ import dev.nucleusframework.window.tao.workspace.rememberHostGeometry
  * The layout is also the drop target for satellite drags
  * ([Modifier.satelliteDragHandle]): a strip of [SatelliteWorkspace.DockZoneWidth]
  * inside each edge lights up while a dragged satellite hovers it, and a panel
- * dragged out of its dock is outlined under the pointer until released.
+ * dragged out of its dock is outlined under the pointer until released. Over
+ * a side that already has panels, the pointer's place along the stack picks
+ * the rank the drop takes — a bar between the two panels it would land
+ * between — so the panels of a side are reordered by dragging one over the
+ * others; the rank it holds is no target. A panel docked again without a
+ * drag (`SatelliteScope.dock()`, [SatelliteWorkspace.dock] with no order)
+ * comes back to the rank it left.
  *
  * Each panel is the satellite's `header` above its `content`, composed here
  * in the host window's scene under the satellite's own saveable-state
@@ -243,6 +249,102 @@ internal class DockLayoutState(
             }
         }
     }
+
+    /**
+     * The ranks a panel dropped on [side] can take among the panels already
+     * shown there, as one rect per rank in rank order — in the layout's own
+     * px, like [landingRectPx]. Together the rects cover the side's stack and
+     * [stripPx], its drop strip: rank `k` is the region between the centres of
+     * the panels of ranks `k - 1` and `k`, the first reaching the side's own
+     * edge (a layered side) or the start of the band (a split side), the last
+     * running through the strip. The [dragged] panel is not counted — its
+     * neighbours' centres are the boundaries, so its own region is the rank it
+     * has now. Empty while no other panel is docked there, or one has not been
+     * placed yet: nothing to order against.
+     */
+    fun dropSlotsPx(
+        side: DockSide,
+        stripPx: Rect,
+        dragged: SatelliteEntry?,
+    ): List<Rect> {
+        val origin = layoutBoundsInWindowPx.topLeft
+        val panels = panelsOn(side).filter { it !== dragged }
+        if (panels.isEmpty()) return emptyList()
+        val rects = panels.map { (it.dockedBoundsInWindowPx ?: return emptyList()).translate(-origin) }
+        val band = (bandBoundsInWindowPx[side] ?: layoutBoundsInWindowPx).translate(-origin)
+        val layered = isLayered(side)
+        var region = rects.reduce(::unionOf).let { unionOf(it, stripPx) }
+        if (layered) {
+            // Out to the side's own edge: a drop past the outermost layer is the first rank.
+            region =
+                when (side) {
+                    DockSide.Left -> region.copy(left = band.left)
+                    DockSide.Right -> region.copy(right = band.right)
+                    DockSide.Top -> region.copy(top = band.top)
+                    DockSide.Bottom -> region.copy(bottom = band.bottom)
+                }
+        }
+        val alongX = side.isVertical == layered
+        val cuts = rects.map { if (alongX) it.center.x else it.center.y }.sorted()
+        val edges =
+            listOf(if (alongX) region.left else region.top) + cuts + listOf(if (alongX) region.right else region.bottom)
+        val ascending =
+            List(rects.size + 1) { index ->
+                if (alongX) {
+                    Rect(edges[index], region.top, edges[index + 1], region.bottom)
+                } else {
+                    Rect(region.left, edges[index], region.right, edges[index + 1])
+                }
+            }
+        return if (ranksDescend(side)) ascending.asReversed() else ascending
+    }
+
+    /**
+     * The boundary a panel dropped at rank [order] on [side] slides into, as a
+     * bar of [thicknessPx] across the stack: between the panels of ranks
+     * `order - 1` and `order` — in the middle of the splitter that separates
+     * them — or along the stack's first or last edge. The [dragged] panel is
+     * not counted, as in [dropSlotsPx]. `null` while the side has no other
+     * panel, or one has not been placed yet.
+     */
+    fun insertionBarPx(
+        side: DockSide,
+        dragged: SatelliteEntry?,
+        order: Int,
+        thicknessPx: Float,
+    ): Rect? {
+        val origin = layoutBoundsInWindowPx.topLeft
+        val panels = panelsOn(side).filter { it !== dragged }
+        if (panels.isEmpty()) return null
+        val rects = panels.map { (it.dockedBoundsInWindowPx ?: return null).translate(-origin) }
+        val alongX = side.isVertical == isLayered(side)
+        val descending = ranksDescend(side)
+
+        // A panel's edge facing the lower ranks, and the one facing the higher.
+        fun near(rect: Rect): Float =
+            if (alongX) (if (descending) rect.right else rect.left) else (if (descending) rect.bottom else rect.top)
+
+        fun far(rect: Rect): Float =
+            if (alongX) (if (descending) rect.left else rect.right) else (if (descending) rect.top else rect.bottom)
+        val rank = order.coerceIn(0, rects.size)
+        val at =
+            when (rank) {
+                0 -> near(rects.first())
+                rects.size -> far(rects.last())
+                else -> (far(rects[rank - 1]) + near(rects[rank])) / 2f
+            }
+        val across = rects.reduce(::unionOf)
+        val half = thicknessPx / 2f
+        return if (alongX) {
+            Rect(at - half, across.top, at + half, across.bottom)
+        } else {
+            Rect(across.left, at - half, across.right, at + half)
+        }
+    }
+
+    /** Whether rank `0` sits at the high coordinate: the outer layer of a right or bottom layered side. */
+    private fun ranksDescend(side: DockSide): Boolean =
+        isLayered(side) && (side == DockSide.Right || side == DockSide.Bottom)
 
     /** One movable subtree per docked satellite, so a panel changing side keeps its composition. */
     private val movables = HashMap<SatelliteEntry, @Composable () -> Unit>()

@@ -42,7 +42,7 @@ internal class HostGeometry(
      * none; the hit test then falls back to the edges of
      * [layoutBoundsInWindowPx].
      */
-    var zoneBoundsInWindowPx: Map<DockSide, Rect> = emptyMap()
+    var zoneBoundsInWindowPx: Map<DockSide, DockDropZone> = emptyMap()
 
     /** Physical pixels per dp on the host, `1` while the window has none yet. */
     fun scaleOrOne(): Float = scaleFactor().takeIf { it > 0f } ?: 1f
@@ -68,13 +68,47 @@ internal class HostGeometry(
      * of the layout — the same four zones the pointer hit test uses. `null`
      * while [clientOriginPx] is.
      */
-    fun zoneScreenRectsPx(zoneWidthPx: Float): Map<DockSide, Rect>? {
+    fun zoneScreenRectsPx(zoneWidthPx: Float): Map<DockSide, DockDropZone>? {
         val origin = clientOriginPx() ?: return null
         if (zoneBoundsInWindowPx.isNotEmpty()) {
-            return zoneBoundsInWindowPx.mapValues { (_, rect) -> rect.translate(origin) }
+            return zoneBoundsInWindowPx.mapValues { (_, zone) -> zone.translate(origin) }
         }
         val rect = layoutBoundsInWindowPx.translate(origin)
-        return DockSide.entries.associateWith { side -> edgeStripPx(rect, side, zoneWidthPx) }
+        return DockSide.entries.associateWith { side -> DockDropZone(edgeStripPx(rect, side, zoneWidthPx)) }
+    }
+}
+
+/**
+ * What one side of a drop target offers a drag, in whichever px space the
+ * holder says: the [strip] a satellite enters the side by, and — when panels
+ * are already docked there — one [slots] rect per rank the dropped panel can
+ * take among them, in rank order, covering the stack and the strip between
+ * them. Empty [slots] mean the side has no panel to order against.
+ */
+internal data class DockDropZone(
+    val strip: Rect,
+    val slots: List<Rect> = emptyList(),
+) {
+    fun translate(offset: Offset): DockDropZone =
+        DockDropZone(strip.translate(offset), slots.map { it.translate(offset) })
+
+    /** Whether [point] is on the strip or on one of the slots. */
+    fun contains(point: Offset): Boolean = strip.contains(point) || slots.any { it.contains(point) }
+
+    /**
+     * The rank [point] aims at: the slot it is in, else the nearest one, so a
+     * pointer past either end of the stack means its first or last rank.
+     * `null` without slots: nothing to order against.
+     */
+    fun slotAt(point: Offset): Int? = slots.indices.minByOrNull { distanceSquaredPx(slots[it], point) }
+
+    private fun distanceSquaredPx(
+        rect: Rect,
+        point: Offset,
+    ): Float {
+        val dx = maxOf(rect.left - point.x, 0f, point.x - rect.right)
+        val dy = maxOf(rect.top - point.y, 0f, point.y - rect.bottom)
+        return dx * dx + dy * dy
     }
 }
 

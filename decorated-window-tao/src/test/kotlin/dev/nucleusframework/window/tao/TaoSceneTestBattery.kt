@@ -704,8 +704,29 @@ public object TaoSceneTestBattery {
         run("DockZoneHintSidesTest: a floating satellite is offered every side") {
             DockZoneHintSidesTest().`a floating satellite is offered every side`()
         }
-        run("DockZoneHintSidesTest: a docked panel is not offered the side it is on") {
-            DockZoneHintSidesTest().`a docked panel is not offered the side it is on`()
+        run("DockZoneHintSidesTest: a docked panel is not offered the side it is alone on") {
+            DockZoneHintSidesTest().`a docked panel is not offered the side it is alone on`()
+        }
+        run("DockZoneHintSidesTest: a docked panel with a neighbour is offered its own side, to be ranked among them") {
+            DockZoneHintSidesTest().`a docked panel with a neighbour is offered its own side, to be ranked among them`()
+        }
+        run(
+            "DockDropSlotsTest: a layered side is cut at the layers' centres, from its edge through the strip",
+        ) {
+            DockDropSlotsTest()
+                .`a layered side is cut at the layers' centres, from its edge through the strip`()
+        }
+        run("DockDropSlotsTest: a split side is cut along its length, from the band's start") {
+            DockDropSlotsTest().`a split side is cut along its length, from the band's start`()
+        }
+        run("DockDropSlotsTest: no slots without another panel, or before it is placed") {
+            DockDropSlotsTest().`no slots without another panel, or before it is placed`()
+        }
+        run("DockDropSlotsTest: the pointer picks the slot it is in, else the nearest end") {
+            DockDropSlotsTest().`the pointer picks the slot it is in, else the nearest end`()
+        }
+        run("DockDropSlotsTest: the insertion bar sits on the edge between the two ranks") {
+            DockDropSlotsTest().`the insertion bar sits on the edge between the two ranks`()
         }
         run("DockZoneHintSidesTest: another window offers the side too, since dropping there is a move") {
             DockZoneHintSidesTest().`another window offers the side too, since dropping there is a move`()
@@ -715,6 +736,12 @@ public object TaoSceneTestBattery {
         }
         run("DockTargetFromDraggedRectTest: an inset zone is the target, not the window's own edge") {
             DockTargetFromDraggedRectTest().`an inset zone is the target, not the window's own edge`()
+        }
+        run(
+            "DockTargetFromDraggedRectTest: the pointer over a stack picks a rank, and beats a strip across its corner",
+        ) {
+            DockTargetFromDraggedRectTest()
+                .`the pointer over a stack picks a rank, and beats a strip across its corner`()
         }
         run("DockTargetFromDraggedRectTest: a dragged rect covering every zone is resolved by the pointer") {
             DockTargetFromDraggedRectTest().`a dragged rect covering every zone is resolved by the pointer`()
@@ -732,8 +759,20 @@ public object TaoSceneTestBattery {
         run("SatelliteWorkspaceTest: docking a floating satellite seeds the side extent and hosts it in the owner") {
             SatelliteWorkspaceTest().`docking a floating satellite seeds the side extent and hosts it in the owner`()
         }
-        run("SatelliteWorkspaceTest: dock order appends after the panels already on that side") {
-            SatelliteWorkspaceTest().`dock order appends after the panels already on that side`()
+        run("SatelliteDockRankTest: dock order inserts at that rank and keeps the side contiguous") {
+            SatelliteDockRankTest().`dock order inserts at that rank and keeps the side contiguous`()
+        }
+        run("SatelliteDockRankTest: a satellite docked again on the side it left returns to its rank") {
+            SatelliteDockRankTest().`a satellite docked again on the side it left returns to its rank`()
+        }
+        run(
+            "SatelliteDockRankTest: a satellite new to a side is appended there and keeps its rank elsewhere",
+        ) {
+            SatelliteDockRankTest()
+                .`a satellite new to a side is appended there and keeps its rank elsewhere`()
+        }
+        run("SatelliteDockRankTest: a closed panel keeps its rank and the weight comes back with it") {
+            SatelliteDockRankTest().`a closed panel keeps its rank and the weight comes back with it`()
         }
         run("SatelliteWorkspaceTest: undock without host geometry returns to the last floating placement") {
             SatelliteWorkspaceTest().`undock without host geometry returns to the last floating placement`()
@@ -764,6 +803,9 @@ public object TaoSceneTestBattery {
         }
         run("SatelliteWorkspaceTest: a docked drag released in another zone re-docks and inside its own panel stays") {
             SatelliteWorkspaceTest().`a docked drag released in another zone re-docks and inside its own panel stays`()
+        }
+        run("SatelliteDockRankTest: a docked drag dropped on its own stack takes the rank under the pointer") {
+            SatelliteDockRankTest().`a docked drag dropped on its own stack takes the rank under the pointer`()
         }
         run("SatelliteWorkspaceTest: a cancelled drag leaves no feedback and no placement change") {
             SatelliteWorkspaceTest().`a cancelled drag leaves no feedback and no placement change`()

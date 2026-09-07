@@ -80,7 +80,7 @@ private class FloatingDragSession(
         update(pointerScreenPx)
         val target = workspace.dockPreview
         cancel()
-        if (target != null) workspace.dock(entry.id, target.side, host = target.host)
+        if (target != null) workspace.dropAt(entry.id, target)
     }
 
     /** The window's own size; read live, since a resize mid-drag is allowed. */
@@ -102,7 +102,8 @@ private class DockedDragSession(
     /** The host's px-per-dp, carried to the ghost window. */
     private val scaleFactor: Float,
 ) : SatelliteDragSessionBase(workspace) {
-    private val own: DockTarget? = (entry.placement as? SatellitePlacement.Docked)?.let { DockTarget(host, it.side) }
+    /** Its own slot on its own side: dropping there changes nothing. */
+    private val own: DockTarget? = workspace.ownTarget(entry, host)
 
     override fun update(pointerScreenPx: Offset) {
         if (!isLive) return
@@ -127,7 +128,7 @@ private class DockedDragSession(
         val target = workspace.dockTargetAt(ghostRectPx(), drop)?.takeIf { it != own }
         cancel()
         when {
-            target != null -> workspace.dock(entry.id, target.side, host = target.host)
+            target != null -> workspace.dropAt(entry.id, target)
             panelScreenRectPx.contains(drop) -> Unit
             else -> workspace.undock(entry.id, workspace.floatingAtScreen(drop - grabOffsetPx, panelScreenRectPx.size))
         }
@@ -167,18 +168,15 @@ internal class SatelliteTransferDrag(
     /** Written by the target that took the drop, read once the session ends. */
     var drop: TransferDrop? = null
 
-    /** The zone the dragged panel already occupies; dropping back onto it changes nothing. */
-    val own: DockTarget? =
-        (origin as? SatelliteDragOrigin.DockedPanel)?.let { panel ->
-            (entry.placement as? SatellitePlacement.Docked)?.let { DockTarget(panel.host, it.side) }
-        }
+    /** The slot the dragged panel already occupies; dropping back onto it changes nothing. */
+    val own: DockTarget? = (origin as? SatelliteDragOrigin.DockedPanel)?.let { workspace.ownTarget(entry, it.host) }
 
     override fun end() {
         if (!workspace.isLiveTransfer(this)) return
         val outcome = drop
         workspace.endTransferDrag(this)
         when (outcome) {
-            is TransferDrop.Dock -> workspace.dock(entry.id, outcome.target.side, host = outcome.target.host)
+            is TransferDrop.Dock -> workspace.dropAt(entry.id, outcome.target)
             TransferDrop.Stay -> Unit
             null -> if (origin is SatelliteDragOrigin.DockedPanel) workspace.undock(entry.id)
         }

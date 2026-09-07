@@ -96,10 +96,13 @@ public sealed interface SatellitePlacement {
      * [SatelliteLayoutSnapshot].
      *
      * @property side the edge the panel attaches to.
-     * @property order position among the panels docked on the same side, low
-     *   to high from the top (left/right sides) or the left (top/bottom sides)
-     *   on a split side, and from the edge towards the content on a layered
-     *   one.
+     * @property order rank among the panels docked on the same side of the
+     *   same layout, low to high from the top (left/right sides) or the left
+     *   (top/bottom sides) on a split side, and from the edge towards the
+     *   content on a layered one. [SatelliteWorkspace.dock] and
+     *   [SatelliteWorkspace.undock] keep a side's ranks contiguous from `0`
+     *   and remember the rank a satellite leaves with, so it comes back to
+     *   it; a declared placement's order is the position it is inserted at.
      * @property extent the panel's own thickness on a layered side — its
      *   width on [DockSide.Left] / [DockSide.Right], its height on
      *   [DockSide.Top] / [DockSide.Bottom]. `null` falls back to the side's

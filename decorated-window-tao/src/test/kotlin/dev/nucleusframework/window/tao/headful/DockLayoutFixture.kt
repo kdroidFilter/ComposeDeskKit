@@ -246,6 +246,31 @@ internal suspend fun TaoWindowTestScope.awaitDockedBodies(
     settle()
 }
 
+/**
+ * [awaitDockedBodies] without the screen half: waits for the bodies and for
+ * the layout's bounds *in the window*, which is all a native Wayland host can
+ * publish.
+ */
+internal suspend fun TaoWindowTestScope.awaitDockedBodiesInWindow(
+    fixture: DockLayoutFixture,
+    vararg ids: String,
+) {
+    awaitUntil("owner window mapped") { bounds() != null }
+    awaitUntil("panels ${ids.toList()} are docked with a size — have ${fixture.bodyBounds.value.keys}") {
+        ids.all { id ->
+            val rect = fixture.bodyBounds.value[id]
+            rect != null && rect.width > 0f && rect.height > 0f
+        }
+    }
+    awaitUntil("dock layout of the host is measured in its window") {
+        fixture.workspace
+            .dockHostGeometry(window)
+            ?.layoutBoundsInWindowPx
+            ?.isEmpty == false
+    }
+    settle()
+}
+
 /** Screen position (physical px) of a point given in the case window's content coordinates. */
 internal fun TaoWindowTestScope.toScreen(
     fixture: DockLayoutFixture,

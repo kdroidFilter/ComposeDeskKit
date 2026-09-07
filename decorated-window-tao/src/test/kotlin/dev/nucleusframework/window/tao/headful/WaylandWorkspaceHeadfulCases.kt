@@ -5,6 +5,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.DockTarget
+import dev.nucleusframework.window.tao.DockTransferTarget
+import dev.nucleusframework.window.tao.SatellitePlacement
 import dev.nucleusframework.window.tao.TabDropTarget
 import dev.nucleusframework.window.tao.TransferDrop
 import kotlin.math.abs
@@ -30,7 +32,10 @@ import kotlin.math.abs
  *  5. the ownership half is untouched: a floating satellite still hides while
  *     its owner is maximized, and never publishes an owner offset it cannot
  *     know;
- *  6. tabs the same way: no record tears off, a record merges back.
+ *  6. tabs the same way: no record tears off, a record merges back;
+ *  7. a drop over a stack resolves the rank under the pointer from window
+ *     coordinates — its own rank being no move — and the record reorders the
+ *     layers without rebuilding one.
  *
  * The adversarial half — lifecycle, concurrency, bursts, edge cases — lives in
  * [WaylandWorkspaceStressHeadfulCases]. Skipped everywhere that has
@@ -44,7 +49,82 @@ internal object WaylandWorkspaceHeadfulCases {
             recordedZoneDocksAndNoRecordUndocks(),
             everyZoneResolvesFromAWindowCoordinate(),
             tabTransferDragTearsOffAndMergesBack(),
+            aTransferDropResolvesARankAndReorders(),
         )
+
+    private fun aTransferDropResolvesARankAndReorders(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(TREE, SatellitePlacement.Docked(DockSide.Right, order = 0, extent = 100.dp)),
+                        DockPanelSpec(TOC, SatellitePlacement.Docked(DockSide.Right, order = 1, extent = 120.dp)),
+                        DockPanelSpec(NOTES, SatellitePlacement.Docked(DockSide.Right, order = 2, extent = 90.dp)),
+                    ),
+                layeredSides = setOf(DockSide.Right),
+            )
+        return TaoWindowTestCase(
+            name = "native Wayland: a transfer drop over a stack resolves the rank under the pointer and reorders",
+            skip = ::waylandSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodiesInWindow(fixture, TREE, TOC, NOTES)
+                val geometry = requireNotNull(workspace.dockHostGeometry(window))
+                val layout = geometry.layoutBoundsInWindowPx
+                val tree = requireNotNull(fixture.panelBounds.value[TREE])
+                val notesBefore = requireNotNull(fixture.panelBounds.value[NOTES])
+
+                val session = requireNotNull(workspace.beginTransferDrag(NOTES, panelOrigin(window)))
+                awaitUntil("the layout published its drop zones") { geometry.zoneBoundsInWindowPx.isNotEmpty() }
+                val target = DockTransferTarget(workspace, window, geometry)
+                // Window coordinates, the only ones an inbound event carries.
+                val overTreeOuterHalf = Offset(tree.left + tree.width * OUTER_HALF, layout.center.y)
+                check(target.zoneAt(overTreeOuterHalf) == DockTarget(window, DockSide.Right, 0)) {
+                    "the outer half of the first layer did not resolve to rank 0: ${target.zoneAt(overTreeOuterHalf)}"
+                }
+                check(target.zoneAt(notesBefore.center) == DockTarget(window, DockSide.Right, 2)) {
+                    "the panel's own area did not resolve to its own rank: ${target.zoneAt(notesBefore.center)}"
+                }
+                check(
+                    target.zoneAt(notesBefore.center) == session.own,
+                ) { "its own rank is not what the session calls its own" }
+                // Clear of the left strip and short of the layers: content.
+                val content = Offset(layout.left + CONTENT_PROBE_DP * window.scaleFactor, layout.center.y)
+                check(target.zoneAt(content) == null) { "the content is no zone: ${target.zoneAt(content)}" }
+
+                session.drop = TransferDrop.Dock(requireNotNull(target.zoneAt(overTreeOuterHalf)))
+                session.end()
+                awaitUntil("the notes are the first rank") {
+                    (workspace.satellite(NOTES)?.placement as? SatellitePlacement.Docked)?.order == 0
+                }
+                awaitDockedBodiesInWindow(fixture, TREE, TOC, NOTES)
+                val notes = requireNotNull(fixture.panelBounds.value[NOTES])
+                val treeAfter = requireNotNull(fixture.panelBounds.value[TREE])
+                check(
+                    near(notes.right, layout.right, LAYOUT_TOLERANCE_PX * 2) &&
+                        treeAfter.right <= notes.left + LAYOUT_TOLERANCE_PX,
+                ) {
+                    "the notes are not the outermost layer: notes=$notes tree=$treeAfter"
+                }
+                check(
+                    near(notes.width, notesBefore.width),
+                ) { "the notes changed width: ${notesBefore.width} -> ${notes.width}" }
+                check(
+                    fixture.incarnationsOf(TREE) == 1 &&
+                        fixture.incarnationsOf(TOC) == 1 &&
+                        fixture.incarnationsOf(NOTES) == 1,
+                ) {
+                    "a reorder rebuilt a panel: ${fixture.incarnations.value}"
+                }
+                check(workspace.publishesNoDragFeedback()) { "feedback left behind after the session ended" }
+            },
+        )
+    }
 
     private fun screenApiRefusedTransferSessionStarts(): TaoWindowTestCase {
         val fixture = SatelliteWorkspaceFixture()
@@ -288,4 +368,14 @@ internal object WaylandWorkspaceHeadfulCases {
 
     /** Any finite point: neither the refusal nor a zone probe may depend on where it is. */
     private const val PROBE_PX = 100f
+
+    private const val TREE = "tree"
+    private const val TOC = "toc"
+    private const val NOTES = "notes"
+
+    /** Well inside the outer half of a layer: the rank ahead of it. */
+    private const val OUTER_HALF = 0.8f
+
+    /** A point past the left strip and well short of the 310 dp of layers on the right, in a 520 dp layout. */
+    private const val CONTENT_PROBE_DP = 100f
 }

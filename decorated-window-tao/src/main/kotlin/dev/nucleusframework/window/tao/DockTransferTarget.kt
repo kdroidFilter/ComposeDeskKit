@@ -69,19 +69,22 @@ internal class DockTransferTarget(
     /**
      * The zone [positionInWindowPx] is in, resolved against the rectangles the
      * layout draws ([HostGeometry.zoneBoundsInWindowPx]) so a drop lands where
-     * the highlight promised — inset behind existing layers included — and
-     * against the layout's edges while none are published.
+     * the highlight promised — inset behind existing layers included, at the
+     * rank of the stack the pointer is over — and against the layout's edges
+     * while none are published.
      */
-    private fun zoneAt(positionInWindowPx: Offset): DockTarget? {
+    internal fun zoneAt(positionInWindowPx: Offset): DockTarget? {
         val zonePx = SatelliteWorkspace.DockZoneWidth.value * geometry.scaleOrOne()
         val zones = geometry.zoneBoundsInWindowPx
-        val side =
-            if (zones.isEmpty()) {
-                dockSideAt(geometry.layoutBoundsInWindowPx, positionInWindowPx, zonePx)
-            } else {
-                zones.entries.firstOrNull { (_, rect) -> !rect.isEmpty && rect.contains(positionInWindowPx) }?.key
-            }
-        return side?.let { DockTarget(host, it) }
+        if (zones.isEmpty()) {
+            return dockSideAt(geometry.layoutBoundsInWindowPx, positionInWindowPx, zonePx)?.let { DockTarget(host, it) }
+        }
+        // A stack the pointer is over wins over a strip running across its corner.
+        val (side, zone) =
+            zones.entries.firstOrNull { (_, zone) -> zone.slots.any { it.contains(positionInWindowPx) } }
+                ?: zones.entries.firstOrNull { (_, zone) -> zone.strip.contains(positionInWindowPx) }
+                ?: return null
+        return DockTarget(host, side, zone.slotAt(positionInWindowPx))
     }
 
     private fun preview(event: DragAndDropEvent) {

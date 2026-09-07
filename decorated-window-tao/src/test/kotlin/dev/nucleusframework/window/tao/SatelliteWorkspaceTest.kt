@@ -114,23 +114,6 @@ class SatelliteWorkspaceTest {
     }
 
     @Test
-    fun `dock order appends after the panels already on that side`() {
-        val workspace = SatelliteWorkspace()
-        workspace.join(a)
-        workspace.register("one", "One", floatingRight, initiallyOpen = true)
-        workspace.register("two", "Two", floatingRight, initiallyOpen = true)
-        workspace.register("three", "Three", floatingRight, initiallyOpen = true)
-
-        workspace.dock("one", DockSide.Left)
-        workspace.dock("two", DockSide.Left)
-        workspace.dock("three", DockSide.Left, order = -5)
-
-        assertEquals(0, (workspace.satellite("one")!!.placement as SatellitePlacement.Docked).order)
-        assertEquals(1, (workspace.satellite("two")!!.placement as SatellitePlacement.Docked).order)
-        assertEquals(-5, (workspace.satellite("three")!!.placement as SatellitePlacement.Docked).order)
-    }
-
-    @Test
     fun `undock without host geometry returns to the last floating placement`() {
         val workspace = SatelliteWorkspace()
         workspace.join(a)

@@ -10,6 +10,7 @@ import dev.nucleusframework.window.tao.DockPanelHeaderHeight
 import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.DockTarget
 import dev.nucleusframework.window.tao.SatelliteDragOrigin
+import dev.nucleusframework.window.tao.SatelliteDragSession
 import dev.nucleusframework.window.tao.SatellitePlacement
 import dev.nucleusframework.window.tao.SatelliteWorkspace
 import dev.nucleusframework.window.tao.hintedSides
@@ -38,7 +39,15 @@ import kotlin.math.abs
  *  7. a custom 1 dp splitter with a wider grip takes the drag aimed off the line;
  *  8. a floating satellite dropped on a layered side becomes a layer of its
  *     window's width, next to the panel already there;
- *  9. undocking a layer lifts the window off exactly where the layer was.
+ *  9. undocking a layer lifts the window off exactly where the layer was;
+ * 10. the drop preview follows the palette's own edge, not the pointer;
+ * 11. a layer floated and docked again without a rank comes back between the
+ *     neighbours it left, on a layered and on a split side alike;
+ * 12. a layer dragged by its header over the outer half of the outermost
+ *     layer previews the first rank and lands there, nothing rebuilt;
+ * 13. on a split side a panel dropped on its own rank stays, dropped on the
+ *     first half of the first panel becomes the first, and the closed one in
+ *     the middle keeps its rank.
  *
  * Every drag is a real mouse (AWT Robot) where the host can inject input,
  * else the same change through the workspace — the geometry the layout then
@@ -59,7 +68,301 @@ internal object DockLayoutHeadfulCases {
             aDropOnALayeredSideAddsALayerOfTheWindowsWidth(),
             undockingALayerLiftsTheWindowOffThePanel(),
             thePaletteEdgeDecidesTheZoneNotThePointer(),
+            aPanelDockedAgainReturnsToTheRankItLeft(),
+            aLayerDraggedOverTheOutermostOneBecomesTheFirst(),
+            aSplitPanelDroppedOnItsStackTakesTheRankUnderThePointer(),
         )
+
+    // ── 12. reorder a layered side by dragging ───────────────────────────
+
+    /**
+     * The innermost of three layers is dragged by its header — a real mouse
+     * where the host injects one, else the drag session it drives — until the
+     * pointer is over the outer half of the outermost layer. The first rank
+     * is previewed; released, the layer is the outermost column, at its own
+     * width, and no panel was rebuilt on the way.
+     */
+    private fun aLayerDraggedOverTheOutermostOneBecomesTheFirst(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs = layeredRightSpecs(),
+                layeredSides = setOf(DockSide.Right),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout a layer dragged over the outermost one becomes the first, nothing rebuilt",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodies(fixture, TREE, TOC, NOTES)
+                val scale = window.scaleFactor
+                val layout = awaitDockLayout(workspace, window)
+                val tree = panel(fixture, TREE)
+                val notesBefore = panel(fixture, NOTES)
+                // The header strip is the grip; a docked panel of another
+                // rank is offered its own side.
+                check(
+                    hintedSides(
+                        requireNotNull(workspace.satellite(NOTES)),
+                        window,
+                        workspace.satellites,
+                    ).contains(DockSide.Right),
+                ) {
+                    "a layer with neighbours is not offered its own side"
+                }
+                val grab =
+                    toScreen(
+                        fixture,
+                        Offset(
+                            notesBefore.center.x,
+                            notesBefore.top + DockPanelHeaderHeight.value * scale / 2f,
+                        ),
+                    )
+                // The outer half of the outermost layer: rank 0.
+                val target = toScreen(fixture, Offset(tree.left + tree.width * OUTER_HALF, layout.center.y))
+                val expected = DockTarget(window, DockSide.Right, 0)
+
+                if (robotPressAndDrag(grab, target, scale) != null) {
+                    awaitUntil("the first rank previews under the pointer — ${robotAim()}") {
+                        workspace.dockPreview ==
+                            expected
+                    }
+                    checkNotNull(robotRelease()) { "robot became unavailable mid-case" }
+                } else {
+                    System.err.println("[dock-layout] robot unavailable, driving the drag session directly")
+                    val session = beginDockedDrag(workspace, NOTES, grab)
+                    session.update(target)
+                    check(
+                        workspace.dockPreview == expected,
+                    ) { "expected $expected, previewed ${workspace.dockPreview}" }
+                    session.end(target)
+                }
+                awaitUntil("the notes are the first rank") {
+                    (workspace.satellite(NOTES)?.placement as? SatellitePlacement.Docked)?.order == 0
+                }
+                awaitDockedBodies(fixture, TREE, TOC, NOTES)
+                val notes = panel(fixture, NOTES)
+                val treeAfter = panel(fixture, TREE)
+                val toc = panel(fixture, TOC)
+                check(
+                    near(notes.right, layout.right, LAYOUT_TOLERANCE_PX * 2),
+                ) { "the notes are not at the edge: $notes vs $layout" }
+                check(
+                    near(treeAfter.right, notes.left, SPLITTER_TOLERANCE_PX) &&
+                        near(toc.right, treeAfter.left, SPLITTER_TOLERANCE_PX),
+                ) {
+                    "the columns are not notes, tree, toc from the edge: notes=$notes tree=$treeAfter toc=$toc"
+                }
+                check(
+                    near(notes.width, notesBefore.width),
+                ) { "the notes changed width: ${notesBefore.width} -> ${notes.width}" }
+                check(
+                    fixture.incarnationsOf(TREE) == 1 &&
+                        fixture.incarnationsOf(TOC) == 1 &&
+                        fixture.incarnationsOf(NOTES) == 1,
+                ) { "a reorder rebuilt a panel: ${fixture.incarnations.value}" }
+            },
+        )
+    }
+
+    // ── 13. reorder a split side, and stay on its own rank ──────────────
+
+    private fun aSplitPanelDroppedOnItsStackTakesTheRankUnderThePointer(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    listOf(
+                        DockPanelSpec(TARGUM, SatellitePlacement.Docked(DockSide.Bottom, order = 0)),
+                        DockPanelSpec(COMMENTS, SatellitePlacement.Docked(DockSide.Bottom, order = 1)),
+                        DockPanelSpec(INSPECTOR, SatellitePlacement.Docked(DockSide.Bottom, order = 2)),
+                    ),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout a split panel dropped on its stack takes the rank under the pointer or stays put",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodies(fixture, TARGUM, COMMENTS, INSPECTOR)
+                val scale = window.scaleFactor
+                val inspectorBefore = panel(fixture, INSPECTOR)
+                val targum = panel(fixture, TARGUM)
+                val grab =
+                    toScreen(
+                        fixture,
+                        Offset(
+                            inspectorBefore.center.x,
+                            inspectorBefore.top + DockPanelHeaderHeight.value * scale / 2f,
+                        ),
+                    )
+
+                // Nudged within its own panel: its own rank is no target, and the release changes nothing.
+                var session = beginDockedDrag(workspace, INSPECTOR, grab)
+                val nudge = grab + Offset(OWN_NUDGE_PX, OWN_NUDGE_PX)
+                session.update(nudge)
+                check(workspace.dockPreview == null) { "its own rank is previewed: ${workspace.dockPreview}" }
+                session.end(nudge)
+                settle()
+                check((workspace.satellite(INSPECTOR)?.placement as SatellitePlacement.Docked).order == 2) {
+                    "a release on its own rank moved the panel: ${workspace.satellite(INSPECTOR)?.placement}"
+                }
+                check(
+                    fixture.floatingWindows.value[INSPECTOR] == null,
+                ) { "a release on its own rank undocked the panel" }
+
+                // The left half of the first panel: the first rank.
+                val target = toScreen(fixture, Offset(targum.left + targum.width * (1f - OUTER_HALF), targum.center.y))
+                session = beginDockedDrag(workspace, INSPECTOR, grab)
+                session.update(target)
+                check(workspace.dockPreview == DockTarget(window, DockSide.Bottom, 0)) {
+                    "the first rank is not previewed: ${workspace.dockPreview}"
+                }
+                session.end(target)
+                awaitUntil("the inspector is the first rank") {
+                    (workspace.satellite(INSPECTOR)?.placement as? SatellitePlacement.Docked)?.order == 0
+                }
+                awaitDockedBodies(fixture, TARGUM, COMMENTS, INSPECTOR)
+                val inspector = panel(fixture, INSPECTOR)
+                val targumAfter = panel(fixture, TARGUM)
+                val comments = panel(fixture, COMMENTS)
+                check(
+                    inspector.right <= targumAfter.left + LAYOUT_TOLERANCE_PX &&
+                        targumAfter.right <= comments.left + LAYOUT_TOLERANCE_PX,
+                ) {
+                    "the row is not inspector, targum, comments: " +
+                        "inspector=$inspector targum=$targumAfter comments=$comments"
+                }
+                check(
+                    fixture.incarnationsOf(TARGUM) == 1 && fixture.incarnationsOf(COMMENTS) == 1,
+                ) { "a reorder rebuilt a neighbour" }
+
+                // With the middle one closed, a drop on the shown neighbour's far half goes behind the closed one too.
+                workspace.close(TARGUM)
+                awaitDockedBodies(fixture, INSPECTOR, COMMENTS)
+                val commentsShown = panel(fixture, COMMENTS)
+                val farHalf =
+                    toScreen(
+                        fixture,
+                        Offset(commentsShown.left + commentsShown.width * OUTER_HALF, commentsShown.center.y),
+                    )
+                session = beginDockedDrag(workspace, INSPECTOR, grab)
+                session.update(farHalf)
+                check(workspace.dockPreview == DockTarget(window, DockSide.Bottom, 1)) {
+                    "the rank after the comments is not previewed: ${workspace.dockPreview}"
+                }
+                session.end(farHalf)
+                awaitUntil("the inspector is last") {
+                    (workspace.satellite(INSPECTOR)?.placement as? SatellitePlacement.Docked)?.order == 2
+                }
+                check((workspace.satellite(TARGUM)?.placement as SatellitePlacement.Docked).order == 0) {
+                    "the closed targum lost its rank: ${workspace.satellite(TARGUM)?.placement}"
+                }
+                workspace.open(TARGUM)
+                awaitDockedBodies(fixture, TARGUM, COMMENTS, INSPECTOR)
+                val reopened = panel(fixture, TARGUM)
+                check(reopened.right <= panel(fixture, COMMENTS).left + LAYOUT_TOLERANCE_PX) {
+                    "the reopened targum is not first: $reopened vs ${panel(fixture, COMMENTS)}"
+                }
+            },
+        )
+    }
+
+    // ── 11. a re-dock returns to the rank ────────────────────────────────
+
+    /**
+     * The middle layer of three is floated, then docked again through the
+     * path a header button takes — a side and no rank. It comes back between
+     * the two it left, at its own width, and neither neighbour is rebuilt.
+     * The same on the bottom side, split: the panel that left the middle
+     * of the row is back in the middle of the row.
+     */
+    private fun aPanelDockedAgainReturnsToTheRankItLeft(): TaoWindowTestCase {
+        val fixture =
+            DockLayoutFixture(
+                specs =
+                    layeredRightSpecs() +
+                        listOf(
+                            DockPanelSpec(TARGUM, SatellitePlacement.Docked(DockSide.Bottom, order = 0)),
+                            DockPanelSpec(COMMENTS, SatellitePlacement.Docked(DockSide.Bottom, order = 1)),
+                            DockPanelSpec(INSPECTOR, SatellitePlacement.Docked(DockSide.Bottom, order = 2)),
+                        ),
+                layeredSides = setOf(DockSide.Right),
+            )
+        return TaoWindowTestCase(
+            name = "dock layout a panel docked again without a rank returns between the neighbours it left",
+            skip = ::workspaceSkipReason,
+            windowState = workspaceParentWindowState(),
+            size = DpSize(PARENT_W_DP.dp, PARENT_H_DP.dp),
+            paintDefaultBackground = false,
+            content = { fixture.Body() },
+            applicationContent = { with(fixture) { Satellites() } },
+            driver = {
+                val workspace = fixture.workspace
+                awaitDockedBodies(fixture, TREE, TOC, NOTES, TARGUM, COMMENTS, INSPECTOR)
+                val tocBefore = panel(fixture, TOC)
+                val commentsBefore = panel(fixture, COMMENTS)
+
+                // Layered right side: the toc is the middle column.
+                workspace.undock(TOC)
+                awaitUntil("the toc floats") { fixture.floatingWindows.value[TOC]?.hasRealFramePx() == true }
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                check(panel(fixture, NOTES).right > tocBefore.left + LAYOUT_TOLERANCE_PX) {
+                    "the inner layer did not slide out while the toc floated: ${panel(fixture, NOTES)}"
+                }
+                workspace.dock(TOC, DockSide.Right)
+                awaitDockedBodies(fixture, TREE, TOC, NOTES)
+                val tree = panel(fixture, TREE)
+                val toc = panel(fixture, TOC)
+                val notes = panel(fixture, NOTES)
+                // Between its neighbours, a splitter's width from each.
+                check(
+                    near(toc.right, tree.left, SPLITTER_TOLERANCE_PX) &&
+                        near(notes.right, toc.left, SPLITTER_TOLERANCE_PX),
+                ) {
+                    "the toc is not back between the tree and the notes: tree=$tree toc=$toc notes=$notes"
+                }
+                check(
+                    near(toc.width, tocBefore.width),
+                ) { "the toc came back at ${toc.width} px, was ${tocBefore.width}" }
+                check((workspace.satellite(TOC)?.placement as SatellitePlacement.Docked).order == 1) {
+                    "the toc's rank is not 1: ${workspace.satellite(TOC)?.placement}"
+                }
+                check(fixture.incarnationsOf(TREE) == 1 && fixture.incarnationsOf(NOTES) == 1) {
+                    "a neighbour was rebuilt by the toc leaving and returning"
+                }
+
+                // Split bottom side: the comments are the middle of the row.
+                workspace.undock(COMMENTS)
+                awaitUntil(
+                    "the comments float",
+                ) { fixture.floatingWindows.value[COMMENTS]?.hasRealFramePx() == true }
+                settle(SETTLE_AFTER_MAP_MILLIS)
+                workspace.dock(COMMENTS, DockSide.Bottom)
+                awaitDockedBodies(fixture, TARGUM, COMMENTS, INSPECTOR)
+                val targum = panel(fixture, TARGUM)
+                val comments = panel(fixture, COMMENTS)
+                val inspector = panel(fixture, INSPECTOR)
+                check(
+                    targum.right <= comments.left + LAYOUT_TOLERANCE_PX &&
+                        comments.right <= inspector.left + LAYOUT_TOLERANCE_PX,
+                ) {
+                    "the comments are not back in the middle of the row: " +
+                        "targum=$targum comments=$comments inspector=$inspector"
+                }
+                check(near(comments.width, commentsBefore.width, SPLITTER_TOLERANCE_PX)) {
+                    "the comments came back at ${comments.width} px, were ${commentsBefore.width}"
+                }
+            },
+        )
+    }
 
     // ── 10. the preview follows the palette, not the pointer ─────────────
 
@@ -110,11 +413,16 @@ internal object DockLayoutHeadfulCases {
 
                 // The panel already on the bottom is not offered that side.
                 val tree = requireNotNull(workspace.satellite(TREE))
-                check(!hintedSides(tree, window).contains(DockSide.Bottom)) {
-                    "the bottom panel is offered the side it is already on: ${hintedSides(tree, window)}"
+                check(!hintedSides(tree, window, workspace.satellites).contains(DockSide.Bottom)) {
+                    "the bottom panel is offered the side it is already on: ${hintedSides(
+                        tree,
+                        window,
+                        workspace.satellites,
+                    )}"
                 }
                 check(
-                    hintedSides(requireNotNull(workspace.satellite(INSPECTOR)), window).size == DockSide.entries.size,
+                    hintedSides(requireNotNull(workspace.satellite(INSPECTOR)), window, workspace.satellites).size ==
+                        DockSide.entries.size,
                 ) {
                     "a floating palette must be offered every side"
                 }
@@ -848,6 +1156,25 @@ internal object DockLayoutHeadfulCases {
 
     // ── helpers ──────────────────────────────────────────────────────────
 
+    /**
+     * Starts a drag of the docked panel [id] and waits for the layout to
+     * publish the zones the drop is resolved against. A pointer gesture gives
+     * the hints a frame to compose before the slop is passed; a session driven
+     * by hand has to wait for it, or the first sample is resolved against the
+     * bare edges.
+     */
+    private suspend fun TaoWindowTestScope.beginDockedDrag(
+        workspace: SatelliteWorkspace,
+        id: String,
+        grab: Offset,
+    ): SatelliteDragSession {
+        val session = requireNotNull(workspace.beginDrag(id, SatelliteDragOrigin.DockedPanel(window), grab))
+        awaitUntil("the layout published its drop zones") {
+            workspace.dockHostGeometry(window)?.zoneBoundsInWindowPx?.isNotEmpty() == true
+        }
+        return session
+    }
+
     private fun layeredRightSpecs(): List<DockPanelSpec> =
         listOf(
             DockPanelSpec(TREE, SatellitePlacement.Docked(DockSide.Right, order = 0, extent = TREE_W_DP.dp)),
@@ -884,4 +1211,10 @@ internal object DockLayoutHeadfulCases {
 
     /** How far inside the layout's edge the dragged palette's own edge is aimed. */
     private const val EDGE_INSET_PX = 8f
+
+    /** Where in a neighbour a drop aims to land ahead of it: well inside its outer half. */
+    private const val OUTER_HALF = 0.8f
+
+    /** A drag that stays on the panel it started from. */
+    private const val OWN_NUDGE_PX = 6f
 }

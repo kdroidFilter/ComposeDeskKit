@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import dev.nucleusframework.window.tao.workspace.DockDropZone
 import dev.nucleusframework.window.tao.workspace.HostGeometry
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -135,14 +136,33 @@ class DockZoneHintSidesTest {
     @Test
     fun `a floating satellite is offered every side`() {
         val entry = workspace.register("tools", "Tools", floating, initiallyOpen = true)
-        assertEquals(DockSide.entries, hintedSides(entry, host))
+        assertEquals(DockSide.entries, hintedSides(entry, host, workspace.satellites))
     }
 
     @Test
-    fun `a docked panel is not offered the side it is on`() {
+    fun `a docked panel is not offered the side it is alone on`() {
         val entry = workspace.register("tools", "Tools", floating, initiallyOpen = true)
         workspace.dock("tools", DockSide.Bottom, host = host)
-        assertEquals(listOf(DockSide.Left, DockSide.Right, DockSide.Top), hintedSides(entry, host))
+        assertEquals(
+            listOf(DockSide.Left, DockSide.Right, DockSide.Top),
+            hintedSides(entry, host, workspace.satellites),
+        )
+    }
+
+    @Test
+    fun `a docked panel with a neighbour is offered its own side, to be ranked among them`() {
+        val entry = workspace.register("tools", "Tools", floating, initiallyOpen = true)
+        val other = workspace.register("colors", "Colors", floating, initiallyOpen = true)
+        other.content = {}
+        workspace.dock("tools", DockSide.Bottom, host = host)
+        workspace.dock("colors", DockSide.Bottom, host = host)
+        assertEquals(DockSide.entries, hintedSides(entry, host, workspace.satellites))
+        // A closed neighbour is not shown, so there is nothing to rank against.
+        workspace.close("colors")
+        assertEquals(
+            listOf(DockSide.Left, DockSide.Right, DockSide.Top),
+            hintedSides(entry, host, workspace.satellites),
+        )
     }
 
     @Test
@@ -150,7 +170,115 @@ class DockZoneHintSidesTest {
         val entry = workspace.register("tools", "Tools", floating, initiallyOpen = true)
         workspace.join(other)
         workspace.dock("tools", DockSide.Bottom, host = host)
-        assertEquals(DockSide.entries, hintedSides(entry, other))
+        assertEquals(DockSide.entries, hintedSides(entry, other, workspace.satellites))
+    }
+}
+
+/**
+ * The ranks a drop can take among the panels of a side
+ * ([DockLayoutState.dropSlotsPx]) and the bar drawn for one
+ * ([DockLayoutState.insertionBarPx]), on the reader layout of
+ * [DockLandingRectTest]: layered right side, split bottom, layout px.
+ */
+class DockDropSlotsTest {
+    private val host = TaoWindow(handle = 1L)
+    private val workspace = SatelliteWorkspace().apply { join(host) }
+    private val state =
+        DockLayoutState(workspace).apply {
+            layeredSides = setOf(DockSide.Right)
+            layoutBoundsInWindowPx = Rect(20f, 40f, 1020f, 640f)
+            bandBoundsInWindowPx[DockSide.Right] = Rect(20f, 40f, 1020f, 640f)
+            bandBoundsInWindowPx[DockSide.Bottom] = Rect(20f, 40f, 720f, 640f)
+        }
+
+    private fun docked(
+        id: String,
+        side: DockSide,
+        order: Int,
+        boundsInLayoutPx: Rect,
+    ): SatelliteEntry {
+        val entry =
+            workspace.register(id, id, SatellitePlacement.Docked(side, order, extent = 100.dp), initiallyOpen = true)
+        entry.content = {}
+        entry.dockedBoundsInWindowPx = boundsInLayoutPx.translate(Offset(20f, 40f))
+        return entry
+    }
+
+    private val tree = docked("tree", DockSide.Right, 0, Rect(900f, 0f, 1000f, 600f))
+    private val toc = docked("toc", DockSide.Right, 1, Rect(800f, 0f, 900f, 600f))
+    private val comments = docked("comments", DockSide.Bottom, 0, Rect(0f, 540f, 350f, 600f))
+    private val sources = docked("sources", DockSide.Bottom, 1, Rect(350f, 540f, 700f, 600f))
+
+    init {
+        state.docked = listOf(tree, toc, comments, sources)
+    }
+
+    @Test
+    fun `a layered side is cut at the layers' centres, from its edge through the strip`() {
+        val strip = state.landingRectPx(DockSide.Right, 60f, joinsStack = false)
+        assertEquals(Rect(740f, 0f, 800f, 600f), strip)
+        assertEquals(
+            listOf(Rect(950f, 0f, 1000f, 600f), Rect(850f, 0f, 950f, 600f), Rect(740f, 0f, 850f, 600f)),
+            state.dropSlotsPx(DockSide.Right, strip, dragged = null),
+        )
+        // The dragged layer is left out: its neighbours' centres are the cuts,
+        // and the region it stands in is the rank it already holds.
+        assertEquals(
+            listOf(Rect(950f, 0f, 1000f, 600f), Rect(740f, 0f, 950f, 600f)),
+            state.dropSlotsPx(DockSide.Right, strip, dragged = toc),
+        )
+        assertEquals(
+            1,
+            DockDropZone(strip, state.dropSlotsPx(DockSide.Right, strip, dragged = toc)).slotAt(Offset(850f, 300f)),
+        )
+        assertEquals(DockTarget(host, DockSide.Right, 1), workspace.ownTarget(toc, host))
+    }
+
+    @Test
+    fun `a split side is cut along its length, from the band's start`() {
+        val strip = state.landingRectPx(DockSide.Bottom, 60f, joinsStack = false)
+        assertEquals(
+            listOf(Rect(0f, 540f, 175f, 600f), Rect(175f, 540f, 525f, 600f), Rect(525f, 540f, 700f, 600f)),
+            state.dropSlotsPx(DockSide.Bottom, strip, dragged = null),
+        )
+    }
+
+    @Test
+    fun `no slots without another panel, or before it is placed`() {
+        val strip = state.landingRectPx(DockSide.Left, 60f, joinsStack = false)
+        assertEquals(emptyList(), state.dropSlotsPx(DockSide.Left, strip, dragged = null))
+        tree.dockedBoundsInWindowPx = null
+        assertEquals(emptyList(), state.dropSlotsPx(DockSide.Right, strip, dragged = null))
+        assertNull(DockDropZone(strip).slotAt(Offset.Zero))
+    }
+
+    @Test
+    fun `the pointer picks the slot it is in, else the nearest end`() {
+        val zone =
+            DockDropZone(
+                strip = Rect(0f, 540f, 700f, 600f),
+                slots = listOf(Rect(0f, 540f, 175f, 600f), Rect(175f, 540f, 525f, 600f), Rect(525f, 540f, 700f, 600f)),
+            )
+        assertEquals(1, zone.slotAt(Offset(300f, 570f)))
+        assertEquals(0, zone.slotAt(Offset(-50f, 570f)), "past the start")
+        assertEquals(2, zone.slotAt(Offset(900f, 570f)), "past the end")
+        assertEquals(1, zone.slotAt(Offset(300f, 100f)), "off the stack: the rank under the pointer's x")
+    }
+
+    @Test
+    fun `the insertion bar sits on the edge between the two ranks`() {
+        // Layered right: rank 1 is between the tree (900..1000) and the toc (800..900).
+        assertEquals(Rect(898f, 0f, 902f, 600f), state.insertionBarPx(DockSide.Right, null, 1, 4f))
+        assertEquals(Rect(998f, 0f, 1002f, 600f), state.insertionBarPx(DockSide.Right, null, 0, 4f), "the side's edge")
+        assertEquals(
+            Rect(798f, 0f, 802f, 600f),
+            state.insertionBarPx(DockSide.Right, null, 2, 4f),
+            "past the innermost",
+        )
+        // Split bottom, the sources dragged: only the comments remain.
+        assertEquals(Rect(348f, 540f, 352f, 600f), state.insertionBarPx(DockSide.Bottom, sources, 1, 4f))
+        assertEquals(Rect(-2f, 540f, 2f, 600f), state.insertionBarPx(DockSide.Bottom, sources, 0, 4f))
+        assertNull(state.insertionBarPx(DockSide.Left, null, 0, 4f))
     }
 }
 
@@ -220,7 +348,7 @@ class DockTargetFromDraggedRectTest {
         // What a layered right side draws while two columns are already
         // docked: the strip is inset 200 px behind them, not at x 900.
         val geometry = requireNotNull(workspace.dockHostGeometry(a))
-        geometry.zoneBoundsInWindowPx = mapOf(DockSide.Right to Rect(540f, 40f, 604f, 600f))
+        geometry.zoneBoundsInWindowPx = mapOf(DockSide.Right to DockDropZone(Rect(540f, 40f, 604f, 600f)))
 
         // The palette brought against the drawn strip docks…
         val onStrip = Rect(440f, 300f, 700f, 600f)
@@ -237,6 +365,39 @@ class DockTargetFromDraggedRectTest {
         )
         // A side the layout does not draw is not a target at all.
         assertNull(workspace.dockTargetAt(Rect(120f, 300f, 320f, 600f), Offset(120f, 400f)), "no left zone is drawn")
+    }
+
+    @Test
+    fun `the pointer over a stack picks a rank, and beats a strip across its corner`() {
+        val workspace = workspace()
+        val geometry = requireNotNull(workspace.dockHostGeometry(a))
+        // A split left side with two panels (window px 0..200 wide, 40..600
+        // tall) and an empty top side whose strip runs across the stack's top.
+        geometry.zoneBoundsInWindowPx =
+            mapOf(
+                DockSide.Left to
+                    DockDropZone(
+                        strip = Rect(0f, 40f, 64f, 600f),
+                        slots =
+                            listOf(
+                                Rect(0f, 40f, 200f, 180f),
+                                Rect(0f, 180f, 200f, 460f),
+                                Rect(0f, 460f, 200f, 600f),
+                            ),
+                    ),
+                DockSide.Top to DockDropZone(Rect(0f, 40f, 800f, 104f)),
+            )
+        // The dragged ghost sits over the content, the pointer over the stack.
+        val ghost = Rect(400f, 300f, 600f, 450f)
+        assertEquals(DockTarget(a, DockSide.Left, 1), workspace.dockTargetAt(ghost, Offset(250f, 400f)))
+        assertEquals(DockTarget(a, DockSide.Left, 2), workspace.dockTargetAt(ghost, Offset(250f, 650f)))
+        // In the corner both the top strip and the first rank hold the pointer: the rank wins.
+        assertEquals(DockTarget(a, DockSide.Left, 0), workspace.dockTargetAt(ghost, Offset(250f, 160f)))
+        // Brought against the strip with the pointer away from the stack: the nearest rank along it.
+        val atLeft = Rect(120f, 300f, 320f, 600f)
+        assertEquals(DockTarget(a, DockSide.Left, 1), workspace.dockTargetAt(atLeft, Offset(220f, 450f)))
+        // An unranked side stays unranked.
+        assertEquals(DockTarget(a, DockSide.Top), workspace.dockTargetAt(ghost, Offset(500f, 170f)))
     }
 
     @Test
