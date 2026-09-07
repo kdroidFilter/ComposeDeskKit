@@ -70,7 +70,9 @@ private class FloatingDragSession(
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         val topLeft = pointer - grabOffsetPx
         origin.move(topLeft.x.toWindowCoordinate(), topLeft.y.toWindowCoordinate())
-        workspace.dockPreview = workspace.dockTargetAt(pointer)
+        // From the window, not the pointer: the palette is what the user sees
+        // moving, so the zone its edge has reached is the one to preview.
+        workspace.dockPreview = workspace.dockTargetAt(Rect(topLeft, windowSizePx()), pointer)
     }
 
     override fun end(pointerScreenPx: Offset) {
@@ -80,6 +82,11 @@ private class FloatingDragSession(
         cancel()
         if (target != null) workspace.dock(entry.id, target.side, host = target.host)
     }
+
+    /** The window's own size; read live, since a resize mid-drag is allowed. */
+    @Suppress("MagicNumber") // outer frame is [x, y, w, h]
+    private fun windowSizePx(): Size =
+        origin.outerBoundsPx()?.let { Size(it[2].toFloat(), it[3].toFloat()) } ?: Size.Zero
 }
 
 private class DockedDragSession(
@@ -100,18 +107,24 @@ private class DockedDragSession(
     override fun update(pointerScreenPx: Offset) {
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
-        workspace.dockPreview = workspace.dockTargetAt(pointer)?.takeIf { it != own }
+        val ghost = ghostRectPx()
+        // From the ghost, not the pointer: it is the thing on screen standing
+        // in for the panel, so the zone its edge has reached is the one to
+        // preview — the same rule as for a floating palette's window.
+        workspace.dockPreview = workspace.dockTargetAt(ghost, pointer)?.takeIf { it != own }
         // Follows the pointer for the whole gesture, including over a dock
         // zone: the panel is out of the layout as soon as the drag starts, and
         // seeing it hover is what makes the tear-out read.
-        workspace.dragGhost = DragGhost(entry, Rect(pointer - grabOffsetPx, panelScreenRectPx.size), scaleFactor)
+        workspace.dragGhost = DragGhost(entry, ghost, scaleFactor)
     }
+
+    private fun ghostRectPx(): Rect = Rect(pointer - grabOffsetPx, panelScreenRectPx.size)
 
     override fun end(pointerScreenPx: Offset) {
         if (!isLive) return
         pointer = pointerScreenPx.sanitizedOrNull() ?: pointer
         val drop = pointer
-        val target = workspace.dockTargetAt(drop)?.takeIf { it != own }
+        val target = workspace.dockTargetAt(ghostRectPx(), drop)?.takeIf { it != own }
         cancel()
         when {
             target != null -> workspace.dock(entry.id, target.side, host = target.host)

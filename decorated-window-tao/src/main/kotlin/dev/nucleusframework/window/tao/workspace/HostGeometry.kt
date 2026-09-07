@@ -9,7 +9,9 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntSize
+import dev.nucleusframework.window.tao.DockSide
 import dev.nucleusframework.window.tao.TaoWindow
+import dev.nucleusframework.window.tao.edgeStripPx
 
 /**
  * What a drop target inside a window publishes about itself: the window, the
@@ -32,6 +34,16 @@ internal class HostGeometry(
     /** The host's content size when [layoutBoundsInWindowPx] was captured. */
     var containerSizePx: IntSize = IntSize.Zero
 
+    /**
+     * The drop zones the target offers right now, in the host window
+     * (physical px) — exactly the rectangles it draws while a drag is in
+     * flight, so what a drag is hit-tested against is what the user sees.
+     * Empty while nothing is being dragged, or for a target that publishes
+     * none; the hit test then falls back to the edges of
+     * [layoutBoundsInWindowPx].
+     */
+    var zoneBoundsInWindowPx: Map<DockSide, Rect> = emptyMap()
+
     /** Physical pixels per dp on the host, `1` while the window has none yet. */
     fun scaleOrOne(): Float = scaleFactor().takeIf { it > 0f } ?: 1f
 
@@ -49,6 +61,21 @@ internal class HostGeometry(
 
     /** The target's rect on screen (physical px), `null` while [clientOriginPx] is. */
     fun layoutScreenRectPx(): Rect? = clientOriginPx()?.let { layoutBoundsInWindowPx.translate(it) }
+
+    /**
+     * The drop zones on screen (physical px): the published
+     * [zoneBoundsInWindowPx], else a strip of [zoneWidthPx] inside each edge
+     * of the layout — the same four zones the pointer hit test uses. `null`
+     * while [clientOriginPx] is.
+     */
+    fun zoneScreenRectsPx(zoneWidthPx: Float): Map<DockSide, Rect>? {
+        val origin = clientOriginPx() ?: return null
+        if (zoneBoundsInWindowPx.isNotEmpty()) {
+            return zoneBoundsInWindowPx.mapValues { (_, rect) -> rect.translate(origin) }
+        }
+        val rect = layoutBoundsInWindowPx.translate(origin)
+        return DockSide.entries.associateWith { side -> edgeStripPx(rect, side, zoneWidthPx) }
+    }
 }
 
 /**

@@ -176,6 +176,15 @@ public abstract interface class dev/nucleusframework/window/tao/ApplicationScope
 	public abstract fun getTaoApplication ()Ldev/nucleusframework/window/tao/TaoApplication;
 }
 
+public final class dev/nucleusframework/window/tao/ComposableSingletons$DockLayoutKt {
+	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$DockLayoutKt;
+	public fun <init> ()V
+	public final fun getLambda$-1338913852$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$-2018802953$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
+	public final fun getLambda$-795381038$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function3;
+	public final fun getLambda$1525993791$Nucleus_decorated_window_tao ()Lkotlin/jvm/functions/Function4;
+}
+
 public final class dev/nucleusframework/window/tao/ComposableSingletons$NativeViewKt {
 	public static final field INSTANCE Ldev/nucleusframework/window/tao/ComposableSingletons$NativeViewKt;
 	public fun <init> ()V
@@ -259,7 +268,8 @@ public final class dev/nucleusframework/window/tao/DmaBufTestTextureProducer$Com
 }
 
 public final class dev/nucleusframework/window/tao/DockLayoutKt {
-	public static final fun DockLayout (Ldev/nucleusframework/window/tao/SatelliteWorkspace;Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TaoWindow;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun DockLayout (Ldev/nucleusframework/window/tao/SatelliteWorkspace;Landroidx/compose/ui/Modifier;Ldev/nucleusframework/window/tao/TaoWindow;Ljava/util/List;Ljava/util/Set;Lkotlin/jvm/functions/Function3;Lkotlin/jvm/functions/Function4;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+	public static final fun getDefaultDockSideOrder ()Ljava/util/List;
 	public static final fun getDockPanelHeaderHeight ()F
 }
 
@@ -269,9 +279,22 @@ public final class dev/nucleusframework/window/tao/DockSide : java/lang/Enum {
 	public static final field Right Ldev/nucleusframework/window/tao/DockSide;
 	public static final field Top Ldev/nucleusframework/window/tao/DockSide;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public final fun getOpposite ()Ldev/nucleusframework/window/tao/DockSide;
 	public final fun isVertical ()Z
 	public static fun valueOf (Ljava/lang/String;)Ldev/nucleusframework/window/tao/DockSide;
 	public static fun values ()[Ldev/nucleusframework/window/tao/DockSide;
+}
+
+public final class dev/nucleusframework/window/tao/DockSplitterKt {
+	public static final fun DefaultDockSplitter (Ldev/nucleusframework/window/tao/DockSplitterScope;Landroidx/compose/runtime/Composer;I)V
+	public static final fun getDockSplitterThickness ()F
+}
+
+public abstract interface class dev/nucleusframework/window/tao/DockSplitterScope {
+	public abstract fun dockSplitterHandle (Landroidx/compose/ui/Modifier;)Landroidx/compose/ui/Modifier;
+	public abstract fun getOrientation ()Landroidx/compose/foundation/gestures/Orientation;
+	public abstract fun getPanel ()Ldev/nucleusframework/window/tao/SatelliteEntry;
+	public abstract fun getSide ()Ldev/nucleusframework/window/tao/DockSide;
 }
 
 public final class dev/nucleusframework/window/tao/DockTarget {
@@ -512,15 +535,19 @@ public abstract interface class dev/nucleusframework/window/tao/SatellitePlaceme
 
 public final class dev/nucleusframework/window/tao/SatellitePlacement$Docked : dev/nucleusframework/window/tao/SatellitePlacement {
 	public static final field $stable I
-	public fun <init> (Ldev/nucleusframework/window/tao/DockSide;I)V
-	public synthetic fun <init> (Ldev/nucleusframework/window/tao/DockSide;IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/nucleusframework/window/tao/DockSide;ILandroidx/compose/ui/unit/Dp;FILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ldev/nucleusframework/window/tao/DockSide;ILandroidx/compose/ui/unit/Dp;FLkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Ldev/nucleusframework/window/tao/DockSide;
 	public final fun component2 ()I
-	public final fun copy (Ldev/nucleusframework/window/tao/DockSide;I)Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;
-	public static synthetic fun copy$default (Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;Ldev/nucleusframework/window/tao/DockSide;IILjava/lang/Object;)Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;
+	public final fun component3-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
+	public final fun component4 ()F
+	public final fun copy-37wYfng (Ldev/nucleusframework/window/tao/DockSide;ILandroidx/compose/ui/unit/Dp;F)Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;
+	public static synthetic fun copy-37wYfng$default (Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;Ldev/nucleusframework/window/tao/DockSide;ILandroidx/compose/ui/unit/Dp;FILjava/lang/Object;)Ldev/nucleusframework/window/tao/SatellitePlacement$Docked;
 	public fun equals (Ljava/lang/Object;)Z
+	public final fun getExtent-lTKBWiU ()Landroidx/compose/ui/unit/Dp;
 	public final fun getOrder ()I
 	public final fun getSide ()Ldev/nucleusframework/window/tao/DockSide;
+	public final fun getWeight ()F
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -614,6 +641,7 @@ public final class dev/nucleusframework/window/tao/SatelliteWorkspace {
 	public final fun dock (Ljava/lang/String;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;Ldev/nucleusframework/window/tao/TaoWindow;)V
 	public static synthetic fun dock$default (Ldev/nucleusframework/window/tao/SatelliteWorkspace;Ljava/lang/String;Ldev/nucleusframework/window/tao/DockSide;Ljava/lang/Integer;Ldev/nucleusframework/window/tao/TaoWindow;ILjava/lang/Object;)V
 	public final fun dockExtent-u2uoSUM (Ldev/nucleusframework/window/tao/DockSide;)F
+	public final fun dockTargetAt-Uv8p0NA (Landroidx/compose/ui/geometry/Rect;J)Ldev/nucleusframework/window/tao/DockTarget;
 	public final fun dockTargetAt-k-4lQ0M (J)Ldev/nucleusframework/window/tao/DockTarget;
 	public final fun getDockPreview ()Ldev/nucleusframework/window/tao/DockTarget;
 	public final fun getDragGhost ()Ldev/nucleusframework/window/tao/DragGhost;
@@ -632,6 +660,8 @@ public final class dev/nucleusframework/window/tao/SatelliteWorkspace {
 	public final fun restore (Ldev/nucleusframework/window/tao/SatelliteLayoutSnapshot;)V
 	public final fun satellite (Ljava/lang/String;)Ldev/nucleusframework/window/tao/SatelliteEntry;
 	public final fun setDockExtent-3ABfNKs (Ldev/nucleusframework/window/tao/DockSide;F)V
+	public final fun setDockedExtent-3ABfNKs (Ljava/lang/String;F)V
+	public final fun setDockedWeight (Ljava/lang/String;F)V
 	public final fun setVisible (Z)V
 	public final fun snapshot ()Ldev/nucleusframework/window/tao/SatelliteLayoutSnapshot;
 	public final fun toggle (Ljava/lang/String;)V

@@ -29,6 +29,18 @@ class SatelliteWorkspaceTest {
         const val CHURN_CYCLES = 50
     }
 
+    /** Side and order of a docked placement; the extent it was seeded with is the floating size, not the point. */
+    private fun assertDockedAt(
+        side: DockSide,
+        order: Int,
+        placement: SatellitePlacement,
+        message: String? = null,
+    ) {
+        val docked = assertIs<SatellitePlacement.Docked>(placement, message)
+        assertEquals(side, docked.side, message)
+        assertEquals(order, docked.order, message)
+    }
+
     private val a = TaoWindow(handle = 1L)
     private val b = TaoWindow(handle = 2L)
 
@@ -225,7 +237,7 @@ class SatelliteWorkspaceTest {
         val tools = target.register("tools", "Tools", floatingRight, initiallyOpen = true)
         val restoredColors = target.register("colors", "Colors", floatingRight, initiallyOpen = true)
 
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 0), tools.placement)
+        assertDockedAt(DockSide.Left, 0, tools.placement)
         assertSame(b, tools.dockHost)
         assertEquals(333.dp, target.dockExtent(DockSide.Left))
         assertFalse(restoredColors.isOpen)
@@ -293,7 +305,7 @@ class SatelliteWorkspaceTest {
         session.end(Offset(880f, 400f))
         assertNull(workspace.dockPreview)
         assertNull(workspace.draggedSatellite, "the hints must go away when the drag ends")
-        assertEquals(SatellitePlacement.Docked(DockSide.Right, 0), entry.placement)
+        assertDockedAt(DockSide.Right, 0, entry.placement)
         assertSame(a, entry.dockHost)
     }
 
@@ -346,14 +358,14 @@ class SatelliteWorkspaceTest {
         var session = requireNotNull(workspace.beginDrag("tools", panelOrigin, Offset(150f, 200f)))
         session.update(Offset(160f, 300f))
         session.end(Offset(160f, 300f))
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 0), entry.placement, "released inside its own panel")
+        assertDockedAt(DockSide.Left, 0, entry.placement, "released inside its own panel")
 
         session = requireNotNull(workspace.beginDrag("tools", panelOrigin, Offset(150f, 200f)))
         assertSame(entry, workspace.draggedSatellite)
         session.update(Offset(500f, 690f))
         assertEquals(DockTarget(a, DockSide.Bottom), workspace.dockPreview)
         session.end(Offset(500f, 690f))
-        assertEquals(SatellitePlacement.Docked(DockSide.Bottom, 0), entry.placement)
+        assertDockedAt(DockSide.Bottom, 0, entry.placement)
         assertSame(a, entry.dockHost)
         assertNull(workspace.dockPreview)
         assertNull(workspace.draggedSatellite)
@@ -375,7 +387,7 @@ class SatelliteWorkspaceTest {
         assertNull(workspace.draggedSatellite)
         assertNull(workspace.dockPreview)
         assertNull(workspace.dragGhost)
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 0), entry.placement)
+        assertDockedAt(DockSide.Left, 0, entry.placement)
     }
 
     // ── Adversarial drags: teleporting pointers, overlapping gestures,
@@ -404,7 +416,7 @@ class SatelliteWorkspaceTest {
         assertEquals(DockTarget(a, DockSide.Bottom), workspace.dockPreview)
 
         session.end(Offset(880f, 400f))
-        assertEquals(SatellitePlacement.Docked(DockSide.Right, 0), entry.placement)
+        assertDockedAt(DockSide.Right, 0, entry.placement)
         assertNull(workspace.draggedSatellite)
         // Every jump moved the window, and none of them overflowed.
         assertTrue(moves.all { (x, y) -> x in -1_000_000..1_000_000 && y in -1_000_000..1_000_000 }, "moves=$moves")
@@ -437,10 +449,7 @@ class SatelliteWorkspaceTest {
 
         // A release carrying garbage still drops where the pointer last was.
         session.end(Offset.Unspecified)
-        assertEquals(
-            SatellitePlacement.Docked(DockSide.Right, 0),
-            requireNotNull(workspace.satellite("tools")).placement,
-        )
+        assertDockedAt(DockSide.Right, 0, requireNotNull(workspace.satellite("tools")).placement)
     }
 
     @Test
@@ -470,7 +479,7 @@ class SatelliteWorkspaceTest {
         live.update(Offset(880f, 400f))
         assertEquals(DockTarget(a, DockSide.Right), workspace.dockPreview)
         live.end(Offset(880f, 400f))
-        assertEquals(SatellitePlacement.Docked(DockSide.Right, 0), colors.placement)
+        assertDockedAt(DockSide.Right, 0, colors.placement)
         assertNull(workspace.draggedSatellite)
     }
 
@@ -483,7 +492,7 @@ class SatelliteWorkspaceTest {
 
         session.end(Offset(880f, 400f))
         val docked = entry.placement
-        assertEquals(SatellitePlacement.Docked(DockSide.Right, 0), docked)
+        assertDockedAt(DockSide.Right, 0, docked)
 
         // A duplicated release (a replayed event, a second finally block) must
         // not re-dock, re-order or resurrect the feedback.
@@ -594,7 +603,7 @@ class SatelliteWorkspaceTest {
 
         // No accumulated order drift: it is still the only panel on its side.
         workspace.dock("tools", DockSide.Right)
-        assertEquals(SatellitePlacement.Docked(DockSide.Right, 0), entry.placement)
+        assertDockedAt(DockSide.Right, 0, entry.placement)
         assertNull(workspace.draggedSatellite, "churn must not leave a drag behind")
     }
 
@@ -618,8 +627,8 @@ class SatelliteWorkspaceTest {
 
         workspace.dock("tools", DockSide.Left)
         workspace.dock("colors", DockSide.Left)
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 0), tools.placement)
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 1), colors.placement)
+        assertDockedAt(DockSide.Left, 0, tools.placement)
+        assertDockedAt(DockSide.Left, 1, colors.placement)
         assertNull(workspace.draggedSatellite)
         assertNull(workspace.dragGhost)
     }
@@ -638,7 +647,7 @@ class SatelliteWorkspaceTest {
         session.update(Offset(500f, 400f))
         workspace.undock("tools")
         workspace.restore(snapshot)
-        assertEquals(SatellitePlacement.Docked(DockSide.Left, 0), entry.placement)
+        assertDockedAt(DockSide.Left, 0, entry.placement)
 
         // The release reads the *current* placement, not the one the gesture
         // started from: released over the content, it tears the restored panel

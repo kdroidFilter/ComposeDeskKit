@@ -651,6 +651,75 @@ public object TaoSceneTestBattery {
             WindowPositionerTest().`an unconstrained placement is returned untouched by every adjustment`()
         }
 
+        run(
+            "SatelliteDockedGeometryTest: docking from a floating window brings its size along as the panel extent",
+        ) {
+            SatelliteDockedGeometryTest()
+                .`docking from a floating window brings its size along as the panel extent`()
+        }
+        run(
+            "SatelliteDockedGeometryTest: re-docking keeps the extent along the same axis and re-seeds it across axes",
+        ) {
+            SatelliteDockedGeometryTest()
+                .`re-docking keeps the extent along the same axis and re-seeds it across axes`()
+        }
+        run(
+            "SatelliteDockedGeometryTest: docked extent and weight are clamped and ignored for a floating satellite",
+        ) {
+            SatelliteDockedGeometryTest().`docked extent and weight are clamped and ignored for a floating satellite`()
+        }
+        run("SatelliteDockedGeometryTest: a panel moved between docks seeds its new side with the width it had") {
+            SatelliteDockedGeometryTest().`a panel moved between docks seeds its new side with the width it had`()
+        }
+        run("SatelliteDockedGeometryTest: a snapshot carries every panel's own extent and weight") {
+            SatelliteDockedGeometryTest().`a snapshot carries every panel's own extent and weight`()
+        }
+        run("SatelliteDockedGeometryTest: a docked placement refuses a weight that is not positive") {
+            SatelliteDockedGeometryTest().`a docked placement refuses a weight that is not positive`()
+        }
+        run("SatelliteDockedGeometryTest: every side has an opposite across the content") {
+            SatelliteDockedGeometryTest().`every side has an opposite across the content`()
+        }
+        run("DockLandingRectTest: a bottom preview spans the bottom band, not the layout") {
+            DockLandingRectTest().`a bottom preview spans the bottom band, not the layout`()
+        }
+        run("DockLandingRectTest: a layered side previews a new innermost layer") {
+            DockLandingRectTest().`a layered side previews a new innermost layer`()
+        }
+        run("DockLandingRectTest: a split side with a stack previews the stack the panel joins") {
+            DockLandingRectTest().`a split side with a stack previews the stack the panel joins`()
+        }
+        run("DockLandingRectTest: an empty side previews a strip at the edge of its band") {
+            DockLandingRectTest().`an empty side previews a strip at the edge of its band`()
+        }
+        run("DockLandingRectTest: the side the dragged panel frees is counted as already gone") {
+            DockLandingRectTest().`the side the dragged panel frees is counted as already gone`()
+        }
+        run("DockLandingRectTest: a side the dragged panel shares with another is not freed") {
+            DockLandingRectTest().`a side the dragged panel shares with another is not freed`()
+        }
+        run("DockLandingRectTest: without a measured band the layout itself is the band") {
+            DockLandingRectTest().`without a measured band the layout itself is the band`()
+        }
+        run("DockZoneHintSidesTest: a floating satellite is offered every side") {
+            DockZoneHintSidesTest().`a floating satellite is offered every side`()
+        }
+        run("DockZoneHintSidesTest: a docked panel is not offered the side it is on") {
+            DockZoneHintSidesTest().`a docked panel is not offered the side it is on`()
+        }
+        run("DockZoneHintSidesTest: another window offers the side too, since dropping there is a move") {
+            DockZoneHintSidesTest().`another window offers the side too, since dropping there is a move`()
+        }
+        run("DockTargetFromDraggedRectTest: the dragged rect decides the zone, not the pointer") {
+            DockTargetFromDraggedRectTest().`the dragged rect decides the zone, not the pointer`()
+        }
+        run("DockTargetFromDraggedRectTest: an inset zone is the target, not the window's own edge") {
+            DockTargetFromDraggedRectTest().`an inset zone is the target, not the window's own edge`()
+        }
+        run("DockTargetFromDraggedRectTest: a dragged rect covering every zone is resolved by the pointer") {
+            DockTargetFromDraggedRectTest().`a dragged rect covering every zone is resolved by the pointer`()
+        }
+
         run("SatelliteWorkspaceTest: the first member to join owns the satellites until focus moves") {
             SatelliteWorkspaceTest().`the first member to join owns the satellites until focus moves`()
         }

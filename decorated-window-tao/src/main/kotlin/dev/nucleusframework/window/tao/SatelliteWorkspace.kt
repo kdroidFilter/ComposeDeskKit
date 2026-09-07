@@ -26,6 +26,7 @@ import dev.nucleusframework.window.tao.workspace.clientOriginPx
 import dev.nucleusframework.window.tao.workspace.sanitizedOrNull
 import dev.nucleusframework.window.tao.workspace.supportsScreenPlacement
 import dev.nucleusframework.window.tao.workspace.warnScreenPlacementUnsupported
+import kotlin.math.abs
 
 /**
  * One satellite known to a [SatelliteWorkspace]: identity, placement and the
@@ -118,8 +119,13 @@ public data class SatelliteSnapshot(
  * satellite's placement and open state plus the dock extents. Produce it with
  * [SatelliteWorkspace.snapshot], apply it with [SatelliteWorkspace.restore].
  *
+ * A docked satellite's own size — [SatellitePlacement.Docked.extent] and
+ * [SatellitePlacement.Docked.weight] — rides in its placement, so the
+ * per-panel geometry of a layered or split side is part of the picture too.
+ *
  * @property satellites snapshots keyed by satellite id.
- * @property dockExtents width (left/right) or height (top/bottom) of each dock side.
+ * @property dockExtents width (left/right) or height (top/bottom) of each
+ *   split dock side, shared by the panels on it.
  */
 public data class SatelliteLayoutSnapshot(
     val satellites: Map<String, SatelliteSnapshot>,
@@ -219,10 +225,27 @@ public class SatelliteWorkspace(
     public fun plannedDockExtent(
         entry: SatelliteEntry,
         side: DockSide,
-    ): Dp =
-        extents[side] ?: entry.windowState.size
+    ): Dp = extents[side] ?: dockSeedExtent(entry, side)
+
+    /**
+     * The thickness [entry] brings with it when docked on [side]: its own
+     * extent when it comes from a dock on the same axis, else the size of its
+     * floating window along that axis. What [dock] gives the panel and, for a
+     * side with no extent of its own yet, what it seeds the side with — so a
+     * drop preview drawn at this width shows the width the drop produces.
+     */
+    internal fun dockSeedExtent(
+        entry: SatelliteEntry,
+        side: DockSide,
+    ): Dp {
+        val docked = entry.placement as? SatellitePlacement.Docked
+        if (docked != null && docked.side.isVertical == side.isVertical) {
+            return docked.extent ?: dockExtent(docked.side)
+        }
+        return entry.windowState.size
             .let { if (side.isVertical) it.width else it.height }
             .coerceAtLeast(MinDockExtent)
+    }
 
     /** Sets [dockExtent]; clamped to [MinDockExtent]. Driven by the [DockLayout] splitters. */
     public fun setDockExtent(
@@ -230,6 +253,41 @@ public class SatelliteWorkspace(
         extent: Dp,
     ) {
         extents[side] = extent.coerceAtLeast(MinDockExtent)
+    }
+
+    /**
+     * Sets the own thickness of the docked satellite [id]
+     * ([SatellitePlacement.Docked.extent]), clamped to [MinDockExtent]. What
+     * the splitter of a panel on a *layered* side drags; a no-op for a
+     * satellite that is not docked.
+     */
+    public fun setDockedExtent(
+        id: String,
+        extent: Dp,
+    ) {
+        updateDocked(id) { it.copy(extent = extent.coerceAtLeast(MinDockExtent)) }
+    }
+
+    /**
+     * Sets the share of a split side the docked satellite [id] takes
+     * ([SatellitePlacement.Docked.weight]); values at or below zero are
+     * clamped to a small positive share. What the divider between two panels
+     * on a *split* side drags; a no-op for a satellite that is not docked.
+     */
+    public fun setDockedWeight(
+        id: String,
+        weight: Float,
+    ) {
+        updateDocked(id) { it.copy(weight = weight.coerceAtLeast(MIN_DOCK_WEIGHT)) }
+    }
+
+    private fun updateDocked(
+        id: String,
+        transform: (SatellitePlacement.Docked) -> SatellitePlacement.Docked,
+    ) {
+        val entry = entryMap[id] ?: return
+        val docked = entry.placement as? SatellitePlacement.Docked ?: return
+        entry.placement = transform(docked)
     }
 
     // ── Members ──────────────────────────────────────────────────────────
@@ -285,8 +343,12 @@ public class SatelliteWorkspace(
      * Docks the satellite [id] on [side] of a [DockLayout]: the one in [host]
      * when given, else — for a satellite already docked — the host it is in,
      * else the current [owner]'s. [order] positions it among the panels on
-     * that side; `null` appends it after them. The first satellite docked on a
-     * side seeds that side's [dockExtent] from its floating size.
+     * that side; `null` appends it after them. The satellite brings its
+     * thickness along ([dockSeedExtent]): its own extent when it comes from a
+     * dock on the same axis, else the size of its floating window. A side
+     * with no [dockExtent] of its own yet is seeded with it, so the panel
+     * keeps the width it had wherever it lands. A satellite moved between
+     * docks keeps its weight.
      */
     public fun dock(
         id: String,
@@ -296,11 +358,12 @@ public class SatelliteWorkspace(
     ) {
         val entry = entryMap[id] ?: return
         val current = entry.placement
-        if (current is SatellitePlacement.Floating) {
-            entry.lastFloating = currentFloating(entry, current)
-            if (side !in extents) setDockExtent(side, plannedDockExtent(entry, side))
-        }
-        entry.placement = SatellitePlacement.Docked(side, order ?: nextOrder(side, exclude = entry))
+        val extent = dockSeedExtent(entry, side)
+        val weight = (current as? SatellitePlacement.Docked)?.weight ?: 1f
+        if (current is SatellitePlacement.Floating) entry.lastFloating = currentFloating(entry, current)
+        if (side !in extents) setDockExtent(side, extent)
+        entry.placement =
+            SatellitePlacement.Docked(side, order ?: nextOrder(side, exclude = entry), extent, weight)
         entry.preferredDockSide = side
         entry.dockHost =
             host?.takeIf { it in members }
@@ -404,13 +467,36 @@ public class SatelliteWorkspace(
      * nothing of it is on screen to drop onto. `null` over content or outside
      * every layout.
      */
-    public fun dockTargetAt(screenPx: Offset): DockTarget? {
+    public fun dockTargetAt(screenPx: Offset): DockTarget? = zoneOf { it.dockHitTest(screenPx, DockZoneWidth) }
+
+    /**
+     * The dock zone the satellite being dragged would land in, decided from
+     * **where the satellite is** rather than from where the pointer is: the
+     * zone [draggedScreenRectPx] — the floating window's frame, or the ghost
+     * of a panel being torn out — has entered, the nearest edge winning. That
+     * is what the user sees moving, so a palette whose edge has reached the
+     * left strip highlights it even though the pointer is still in the middle
+     * of the palette.
+     *
+     * The rect has to overlap the layout at all; a window merely parked beside
+     * one is no drop. When the rect covers several zones at once — a palette
+     * larger than the layout — [pointerScreenPx] breaks the tie, so a drop
+     * still goes where the user is aiming. Overlapping layouts are tried as
+     * for the pointer overload: the [owner]'s first, then by focus recency,
+     * stopping at the layout the pointer is over.
+     */
+    public fun dockTargetAt(
+        draggedScreenRectPx: Rect,
+        pointerScreenPx: Offset,
+    ): DockTarget? = zoneOf { it.dockHitTest(draggedScreenRectPx, pointerScreenPx, DockZoneWidth) }
+
+    private inline fun zoneOf(hitTest: (HostGeometry) -> DockHit?): DockTarget? {
         val hit =
             dockHosts
                 .ordered(group.membersByRecency)
                 .asSequence()
                 .filter { !it.minimized() }
-                .firstNotNullOfOrNull { it.dockHitTest(screenPx, DockZoneWidth) }
+                .firstNotNullOfOrNull(hitTest)
         return (hit as? DockHit.Zone)?.target
     }
 
@@ -723,6 +809,9 @@ public class SatelliteWorkspace(
         /** Depth of the drop zone inside each edge of a [DockLayout]. */
         public val DockZoneWidth: Dp = 64.dp
 
+        /** Smallest share a split-side panel can be dragged down to; keeps its divider reachable. */
+        private const val MIN_DOCK_WEIGHT = 0.05f
+
         /** Pins the satellite's top-left corner at [offset] from the owner's, sliding on-screen if needed. */
         internal fun offsetPositioner(offset: DpOffset): WindowPositioner =
             WindowPositioner(
@@ -815,6 +904,123 @@ internal fun HostGeometry.dockHitTest(
     val side = dockSideAt(rect, screenPx, zoneWidth.value * scaleFactor())
     return if (side != null) DockHit.Zone(DockTarget(host, side)) else DockHit.Content
 }
+
+/**
+ * Where the dragged satellite [draggedRectPx] falls on this [DockLayout]
+ * geometry, with the pointer at [pointerPx]: [DockHit.Zone] for the zone it
+ * has entered, [DockHit.Content] when it is over the layout but clear of every
+ * zone, `null` when neither it nor the pointer is on this layout at all.
+ */
+internal fun HostGeometry.dockHitTest(
+    draggedRectPx: Rect,
+    pointerPx: Offset,
+    zoneWidth: Dp,
+): DockHit? {
+    val rect = layoutScreenRectPx() ?: return null
+    val overlaps = !rect.intersect(draggedRectPx).isEmpty
+    val onPointer = rect.contains(pointerPx)
+    if (!overlaps && !onPointer) return null
+    val zones = zoneScreenRectsPx(zoneWidth.value * scaleFactor()) ?: return null
+    val side = dockSideEntered(zones, draggedRectPx, pointerPx)
+    // Over the layout, in a zone or not: no other layout under it is
+    // consulted, exactly as for a pointer hit.
+    return if (side != null) DockHit.Zone(DockTarget(host, side)) else DockHit.Content
+}
+
+/**
+ * The zone of [zones] the dragged satellite has brought its edge to, or —
+ * failing that — the zone [pointer] is in.
+ *
+ * [zones] are the rectangles the target actually draws, so the region that
+ * lights up is the region a drag is measured against: on a layered side that
+ * is the strip inset behind the layers already docked there, not the window's
+ * own edge, which sits behind them.
+ *
+ * "Brought its edge to" is the satellite's own edge within one zone thickness
+ * of the zone's outer edge, and the satellite overlapping the zone across the
+ * other axis. The edge rather than any overlap is what keeps a tear-out
+ * possible: a panel as tall as the layout overlaps the top and bottom strips
+ * wherever it is dragged, and treating that as "entered" would pin it to a
+ * zone for the whole gesture.
+ *
+ * Several zones at once — a palette larger than the layout reaches all four —
+ * are resolved by [pointer] when it is in exactly one of them, so an
+ * ambiguous overlap still drops where the user aims; else the closest edge
+ * wins.
+ */
+internal fun dockSideEntered(
+    zones: Map<DockSide, Rect>,
+    dragged: Rect,
+    pointer: Offset,
+): DockSide? {
+    val live = zones.filterValues { !it.isEmpty }
+    val gaps =
+        live
+            .filter { (side, zone) -> overlapsAcross(zone, dragged, side) }
+            .mapValues { (side, zone) -> abs(edgePx(dragged, side) - outerEdgePx(zone, side)) }
+            .filter { (side, gap) -> gap <= thicknessPx(live.getValue(side), side) }
+    val underPointer = live.filterValues { it.contains(pointer) }.keys
+    val candidates = gaps.keys + underPointer
+    candidates.singleOrNull()?.let { return it }
+    if (candidates.isEmpty()) return null
+    underPointer.singleOrNull()?.let { return it }
+    return candidates.minBy { gaps[it] ?: Float.MAX_VALUE }
+}
+
+/** Whether [dragged] overlaps [zone] along the axis the zone runs on. */
+private fun overlapsAcross(
+    zone: Rect,
+    dragged: Rect,
+    side: DockSide,
+): Boolean =
+    if (side.isVertical) {
+        dragged.top < zone.bottom && zone.top < dragged.bottom
+    } else {
+        dragged.left < zone.right && zone.left < dragged.right
+    }
+
+/** The zone's outer boundary: the one against the layout's [side] edge. */
+private fun outerEdgePx(
+    zone: Rect,
+    side: DockSide,
+): Float =
+    when (side) {
+        DockSide.Left -> zone.left
+        DockSide.Right -> zone.right
+        DockSide.Top -> zone.top
+        DockSide.Bottom -> zone.bottom
+    }
+
+/** The zone's own thickness: how far a satellite's edge may sit from it and still count. */
+private fun thicknessPx(
+    zone: Rect,
+    side: DockSide,
+): Float = if (side.isVertical) zone.width else zone.height
+
+/** A strip of [widthPx] inside [rect]'s [side] edge: the zone a plain layout offers. */
+internal fun edgeStripPx(
+    rect: Rect,
+    side: DockSide,
+    widthPx: Float,
+): Rect =
+    when (side) {
+        DockSide.Left -> Rect(rect.left, rect.top, rect.left + widthPx, rect.bottom)
+        DockSide.Right -> Rect(rect.right - widthPx, rect.top, rect.right, rect.bottom)
+        DockSide.Top -> Rect(rect.left, rect.top, rect.right, rect.top + widthPx)
+        DockSide.Bottom -> Rect(rect.left, rect.bottom - widthPx, rect.right, rect.bottom)
+    }
+
+/** The edge of [rect] that faces [side]'s zone. */
+private fun edgePx(
+    rect: Rect,
+    side: DockSide,
+): Float =
+    when (side) {
+        DockSide.Left -> rect.left
+        DockSide.Right -> rect.right
+        DockSide.Top -> rect.top
+        DockSide.Bottom -> rect.bottom
+    }
 
 /**
  * The dock zone of [rect] that [point] falls in: the nearest edge when the

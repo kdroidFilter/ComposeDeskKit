@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -412,12 +413,19 @@ public fun SatelliteScope.DefaultSatelliteHeader() {
         modifier =
             Modifier
                 .fillMaxWidth()
-                // Full height so the whole header strip is the grip, not just
-                // the band its content happens to occupy. The chip is inset
-                // inside that, so it reads as an object sitting in the bar
-                // while the area a press lands on stays the whole strip.
-                .fillMaxHeight()
-                .then(if (chip) Modifier.padding(vertical = CHIP_INSET_DP.dp) else Modifier)
+                // Docked, the strip sizes itself: the dock frame imposes no
+                // height, so a custom header can be as tall as it likes.
+                // Floating, full height so the whole header strip is the grip,
+                // not just the band its content happens to occupy. The chip is
+                // inset inside that, so it reads as an object sitting in the
+                // bar while the area a press lands on stays the whole strip.
+                .then(
+                    if (isDocked) {
+                        Modifier.height(DockPanelHeaderHeight).background(colors.background)
+                    } else {
+                        Modifier.fillMaxHeight()
+                    },
+                ).then(if (chip) Modifier.padding(vertical = CHIP_INSET_DP.dp) else Modifier)
                 .then(if (isDocked) Modifier.satelliteDragHandle(this) else Modifier)
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
