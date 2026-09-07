@@ -547,6 +547,11 @@ internal class TaoPopupSceneLayer(
     }
 
     override fun close() {
+        // Idempotent: an owner torn down mid-animation closes its surviving
+        // layers itself (see the host's detach sweep), and Compose then
+        // disposes the same layer as the composition unwinds. A second pass
+        // would release the native panel twice.
+        if (disposed) return
         host.unregisterRenderer(rendererToken)
         host.onLayerClosed(this)
         host.popupScrims.unregister(rendererToken)

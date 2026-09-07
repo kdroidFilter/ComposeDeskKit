@@ -37,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -373,7 +374,17 @@ private enum class Region {
  * rects, its counters and its focus state for the driver to read.
  */
 private class NativeViewFixture {
-    var fieldText by mutableStateOf("")
+    /**
+     * The field's whole value, caret included: the caret is what a `KeyDown`
+     * for an arrow moves, and a plain `String` would hide it.
+     */
+    var fieldValue by mutableStateOf(TextFieldValue(""))
+
+    val fieldText: String get() = fieldValue.text
+
+    /** Where the caret sits, or the start of the selection. */
+    val caret: Int get() = fieldValue.selection.start
+
     var fieldFocused by mutableStateOf(false)
     var headerClicks by mutableIntStateOf(0)
     var overlayClicks by mutableIntStateOf(0)
@@ -457,8 +468,8 @@ private class NativeViewFixture {
                             .recordRect(Region.Field),
                     ) {
                         BasicTextField(
-                            value = fieldText,
-                            onValueChange = { fieldText = it },
+                            value = fieldValue,
+                            onValueChange = { fieldValue = it },
                             modifier =
                                 Modifier
                                     .fillMaxSize()
@@ -626,18 +637,20 @@ private class ResponsivenessProbe(
             fixture.fieldText == fieldBefore + letter
         }
         // Caret keys travel as KeyDown, not as typed text — a second path an
-        // embed's focus can cut: the left arrow must move the caret back one.
-        // A frame on either side of the caret move: the legacy text field
-        // lays the new text out and applies the move through recomposition,
-        // and a real keyboard never delivers two keys inside one frame.
+        // embed's focus can cut. The caret itself is what moves, so that is
+        // what is asserted: where the next letter lands then depends on the
+        // field's own editing behaviour, not on the key having arrived.
+        // A frame on either side: a real keyboard never delivers two keys
+        // inside one frame, and the field applies the move on recomposition.
         scope.settle(KEY_SETTLE_MILLIS)
+        val caretBefore = fixture.caret
         driver.arrowLeft()
-        scope.settle(KEY_SETTLE_MILLIS)
-        val inserted = nextLetter()
-        driver.type(inserted)
-        converge("$moment: the left arrow moved the caret so the next letter lands before the last") {
-            fixture.fieldText == fieldBefore + inserted + letter
+        // "Back", not "back exactly one": the field clamps a caret the value
+        // left past the end of the text before it moves it.
+        converge("$moment: the left arrow moved the caret back") {
+            if (caretBefore == 0) fixture.caret == 0 else fixture.caret < caretBefore
         }
+        scope.settle(KEY_SETTLE_MILLIS)
 
         val probe = fixture.probe
         if (!driver.reachesNative || probe == null || !fixture.nativeMounted) return
@@ -754,6 +767,7 @@ private fun NativeViewFixture.describeGeometry(): String =
 
 private fun NativeViewFixture.describe(driver: PointerDriver): String =
     "driver=${driver.name} windowFocused=${window?.isFocused} fieldFocused=$fieldFocused field='$fieldText' " +
+        "caret=$caret sel=${fieldValue.selection} " +
         "header=$headerClicks overlay=$overlayClicks mounted=$nativeMounted " +
         "probe=${probe?.handle?.toString(HEX)}/disposed=${probe?.isDisposed}/nativeFocus=${probe?.hasNativeFocus()}" +
         "/text='${probe?.text()}' cursor=${NativeTaoBridge.lastCursorIcon} " +

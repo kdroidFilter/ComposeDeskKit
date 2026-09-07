@@ -312,6 +312,27 @@ Java_dev_nucleusframework_window_tao_ffi_NativeTaoWindowsNativeViewBridge_native
     return JNI_TRUE;
 }
 
+/* The pointer's position in [parentHwnd]'s client pixels, packed as
+ * `(x << 32) | (y & 0xffffffff)`, or LLONG_MIN when it cannot be read.
+ *
+ * Tao reports a button without a position, so the scene places it where the
+ * last `CursorMoved` left the pointer — and Tao drops a `WM_MOUSEMOVE` whose
+ * coordinate equals the last one *it* saw. Every move over a `NativeView`
+ * goes to the blending overlay instead, so Tao's idea of the position goes
+ * stale and a click that comes back to a point it saw before is placed where
+ * the pointer no longer is. The host asks Win32 instead. */
+JNIEXPORT jlong JNICALL
+Java_dev_nucleusframework_window_tao_ffi_NativeTaoWindowsNativeViewBridge_nativeCursorPosInClient(
+    JNIEnv *env, jclass clazz, jlong parentHwnd) {
+    (void)env; (void)clazz;
+    HWND parent = hwnd_from_jlong(parentHwnd);
+    if (!IsWindow(parent)) return MININT64;
+    POINT pt;
+    if (!GetCursorPos(&pt)) return MININT64;
+    if (!ScreenToClient(parent, &pt)) return MININT64;
+    return ((jlong)pt.x << 32) | ((jlong)pt.y & 0xffffffffLL);
+}
+
 /* ── Diagnostics for the headful suite ──────────────────────────────────
  *
  * A NativeView case needs a real, focusable child HWND — one that takes

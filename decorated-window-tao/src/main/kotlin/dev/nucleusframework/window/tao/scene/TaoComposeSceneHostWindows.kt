@@ -1239,7 +1239,22 @@ internal class TaoComposeSceneHostWindows(
     }
 
     fun onFocusChanged(focused: Boolean) {
-        windowInfo.isWindowFocused = focused
+        // Win32 focus moving to an embedded child (a `NativeView`, WebView2)
+        // reaches Tao as the main HWND losing it, but the window is still the
+        // one the user is working in. Telling the scene otherwise puts its
+        // focus system to sleep: carets stop, `clearFocus` stops taking, and
+        // anything reading `LocalWindowInfo.isWindowFocused` goes inactive
+        // under the user's hands. `DecoratedWindow` keeps its chrome active
+        // through the same question.
+        windowInfo.isWindowFocused = focused || isFocusInsideWindowTree()
+    }
+
+    /** Whether Win32 keyboard focus is on this window or on something it contains. */
+    private fun isFocusInsideWindowTree(): Boolean {
+        if (hwnd == 0L) return false
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return false
+        return dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+            .nativeIsFocusInTree(hwnd)
     }
 
     private fun updateWindowInfoSize() {
@@ -1477,6 +1492,8 @@ internal class TaoComposeSceneHostWindows(
         currentKeyboardModifiers = taoKeyboardModifiers(window.modifierState)
         windowInfo.keyboardModifiers = currentKeyboardModifiers
         healStaleNativePresses()
+        // Tao saw this move, so its own idea of the position is current again.
+        pointerPositionSetByOverlay = false
         if (!pointerDeadband.shouldDispatchMove(xPx, yPx, scale)) return
         scene?.sendPointerEvent(
             eventType = PointerEventType.Move,
@@ -1509,6 +1526,7 @@ internal class TaoComposeSceneHostWindows(
         pressed: Boolean,
     ) {
         if (nativePointerRedispatchInFlight) return
+        syncPointerPositionFromWin32()
         if (consumeOverlayEcho(mapButton(buttonCode), pressed)) return
         currentKeyboardModifiers = taoKeyboardModifiers(window.modifierState)
         windowInfo.keyboardModifiers = currentKeyboardModifiers
@@ -1559,6 +1577,50 @@ internal class TaoComposeSceneHostWindows(
         if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
         dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
             .nativeClaimKeyboardForCompose(hwnd)
+    }
+
+    /**
+     * Whether the scene's pointer position came from the blending overlay,
+     * which Tao knows nothing about — see [syncPointerPositionFromWin32].
+     */
+    private var pointerPositionSetByOverlay: Boolean = false
+
+    /**
+     * Puts the scene's pointer back where Win32 says it is, moving it there
+     * first when it has drifted.
+     *
+     * Tao reports a button press without a position, so the scene places it
+     * where the last move left the pointer — and Tao drops a `WM_MOUSEMOVE`
+     * whose coordinate equals the last one *it* saw. Every move over a
+     * `NativeView` is delivered to the blending overlay instead, which never
+     * reaches Tao, so its idea of the position goes stale: a pointer that
+     * leaves the embed and comes back to a point Tao saw before gets no move
+     * at all, and the click that follows is dispatched onto the embed the
+     * user just left. It is dead, and so is every click after it.
+     */
+    private fun syncPointerPositionFromWin32() {
+        if (!pointerPositionSetByOverlay) return
+        pointerPositionSetByOverlay = false
+        if (hwnd == 0L) return
+        if (!dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge.isLoaded) return
+        val packed =
+            dev.nucleusframework.window.tao.ffi.NativeTaoWindowsNativeViewBridge
+                .nativeCursorPosInClient(hwnd)
+        if (packed == Long.MIN_VALUE) return
+        val xPx = (packed shr 32).toInt().toFloat()
+        val yPx = packed.toInt().toFloat()
+        if (kotlin.math.abs(xPx - pointerDeadband.x) < 1f && kotlin.math.abs(yPx - pointerDeadband.y) < 1f) return
+        lastPointerX = xPx
+        lastPointerY = yPx
+        pointerDeadband.shouldDispatchMove(xPx, yPx, scale)
+        // The scene has to *travel* there: a press on a node the pointer was
+        // never seen entering leaves hover and cursor state on the old one.
+        scene?.sendPointerEvent(
+            eventType = PointerEventType.Move,
+            position = Offset(pointerDeadband.x, pointerDeadband.y),
+            type = PointerType.Mouse,
+            keyboardModifiers = currentKeyboardModifiers,
+        )
     }
 
     /**
@@ -2029,10 +2091,17 @@ internal class TaoComposeSceneHostWindows(
                     // The embed takes the keyboard with this press (the bridge
                     // SetFocuses it before forwarding): a Compose text field
                     // must not keep showing a caret beside the embed's.
-                    // Deferred — this runs inside the Press dispatch.
-                    outer.flushingDispatcher.enqueue(
-                        Runnable { outer.capturedFocusManager?.clearFocus(force = true) },
-                    )
+                    //
+                    // Deferred, because this runs inside the Press dispatch —
+                    // but on the main dispatcher, not the frame queue: the
+                    // press may be the one that opens the embed's own context
+                    // menu, whose modal loop stops the window painting, and a
+                    // focus clear waiting for a frame would never run while
+                    // the menu the user is looking at is up.
+                    dev.nucleusframework.window.tao.dispatch.TaoMainDispatcher
+                        .dispatch(kotlin.coroutines.EmptyCoroutineContext) {
+                            outer.capturedFocusManager?.clearFocus(force = true)
+                        }
                 }
                 outer.nativePointerRedispatchInFlight = true
                 try {
@@ -2040,6 +2109,7 @@ internal class TaoComposeSceneHostWindows(
                         .nativeDispatchPointer(parent, handle, type, xPx, yPx, button, pressed)
                 } finally {
                     outer.nativePointerRedispatchInFlight = false
+                    outer.window.resetRedrawLatch()
                 }
             }
 
@@ -2061,6 +2131,12 @@ internal class TaoComposeSceneHostWindows(
                         .nativeDispatchScroll(parent, handle, xPx, yPx, dx, dy)
                 } finally {
                     outer.nativePointerRedispatchInFlight = false
+                    // Handing an event to a child HWND runs its handler on this
+                    // thread, and anything it pumps swallows the redraw this
+                    // window had pending — the coalescing latch then suppresses
+                    // every later request and the window silently stops
+                    // painting. See TaoWindow.resetRedrawLatch.
+                    outer.window.resetRedrawLatch()
                 }
             }
         }
@@ -2160,6 +2236,7 @@ internal class TaoComposeSceneHostWindows(
         ) {
             lastPointerX = x
             lastPointerY = y
+            pointerPositionSetByOverlay = true
             currentKeyboardModifiers = taoKeyboardModifiers(modifiers)
             windowInfo.keyboardModifiers = currentKeyboardModifiers
             val pointerButton =
@@ -2217,10 +2294,10 @@ internal class TaoComposeSceneHostWindows(
     }
 
     // Hop the debounced semantics walk onto the render thread (it touches
-    // Compose state) and request a redraw. See AbstractTaoComposeSceneHost.
+    // Compose state); the enqueue asks for the frame that drains it. See
+    // AbstractTaoComposeSceneHost.
     override fun dispatchA11yWalk(block: () -> Unit) {
         flushingDispatcher.enqueue(Runnable { block() })
-        window.requestRedraw()
     }
 
     /**
@@ -2392,8 +2469,15 @@ internal class TaoComposeSceneHostWindows(
             window.requestRedraw()
         }
 
+        /**
+         * Queues [block] for the next drain. The drains all sit in the frame
+         * path, so this asks for a frame too — a window with nothing else to
+         * redraw would otherwise hold the block forever (a focus clear that
+         * never runs leaves two carets on screen).
+         */
         fun enqueue(block: Runnable) {
             queue.add(block)
+            window.requestRedraw()
         }
 
         fun drain() {

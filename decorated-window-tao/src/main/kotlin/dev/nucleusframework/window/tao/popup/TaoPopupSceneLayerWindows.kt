@@ -424,6 +424,11 @@ internal class TaoPopupSceneLayerWindows(
     override var consumePointerInputOutside: Boolean = initialConsumePointerInputOutside
 
     override fun close() {
+        // Idempotent: an owner torn down mid-animation closes its surviving
+        // layers itself (see the host's detach sweep), and Compose then
+        // disposes the same layer as the composition unwinds. A second pass
+        // would release the native panel twice.
+        if (released) return
         released = true
         host.notifyPopupClosing()
         host.unregisterRenderer(rendererToken)

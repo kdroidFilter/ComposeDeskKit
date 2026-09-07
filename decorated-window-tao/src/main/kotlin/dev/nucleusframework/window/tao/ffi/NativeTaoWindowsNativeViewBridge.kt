@@ -114,6 +114,15 @@ internal object NativeTaoWindowsNativeViewBridge {
     @JvmStatic
     external fun nativeReleaseChildCapture(parentHwnd: Long): Boolean
 
+    /**
+     * The pointer's position in [parentHwnd]'s client pixels, packed as
+     * `(x shl 32) or (y and 0xffffffff)`, or [Long.MIN_VALUE] when it cannot
+     * be read. Tao reports a button without one, and the move that would
+     * have carried it may never have reached the window.
+     */
+    @JvmStatic
+    external fun nativeCursorPosInClient(parentHwnd: Long): Long
+
     // ── Diagnostics for the headful suite ─────────────────────────────
 
     /**
