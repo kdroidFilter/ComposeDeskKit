@@ -37,6 +37,32 @@ class TabWorkspaceTest {
     // ── Declaration and placement ────────────────────────────────────────
 
     @Test
+    fun `a right-to-left strip resolves its insertion indices from the right`() {
+        val workspace = TabWorkspace()
+        val group = workspace.rtlStrip()
+
+        // Slots run from high x to low: "a" is the rightmost tab.
+        // Right of every midpoint is the first place; left of every one, the last.
+        assertEquals(0, workspace.insertionIndex(group, 295f, exclude = null))
+        assertEquals(1, workspace.insertionIndex(group, 205f, exclude = null))
+        assertEquals(2, workspace.insertionIndex(group, 105f, exclude = null))
+        assertEquals(3, workspace.insertionIndex(group, 5f, exclude = null))
+        // The dragged tab's own slot is not counted, so the index it would land
+        // at is the one it already has.
+        assertEquals(0, workspace.insertionIndex(group, 295f, exclude = workspace.tab("a")))
+        assertEquals(1, workspace.insertionIndex(group, 105f, exclude = workspace.tab("b")))
+    }
+
+    /** Three placed tabs, laid out right to left: "a" at 200..300, "b" at 100..200, "c" at 0..100. */
+    private fun TabWorkspace.rtlStrip(): TabWindowGroup {
+        for (id in listOf("a", "b", "c")) register(id, id.uppercase(), groupId = null)
+        val group = requireNotNull(groups.firstOrNull())
+        group.slotsInWindowPx =
+            listOf(Rect(200f, 0f, 300f, 40f), Rect(100f, 0f, 200f, 40f), Rect(0f, 0f, 100f, 40f))
+        return group
+    }
+
+    @Test
     fun `the first tab opens a window and the next ones join it`() {
         val workspace = TabWorkspace()
 
@@ -305,6 +331,42 @@ class TabWorkspaceTest {
             },
         )
         group.slotsInWindowPx = List(tabCount) { index -> Rect(index * 100f, 0f, (index + 1) * 100f, 40f) }
+    }
+
+    @Test
+    fun `the card entering a strip is a drop before the pointer reaches it`() {
+        val workspace = TabWorkspace()
+        val (left, right) = workspace.twoStripWindows()
+
+        // Pointer below the right strip (which spans y 0..40), the card it
+        // carries reaching up into it: the drop is previewed already.
+        val pointer = Offset(1020f, 60f)
+        val card = Rect(1020f, 20f, 1120f, 60f)
+        assertNull(workspace.dropTargetAt(pointer), "the pointer alone is below the strip")
+        assertEquals(TabDropTarget(right, 0), workspace.dropTargetAt(card, pointer))
+
+        // The pointer still wins where both answer: it is in the left strip
+        // while the card overlaps the right one.
+        assertEquals(
+            TabDropTarget(left, 1),
+            workspace.dropTargetAt(Rect(1020f, 0f, 1120f, 40f), Offset(80f, 20f)),
+        )
+
+        // Clear of every strip, card included: no drop.
+        assertNull(workspace.dropTargetAt(Rect(400f, 300f, 500f, 340f), Offset(400f, 340f)))
+    }
+
+    @Test
+    fun `a dragged window's own strip never answers for the card either`() {
+        val workspace = TabWorkspace()
+        val (left, right) = workspace.twoStripWindows()
+
+        // The card is the dragged window's own strip, laid over the other's:
+        // its own group is skipped and the search carries on to the one below.
+        assertEquals(
+            TabDropTarget(right, 0),
+            workspace.dropTargetAt(Rect(1000f, 0f, 1800f, 40f), Offset(1020f, 20f), excludeGroup = left),
+        )
     }
 
     @Test
